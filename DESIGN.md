@@ -117,15 +117,18 @@ logged.
 
 ## Desktop layout (≥ 900px)
 
-Max width 1920px, centered. The page is at least the viewport tall, so on a
-large screen the two lower cards stretch and the prayer rows grow with them
-rather than leaving dead space. Type and spacing scale with `clamp()` so 1920px
-and 2560px look deliberate rather than magnified.
+Content is capped at 1160px wide and centred. The page is only as tall as its
+content: the rows keep a fixed height instead of stretching to fill the
+screen. The few sizes that still use `clamp()` grow slightly with the window
+and stop by about 1440px, so 1920px and 2560px look the same as a laptop,
+just with more margin, rather than magnified.
 
-Note that the card padding and gaps cost height: at 1366x768 the view is about
-150px taller than the viewport and scrolls, and about 85px at 1920x1080. The
-prayer rows are already at their floor, the height of a 44px mark, so fitting a
-short laptop screen again would mean smaller cards or smaller tap targets.
+The scale is deliberately compact. Body text is 15px, prayer names 17–19px,
+the next-prayer name 40–52px (36–46px on a phone), and the status circles 22px
+on a phone and 24px on desktop. Each circle sits in a 44px tap area, which also
+sets the row height. On a 390x844 iPhone the next-prayer card and all five
+Today rows fit on the first screen. At 1366x768 the whole view is about 40px
+taller than the window; at 1920x1080 it fits with room to spare.
 
 1. **Masthead** — "Kharwa" wordmark in Playfair on the left; the Gregorian date
    with the Hijri date beneath it as a small-caps line; a settings ghost button

@@ -42,9 +42,9 @@
 
   /* One vertical rhythm, used everywhere */
   --s1: 8px;
-  --s2: 16px;
-  --s3: 24px;
-  --s4: 40px;
+  --s2: 14px;
+  --s3: 20px;
+  --s4: 32px;
 
   /* Surfaces */
   --radius-btn:  6px;
@@ -54,7 +54,7 @@
 
   --ease: 170ms ease-out;
   --tap: 44px;
-  --mark-size: 26px;
+  --mark-size: 22px;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -66,8 +66,8 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--sans);
-  font-size: 16px;
-  line-height: 1.75;
+  font-size: 15px;
+  line-height: 1.7;
   letter-spacing: 0.01em;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
@@ -129,7 +129,7 @@ button, a, input, select, textarea, label,
 
 .wordmark {
   font-family: var(--serif);
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 500;
   letter-spacing: -0.01em;
   line-height: 1.1;
@@ -138,7 +138,7 @@ button, a, input, select, textarea, label,
 .field-label,
 .wk-streak-label {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.15em;
@@ -158,7 +158,7 @@ button, a, input, select, textarea, label,
 /* ---------------------------------------------------------------- cards -- */
 
 .card {
-  padding: 20px;
+  padding: 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
   background: var(--card);
@@ -175,13 +175,13 @@ button, a, input, select, textarea, label,
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 14px;
-  margin-bottom: var(--s2);
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .cardhead-text {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.15em;
@@ -203,7 +203,7 @@ button, a, input, select, textarea, label,
   border-radius: var(--radius-btn);
   background: none;
   font-family: var(--sans);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   letter-spacing: 0.05em;
   cursor: pointer;
@@ -250,12 +250,12 @@ button, a, input, select, textarea, label,
 
 .gate-inner { width: 100%; max-width: 420px; text-align: center; }
 
-.wordmark--gate { font-size: 21px; color: var(--muted-foreground); }
+.wordmark--gate { font-size: 18px; color: var(--muted-foreground); }
 
 .gate-title {
   margin-top: var(--s3);
   font-family: var(--serif);
-  font-size: clamp(38px, 10vw, 52px);
+  font-size: clamp(32px, 8.5vw, 44px);
   font-weight: 400;
   letter-spacing: -0.02em;
   line-height: 1.1;
@@ -266,12 +266,12 @@ button, a, input, select, textarea, label,
 .gate-buttons { display: grid; gap: var(--s2); margin-top: var(--s4); }
 
 .gate-btn {
-  min-height: 72px;
+  min-height: 60px;
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
   background: var(--card);
   font-family: var(--serif);
-  font-size: 23px;
+  font-size: 20px;
   font-weight: 400;
   letter-spacing: -0.01em;
   cursor: pointer;
@@ -287,10 +287,10 @@ button, a, input, select, textarea, label,
   z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--s3);
-  max-width: 1920px;
+  gap: var(--s2);
+  max-width: 1160px;
   margin: 0 auto;
-  padding: calc(var(--s3) + env(safe-area-inset-top, 0px)) var(--s3)
+  padding: calc(var(--s2) + env(safe-area-inset-top, 0px)) var(--s2)
            calc(var(--s4) + env(safe-area-inset-bottom, 0px));
 }
 
@@ -301,7 +301,7 @@ button, a, input, select, textarea, label,
   grid-template-columns: 1fr auto;
   align-items: center;
   column-gap: var(--s2);
-  padding-bottom: var(--s2);
+  padding-bottom: 10px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -314,13 +314,13 @@ button, a, input, select, textarea, label,
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0 var(--s1);
-  margin-top: 2px;
+  margin-top: 0;
   min-width: 0;
 }
 
 .greg {
   font-family: var(--serif);
-  font-size: 16px;
+  font-size: 14px;
   letter-spacing: -0.01em;
   line-height: 1.4;
   color: var(--muted-foreground);
@@ -331,7 +331,7 @@ button, a, input, select, textarea, label,
 
 .hijri {
   font-family: var(--sans);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -360,12 +360,12 @@ button, a, input, select, textarea, label,
   display: grid;
   justify-items: center;
   text-align: center;
-  gap: 4px;
+  gap: 2px;
 }
 
 .hero-name {
   font-family: var(--serif);
-  font-size: clamp(44px, 13vw, 60px);
+  font-size: clamp(36px, 11vw, 46px);
   font-weight: 400;
   letter-spacing: -0.02em;
   line-height: 1.05;
@@ -379,13 +379,13 @@ button, a, input, select, textarea, label,
 
 .hero-until {
   font-family: var(--serif);
-  font-size: clamp(24px, 6vw, 28px);
+  font-size: clamp(19px, 5vw, 23px);
   letter-spacing: -0.01em;
   line-height: 1.15;
   color: var(--accent);
 }
 
-.hero-time { font-size: 15px; line-height: 1.4; color: var(--muted-foreground); }
+.hero-time { font-size: 13px; line-height: 1.4; color: var(--muted-foreground); }
 
 /* the rule-line timeline — desktop only, the timetable already gives the
    times on a phone */
@@ -394,7 +394,7 @@ button, a, input, select, textarea, label,
 
 /* -------------------------------------------------------------- columns -- */
 
-.columns { display: grid; gap: var(--s3); }
+.columns { display: grid; gap: var(--s2); }
 
 .col { min-width: 0; }
 
@@ -418,7 +418,7 @@ button, a, input, select, textarea, label,
   border-radius: 50%;
   background: none;
   color: var(--muted-foreground);
-  font-size: 22px;
+  font-size: 20px;
   line-height: 1;
   cursor: pointer;
   user-select: none;
@@ -441,7 +441,7 @@ button, a, input, select, textarea, label,
   display: grid;
   align-items: center;
   justify-items: center;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
@@ -464,13 +464,13 @@ button, a, input, select, textarea, label,
 .daynav-back {
   display: flex;
   justify-content: center;
-  margin-top: 2px;
+  margin-top: 0;
 }
 
 .daynav-today {
-  min-height: 30px;
+  min-height: 24px;
   padding: 0 10px;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .daynav-today.is-invisible { visibility: hidden; }
@@ -479,14 +479,14 @@ button, a, input, select, textarea, label,
 .tt-row {
   display: grid;
   /* the time column has no heading: just wide enough for "12:45 PM" */
-  grid-template-columns: minmax(0, 1fr) 66px var(--tap) var(--tap);
+  grid-template-columns: minmax(0, 1fr) 60px var(--tap) var(--tap);
   align-items: center;
   gap: 0 10px;
 }
 
 .tt-head {
-  margin-top: var(--s1);
-  padding-bottom: var(--s1);
+  margin-top: 4px;
+  padding-bottom: 4px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -502,7 +502,7 @@ button, a, input, select, textarea, label,
 }
 
 .tt-row {
-  padding: 3px 0;
+  padding: 0;
   border-bottom: 1px solid var(--border);
 }
 
@@ -512,7 +512,7 @@ button, a, input, select, textarea, label,
 
 .tt-en {
   font-family: var(--serif);
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 400;
   letter-spacing: -0.01em;
   line-height: 1.3;
@@ -520,7 +520,7 @@ button, a, input, select, textarea, label,
 
 .tt-time {
   font-family: var(--mono);
-  font-size: 12.5px;
+  font-size: 11.5px;
   letter-spacing: 0.04em;
   color: var(--muted-foreground);
   text-align: right;
@@ -591,13 +591,13 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 }
 
 .markmenu-btn {
-  min-height: 32px;
+  min-height: 30px;
   padding: 0 10px;
   border: 0;
   border-radius: var(--radius-btn);
   background: none;
   color: var(--muted-foreground);
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 500;
   letter-spacing: 0.03em;
   white-space: nowrap;
@@ -610,22 +610,22 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 /* ----------------------------------------------------------- this week -- */
 
-.week { display: grid; gap: var(--s3); }
+.week { display: grid; gap: var(--s2); }
 
-.wk-person { display: grid; gap: var(--s1); }
+.wk-person { display: grid; gap: 6px; }
 
 .wk-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: var(--s2);
-  padding-bottom: 6px;
+  padding-bottom: 4px;
   border-bottom: 1px solid var(--border);
 }
 
 .wk-name {
   font-family: var(--serif);
-  font-size: 19px;
+  font-size: 16px;
   font-weight: 400;
   letter-spacing: -0.01em;
   line-height: 1.2;
@@ -635,7 +635,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 .wk-streak-n {
   font-family: var(--serif);
-  font-size: 28px;
+  font-size: 23px;
   font-weight: 400;
   letter-spacing: -0.02em;
   line-height: 1;
@@ -668,7 +668,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   grid-template-rows: repeat(5, 1fr);
   gap: 2px;
   width: 100%;
-  height: 32px;
+  height: 26px;
 }
 
 /* On time and made up are the same thing in a summary: both gold. */
@@ -723,12 +723,12 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 .sheet-title {
   font-family: var(--serif);
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 400;
   letter-spacing: -0.01em;
 }
 
-.sheet-who { font-size: 14px; color: var(--muted-foreground); margin-bottom: var(--s3); }
+.sheet-who { font-size: 13px; color: var(--muted-foreground); margin-bottom: var(--s3); }
 
 .field { display: block; margin-bottom: var(--s2); }
 .field-label { display: block; margin-bottom: var(--s1); }
@@ -747,7 +747,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 .input:hover { border-color: var(--border-hover); }
 .input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 2px var(--accent-wash); }
 
-.sheet-note { font-size: 13.5px; color: var(--muted-foreground); margin-bottom: var(--s2); }
+.sheet-note { font-size: 13px; color: var(--muted-foreground); margin-bottom: var(--s2); }
 .sheet-note--center { text-align: center; margin: var(--s1) 0 0; }
 
 .sheet-status {
@@ -802,41 +802,36 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 @keyframes toast-out { to { opacity: 0; } }
 
 /* ===========================================================================
-   Desktop, from 900px up: the page fills the viewport and scales with it.
+   Desktop, from 900px up. Sizes grow a little with the window, then stop at
+   about 1440px; the content is capped at 1160px wide.
    =========================================================================== */
 
 @media (min-width: 900px) {
 
-  :root {
-    --mark-size: clamp(26px, 1.9vw, 38px);
-    --tap: clamp(44px, 3.4vw, 64px);
-  }
+  :root { --mark-size: 24px; }
 
-  /* The whole page is one column that fills the screen, so the timetable can
-     take the slack instead of leaving dead space under it. */
-  .btn { font-size: clamp(15px, 0.95vw, 21px); }
+  .btn { font-size: 14px; }
 
   .app {
-    min-height: 100vh;
-    gap: var(--s4);
-    padding: clamp(18px, 2.6vh, 44px) clamp(32px, 4vw, 96px)
-             clamp(16px, 2.4vh, 40px);
+    gap: var(--s3);
+    padding: clamp(16px, 2.2vh, 28px) clamp(24px, 3vw, 40px)
+             clamp(20px, 3vh, 40px);
   }
 
-  .card { padding: 32px; }
+  .card { padding: 22px 26px; }
 
   /* the feature card spans the top; the two below share the rest */
   .app > .card { flex: none; }
 
   .gate-buttons { grid-template-columns: 1fr 1fr; }
 
-  .wordmark { font-size: clamp(25px, 1.7vw, 40px); }
+  .wordmark { font-size: clamp(20px, 1.5vw, 23px); }
 
   .masthead {
     flex: none;
     grid-template-columns: auto 1fr auto;
     column-gap: var(--s3);
-    padding-bottom: clamp(14px, 1.6vh, 26px);
+    padding-bottom: 12px;
   }
 
   .masthead > .wordmark { grid-area: 1 / 1; }
@@ -850,11 +845,11 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   }
 
   .greg {
-    font-size: clamp(17px, 1.15vw, 26px);
+    font-size: clamp(15px, 1.05vw, 16px);
     color: var(--foreground);
   }
 
-  .hijri { font-size: clamp(12px, 0.8vw, 17px); }
+  .hijri { font-size: 11px; }
   .hijri::before { content: none; }
 
   .greg-long { display: inline; }
@@ -867,14 +862,14 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
   /* hero */
 
-  .hero-line { gap: clamp(4px, 0.6vh, 10px); }
+  .hero-line { gap: 4px; }
 
-  .hero-name { font-size: clamp(46px, 4.6vw, 96px); }
-  .hero-until { font-size: clamp(26px, 2vw, 44px); }
-  .hero-time { font-size: clamp(15px, 1vw, 21px); }
+  .hero-name { font-size: clamp(40px, 3.6vw, 52px); }
+  .hero-until { font-size: clamp(20px, 1.6vw, 24px); }
+  .hero-time { font-size: 14px; }
 
   .cardhead-text,
-  .wk-streak-label { font-size: clamp(12px, 0.8vw, 17px); }
+  .wk-streak-label { font-size: 11px; }
 
   /* the timeline gets a full-width row of its own, with clear space beneath,
      so its labels never meet the section headings below */
@@ -883,8 +878,8 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
     display: block;
     position: relative;
     flex: none;
-    height: clamp(46px, 6.6vh, 86px);
-    margin: clamp(14px, 2.2vh, 36px) clamp(8px, 1.4vw, 30px) 0;
+    height: 50px;
+    margin: 14px 24px 0;
   }
 
   .timeline::before {
@@ -910,7 +905,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   .tl-point.is-past .tl-tick { background: var(--accent); }
 
   .tl-name {
-    font-size: clamp(12.5px, 0.85vw, 18px);
+    font-size: 12.5px;
     font-weight: 500;
     letter-spacing: 0.04em;
     color: var(--muted-foreground);
@@ -918,7 +913,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
   .tl-time {
     font-family: var(--mono);
-    font-size: clamp(10.5px, 0.72vw, 15px);
+    font-size: 10.5px;
     letter-spacing: 0.06em;
     color: var(--muted-foreground);
   }
@@ -935,42 +930,31 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
     box-shadow: 0 0 0 4px var(--background);
   }
 
-  /* columns take the rest of the height */
+  /* Today and This week side by side, the same height */
 
   .columns {
-    flex: 1 1 auto;
-    min-height: 0;
     grid-template-columns: 1.3fr 0.7fr;
-    gap: var(--s4);
+    gap: var(--s3);
     align-items: stretch;
   }
 
-  .col--today { display: flex; flex-direction: column; min-height: 0; }
-
-  .timetable { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
-
-  /* the rows share whatever height is left */
-  .tt-row { flex: 1 1 0; padding: 0; }
+  .tt-row { padding: 3px 0; }
 
   .tt-head,
   .tt-row {
     grid-template-columns:
-      minmax(0, 1fr) clamp(70px, 5.1vw, 108px)
-      clamp(84px, 7vw, 150px) clamp(84px, 7vw, 150px);
-    gap: 0 clamp(10px, 1vw, 24px);
+      minmax(0, 1fr) 66px
+      clamp(64px, 5vw, 80px) clamp(64px, 5vw, 80px);
+    gap: 0 12px;
   }
 
-  .tt-head { padding-bottom: clamp(6px, 0.8vh, 14px); }
-  .tt-head > * { font-size: clamp(10px, 0.72vw, 14px); }
+  .tt-head { padding-bottom: 6px; }
 
-  .tt-en { font-size: clamp(20px, 1.5vw, 34px); }
-  .tt-time { font-size: clamp(13px, 0.95vw, 20px); }
+  .tt-en { font-size: clamp(17px, 1.3vw, 19px); }
+  .tt-time { font-size: 12.5px; }
 
-  .cardhead { margin-bottom: clamp(14px, 2vh, 26px); }
+  .cardhead { margin-bottom: 14px; }
 
-  .daynav-label { font-size: clamp(15px, 1vw, 20px); }
-  .daynav-today { font-size: clamp(13px, 0.85vw, 17px); }
-  .daynav-btn { font-size: clamp(22px, 1.5vw, 32px); }
 
   /* the hover/focus menu is a pointer affordance, so desktop only */
   .markwrap.is-mine .markmenu { display: flex; }
@@ -981,16 +965,14 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
     pointer-events: auto;
   }
 
-  .markmenu-btn { font-size: clamp(13.5px, 0.85vw, 17px); min-height: clamp(32px, 2.4vw, 42px); }
 
   /* week */
 
-  .week { gap: clamp(24px, 4vh, 56px); }
-  .wk-person { gap: clamp(8px, 1.4vh, 18px); }
-  .wk-name { font-size: clamp(19px, 1.35vw, 30px); }
-  .wk-streak-n { font-size: clamp(30px, 2.5vw, 56px); }
-  .wk-bar { height: clamp(32px, 5vh, 72px); }
-  .wk-dlabel { font-size: clamp(10px, 0.7vw, 14px); }
+  .week { gap: var(--s3); }
+  .wk-person { gap: 8px; }
+  .wk-name { font-size: 17px; }
+  .wk-streak-n { font-size: 26px; }
+  .wk-bar { height: 34px; }
 
   /* settings as a centred dialog */
 
