@@ -167,9 +167,12 @@ taller than the window; at 1920x1080 it fits with room to spare.
      headings, exactly over their marks. The date label is as wide as the
      widest date it can show: a hidden stack of every weekday and month in the
      browser's locale shares its grid cell, so the arrows never shift. The
-     arrows are small (30px wide) with 44px tap areas. Away from today, a small
-     gold "Today" pill appears right after the › arrow and jumps back. Its
-     space is always kept, so nothing moves. On narrow phones the selector text
+     arrows are small (30px wide) with 44px tap areas. Away from today, a quiet
+     text link, "Back to today", appears right after the › arrow: 0.8rem,
+     muted, with no pill or background, darkening to ink with a thin gold
+     underline (offset 4px) on hover or focus. Its space is always kept, so
+     nothing moves. Where the full text would not fit on the row (measured,
+     since the date's width depends on the locale), it reads "Today". On narrow phones the selector text
      shrinks (down to 11px at 320px) rather than wrapping. A thin rule closes
      the row. Then one row per prayer: the
      name in Playfair, the time, then Khalid's mark and Marwa's mark under

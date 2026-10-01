@@ -141,9 +141,22 @@ function fillDaySizer() {
   sizer.replaceChildren(...spans);
 }
 
+/** "Back to today" when it fits on the row, otherwise just "Today". Measured,
+    not guessed, since the date label's width depends on the locale. */
+function fitBackLink() {
+  const link = el('day-today');
+  const row = link.parentElement;
+  link.textContent = 'Back to today';
+  if (row.scrollWidth > row.clientWidth) link.textContent = 'Today';
+}
+
+window.addEventListener('resize', () => fitBackLink());
+document.fonts.ready.then(() => fitBackLink());
+
 function renderDayNav() {
   const today = todayKey();
   fillDaySizer();
+  fitBackLink();
   el('day-label').textContent = fmtDayNav.format(parseKey(State.viewDate));
 
   // Hidden by visibility, not display, so nothing around it moves.
