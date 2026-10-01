@@ -174,9 +174,13 @@
           </div>
 
           <div id="qr-panel-surahs" role="tabpanel" aria-labelledby="qr-tab-surahs">
-            <label class="qr-search">
-              <span class="sr-only">Search surahs</span>
-              <input id="qr-search" class="input" type="search" placeholder="Search a surah, ayah (2:255), or word"
+            <label class="qr-search qr-search--subtle">
+              <span class="sr-only">Search surahs, ayat or words</span>
+              <svg class="qr-search-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+                <circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M15 15l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              </svg>
+              <input id="qr-search" class="input" type="search" placeholder="Search surah, 2:255, or a word"
                      autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" />
             </label>
             <!-- A Go to card for "2:255", the offer to search the translation, or its results -->

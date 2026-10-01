@@ -228,7 +228,12 @@ from the Al-Quran Cloud API and is never written into the code.
     you're reading carries a small gold-outlined *Reading* tag. One column on
     a phone, two on desktop.
 
-    The search box ("Search a surah, ayah (2:255), or word") also reads ayah
+    The search box is quiet: a light `--border`, 44px tall on a phone and
+    40px on desktop, a small muted magnifier on the left, and the placeholder
+    "Search surah, 2:255, or a word" in muted text at 60% opacity, 400 weight,
+    0.9rem. Typed text stays ink at 16px, so iOS doesn't zoom. On focus the
+    border turns gold with a soft 2px gold ring; the browser's clear button is
+    a small muted ×. It also reads ayah
     references, in any common form and with surah names matched loosely
     (case, "al-", hyphens, apostrophes and diacritics ignored). A valid one
     shows a single *Go to* card above the list, framed in gold on warm paper:

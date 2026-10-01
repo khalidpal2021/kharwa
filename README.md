@@ -141,7 +141,7 @@ plus its markup.
 - `#/quran/18` opens Al-Kahf; `#/quran/2/255` jumps to that ayah, and
   `#/quran/2/255-257` to a range, highlighting it briefly. Back, forward and
   shared links all work, from any section.
-- The search box ("Search a surah, ayah (2:255), or word") filters surahs by
+- The search box ("Search surah, 2:255, or a word") filters surahs by
   name or number as before. It also understands ayah references: `2:34`,
   `2 34`, `2.34`, `2/34`, `baqarah 34`, `al-baqarah:34`, `Baqara 2:34`, or a
   range like `2:255-257`. These show a *Go to* card with a one-line preview,

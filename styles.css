@@ -970,6 +970,64 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 .qr-search { display: block; margin-bottom: var(--s1); }
 
+/* The Quran search: quieter. A small muted icon on the left, a light border,
+   a soft gold ring on focus. Typed text keeps the body colour and 16px (so
+   iOS doesn't zoom); only the placeholder is smaller and fainter. */
+.qr-search--subtle { position: relative; }
+
+.qr-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted-foreground);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.qr-search--subtle .input {
+  min-height: var(--tap);          /* 44px on a phone */
+  padding: 8px 12px 8px 36px;
+  border: 1px solid var(--border);
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--foreground);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.qr-search--subtle .input::placeholder {
+  color: var(--muted-foreground);
+  opacity: 0.6;
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+.qr-search--subtle .input:hover { border-color: var(--border-hover); }
+
+.qr-search--subtle .input:focus {
+  border-color: var(--accent);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent-wash);
+}
+
+.qr-search--subtle .input:focus-visible { outline: none; }
+
+/* the browser's clear button, toned down to a small muted × */
+.qr-search--subtle .input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-left: 6px;
+  background: no-repeat center / 10px 10px
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M1 1l8 8M9 1L1 9' fill='none' stroke='%236B6B6B' stroke-width='1.3' stroke-linecap='round'/%3E%3C/svg%3E");
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.qr-search--subtle .input::-webkit-search-cancel-button:hover { opacity: 1; }
+
 .qr-surah-list { display: grid; }
 
 .qr-surah {
@@ -2166,6 +2224,9 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   .qr-options .qr-layers .qr-chip + .qr-chip { margin-top: 0; }
   .qr-options .qr-layers .qr-chip:first-child { margin-left: 0; border-radius: var(--radius-btn) 0 0 var(--radius-btn); }
   .qr-options .qr-layers .qr-chip:last-child { border-radius: 0 var(--radius-btn) var(--radius-btn) 0; }
+
+  /* the Quran search is a touch shorter where there's a pointer */
+  .qr-search--subtle .input { min-height: 40px; padding-top: 6px; padding-bottom: 6px; }
 
   /* hadith: lists in two columns, like the surahs */
 
