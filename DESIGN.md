@@ -227,6 +227,19 @@ from the Al-Quran Cloud API and is never written into the code.
     small caps, and the Arabic name on the right in Amiri Quran. The surah
     you're reading carries a small gold-outlined *Reading* tag. One column on
     a phone, two on desktop.
+
+    The search box ("Search a surah, ayah (2:255), or word") also reads ayah
+    references, in any common form and with surah names matched loosely
+    (case, "al-", hyphens, apostrophes and diacritics ignored). A valid one
+    shows a single *Go to* card above the list, framed in gold on warm paper:
+    "GO TO", the surah name in Playfair, the reference in gold small caps, and
+    a one-line preview of the translation, fetched once typing settles and
+    then cached. Enter or a tap opens the reader there. An ayah number past the
+    end shows a plain line instead ("Al-Baqara has 286 ayat"). When nothing
+    matches, a dashed button offers "Search the translation for 'patience'".
+    Its results (count, then up to 50 ayat, each with its reference in gold
+    small caps and the translation with the word marked in pale gold) replace
+    it, with "Searching…" and "No ayat found" states.
   - *Juz*: the 30 juz in the same row style, "Juz 2 · Starts at Al-Baqara ·
     ayah 142", each opening the reader at that ayah.
   - *Bookmarks*: newest first. Each row leads with a small filled gold star,
@@ -255,7 +268,9 @@ from the Al-Quran Cloud API and is never written into the code.
   with a small gold ayah number. Urdu runs right to left in Noto Nastaliq Urdu
   with extra line height. With Arabic off, the star number leads the first line
   shown instead, so every ayah stays numbered. Thin rules separate the ayat;
-  previous and next surah links close the page.
+  previous and next surah links close the page. Jumping to an ayah (or a
+  range, `#/quran/2/255-257`) scrolls it into view and lights it pale gold,
+  which then fades over about two seconds.
 - **Bookmarks** — the eight-pointed star that numbers each ayah is the
   bookmark button. Not bookmarked: a thin gold outline with the numeral in
   gold. Bookmarked: solid gold with the numeral in ivory, filling in over

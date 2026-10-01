@@ -1358,14 +1358,113 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   padding: 18px 0 16px;
   border-bottom: 1px solid var(--border);
   scroll-margin-top: 64px;   /* clear of the sticky options bar */
-  transition: background 600ms ease-out;
+  transition: background 2s ease-out;   /* the jump highlight fades out */
 }
 
 .qr-ayah > :first-child { margin-top: 0; }
 
 .qr-ayat > .qr-ayah:last-child { border-bottom: 0; }
 
-.qr-ayah.is-target { background: var(--accent-wash); }
+/* A jumped-to ayah (or range) lights up at once, then fades over ~2s. */
+.qr-ayah.is-target { background: var(--accent-tint); transition: none; }
+
+/* ------------------------------------------------------ quran: search --- */
+
+.qr-find { margin: 2px 0 var(--s2); }
+
+.qr-find-msg,
+.qr-find-count {
+  padding: 4px 2px;
+  font-size: 14px;
+  color: var(--muted-foreground);
+}
+
+.qr-find-count { padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+/* the "Go to" card for a reference like 2:255 */
+.qr-go {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-card);
+  background: var(--card-warm);
+  color: inherit;
+  text-decoration: none;
+  transition: background var(--ease);
+}
+
+.qr-go:hover { background: var(--accent-wash); }
+
+.qr-go-kicker,
+.qr-go-ref,
+.qr-result-ref {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--accent-text);
+}
+
+.qr-go-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s2); }
+.qr-go-name { font-family: var(--serif); font-size: 18px; }
+
+.qr-go-preview,
+.qr-result-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+
+.qr-go-preview.is-rtl,
+.qr-result-text.is-rtl {
+  font-family: "Noto Nastaliq Urdu", var(--quran);
+  line-height: 2.2;
+}
+
+/* the offer to search the translation */
+.qr-find-search {
+  width: 100%;
+  min-height: var(--tap);
+  padding: 8px 14px;
+  border: 1px dashed var(--border-hover);
+  border-radius: var(--radius-card);
+  background: none;
+  color: var(--foreground);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--ease), background var(--ease);
+}
+
+.qr-find-search:hover { border-color: var(--accent); background: var(--accent-wash); }
+
+/* keyword results: the reference, then the ayah's translation, keyword marked */
+.qr-results { display: grid; }
+
+.qr-result {
+  display: grid;
+  gap: 3px;
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--border);
+  color: inherit;
+  text-decoration: none;
+}
+
+.qr-results li:last-child .qr-result { border-bottom: 0; }
+.qr-result .qr-result-text { white-space: normal; color: var(--foreground); font-size: 14.5px; line-height: 1.6; }
+.qr-result:hover .qr-result-ref { color: var(--foreground); }
+
+.qr-mark {
+  padding: 0 1px;
+  border-radius: 2px;
+  background: var(--accent-tint);
+  color: inherit;
+}
 
 .qr-ar {
   font-family: var(--quran);

@@ -176,9 +176,11 @@
           <div id="qr-panel-surahs" role="tabpanel" aria-labelledby="qr-tab-surahs">
             <label class="qr-search">
               <span class="sr-only">Search surahs</span>
-              <input id="qr-search" class="input" type="search" placeholder="Search by name or number"
-                     autocomplete="off" autocapitalize="off" spellcheck="false" />
+              <input id="qr-search" class="input" type="search" placeholder="Search a surah, ayah (2:255), or word"
+                     autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" />
             </label>
+            <!-- A Go to card for "2:255", the offer to search the translation, or its results -->
+            <div id="qr-find" class="qr-find" aria-live="polite" hidden></div>
             <ol id="qr-surah-list" class="qr-surah-list"></ol>
             <p id="qr-list-status" class="qr-status" hidden></p>
           </div>

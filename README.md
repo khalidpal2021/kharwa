@@ -138,8 +138,16 @@ plus its markup.
   number, with a gold *Reading* tag on the surah you're in), **Juz** (the 30
   juz and the ayah each starts at), and **Bookmarks** (newest first, with the
   first line of each ayah's translation and a remove button).
-- `#/quran/18` opens Al-Kahf; `#/quran/2/255` jumps to that ayah. Back,
-  forward and shared links all work.
+- `#/quran/18` opens Al-Kahf; `#/quran/2/255` jumps to that ayah, and
+  `#/quran/2/255-257` to a range, highlighting it briefly. Back, forward and
+  shared links all work, from any section.
+- The search box ("Search a surah, ayah (2:255), or word") filters surahs by
+  name or number as before. It also understands ayah references: `2:34`,
+  `2 34`, `2.34`, `2/34`, `baqarah 34`, `al-baqarah:34`, `Baqara 2:34`, or a
+  range like `2:255-257`. These show a *Go to* card with a one-line preview,
+  and Enter or a tap opens it. Anything else offers a search of the current
+  translation through the API, listing up to 50 matching ayat with the word
+  highlighted.
 - The reader shows any mix of three layers: Arabic (Uthmani), transliteration,
   and a translation: Sahih International, Muhammad Asad, Pickthall, or Urdu
   (Jalandhry, right to left in Noto Nastaliq Urdu). At least one layer stays

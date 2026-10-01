@@ -78,6 +78,29 @@ function foldLatin(text) {
 
 const fmtArabicDigits = new Intl.NumberFormat('ar-EG', { useGrouping: false });
 
+/* Leading articles dropped when matching surah names loosely: "Al-Kahf",
+   "an-Nas", "ash-Shams". */
+const QURAN_ARTICLES = ['al', 'an', 'ar', 'as', 'ash', 'at', 'ad', 'adh', 'az', 'ath'];
+
+/** A surah name reduced for loose matching: no case, diacritics,
+    apostrophes, hyphens or leading article, and transliteration folded. */
+function surahKey(text) {
+  const tokens = text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
+    .replace(/['\u2018\u2019`\u02BF\u02BE]/g, '')
+    .split(/[\s\-_]+/).filter(Boolean);
+  if (tokens.length > 1 && QURAN_ARTICLES.includes(tokens[0])) tokens.shift();
+  return foldLatin(tokens.join(''));
+}
+
+/** Search results: the keyword's occurrences wrapped in <mark>, the rest escaped. */
+function markKeyword(text, keyword) {
+  const words = keyword.trim().split(/\s+/).filter(Boolean)
+    .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  if (!words.length) return esc(text);
+  const re = new RegExp(`(${words.join('|')})`, 'gi');
+  return text.split(re).map((part, i) => (i % 2 ? `<mark class="qr-mark">${esc(part)}</mark>` : esc(part))).join('');
+}
+
 function translationOf(id) {
   return QURAN_TRANSLATIONS.find((t) => t.id === id) || QURAN_TRANSLATIONS[0];
 }
@@ -105,6 +128,9 @@ const Quran = {
   bookmarkSet: new Set(),   // "surah:ayah"
   remoteLoaded: false,
   tab: 'surahs',
+  find: null,               // what the search box resolves to (see parseQuery)
+  search: null,             // { q, edition, status, count, matches } keyword results
+  previewTimer: null,
   settings: { size: 'm', arabic: true, translit: false, translation: true, edition: 'en.sahih' },
   observer: null,
   reading: null,            // { surah, ayah } most recently in view
@@ -263,8 +289,11 @@ const Quran = {
     if (!this.ready) this.init();
     const n = Number(params[0]);
     if (params.length && Number.isInteger(n) && n >= 1 && n <= 114) {
-      const ayah = Number(params[1]);
-      this.openReader(n, Number.isInteger(ayah) && ayah >= 1 ? ayah : null);
+      // "255" or a range, "255-257"
+      const [, a, b] = String(params[1] || '').match(/^(\d+)(?:-(\d+))?$/) || [];
+      const from = Number(a) >= 1 ? Number(a) : null;
+      const to = from && Number(b) > from ? Number(b) : null;
+      this.openReader(n, from, to);
     } else {
       if (params.length) history.replaceState(null, '', '#/quran');
       this.openList();
@@ -277,6 +306,15 @@ const Quran = {
     this.loadSettings();
 
     el('qr-search').addEventListener('input', () => this.renderSurahList());
+    el('qr-search').addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      if (this.find?.kind === 'ref' && !this.find.error) location.hash = this.find.href;
+      else if (this.find?.kind === 'keyword') this.runSearch(this.find.q);
+    });
+    el('qr-find').addEventListener('click', (event) => {
+      if (event.target.closest('.qr-find-search')) this.runSearch(this.find.q);
+    });
 
     for (const tab of document.querySelectorAll('.qr-tab')) {
       tab.addEventListener('click', () => this.showTab(tab.dataset.tab));
@@ -403,9 +441,192 @@ const Quran = {
         </a>
       </li>`).join('');
 
+    this.find = this.parseQuery(q, rows.length);
+    this.renderFind();
+
     const status = el('qr-list-status');
-    status.hidden = rows.length > 0;
-    if (!rows.length) status.textContent = 'No surah matches that search.';
+    status.hidden = rows.length > 0 || !!this.find;
+    if (!status.hidden) status.textContent = 'No surah matches that search.';
+  },
+
+  /* ------------------------------------------------------------ search --- */
+
+  /** A surah from a loosely written name, or null if none or several match. */
+  surahByName(name) {
+    const key = surahKey(name);
+    if (!key || !this.surahs) return null;
+    const keyed = this.surahs.map((s) => ({ s, k: surahKey(s.englishName) }));
+    for (const test of [(k) => k === key, (k) => k.startsWith(key), (k) => k.includes(key)]) {
+      const hits = keyed.filter((x) => test(x.k));
+      if (hits.length === 1) return hits[0].s;
+      if (hits.length > 1) return null;
+    }
+    return null;
+  },
+
+  /**
+   * What the search box holds, beyond surah names:
+   *   { kind: 'ref', surah, from, to, href, error }  — "2:34", "2 34", "2.34",
+   *     "2/34", "baqarah 34", "al-baqarah:34", "Baqara 2:34", "2:255-257"
+   *   { kind: 'keyword', q }  — when nothing else matches
+   *   null  — a plain surah filter, or too short to search for
+   */
+  parseQuery(q, surahRows) {
+    if (!q || !this.surahs) return null;
+    const range = '(\\d{1,3})(?:\\s*[-\\u2013]\\s*(\\d{1,3}))?';
+    let surah = null;
+    let from;
+    let to;
+
+    const numeric = q.match(new RegExp(`^(\\d{1,3})\\s*[:./\\s]\\s*${range}$`));
+    const named = !numeric && q.match(new RegExp(`^(.*?\\p{L}.*?)\\s*[\\s:./]\\s*(?:(\\d{1,3})\\s*[:./\\s]\\s*)?${range}$`, 'u'));
+
+    if (numeric) {
+      surah = Number(numeric[1]);
+      [from, to] = [numeric[2], numeric[3]];
+      if (surah < 1 || surah > 114) return { kind: 'ref', error: 'There are 114 surahs.' };
+    } else if (named) {
+      const byName = this.surahByName(named[1]);
+      const byNumber = named[2] ? Number(named[2]) : null;
+      if (!byName || (byNumber && byNumber !== byName.number)) {
+        return surahRows ? null : { kind: 'keyword', q };
+      }
+      surah = byName.number;
+      [from, to] = [named[3], named[4]];
+    } else {
+      return surahRows || q.length < 2 || /^\d+$/.test(q) ? null : { kind: 'keyword', q };
+    }
+
+    const s = this.surahs[surah - 1];
+    from = Number(from);
+    to = to === undefined ? null : Number(to);
+    if (from < 1 || (to !== null && to < from)) return { kind: 'ref', error: 'That ayah range doesn\'t look right.' };
+    if (from > s.ayahs || (to !== null && to > s.ayahs)) {
+      return { kind: 'ref', error: `${s.englishName} has ${s.ayahs} ayat` };
+    }
+    if (to === from) to = null;
+    return {
+      kind: 'ref',
+      surah,
+      from,
+      to,
+      label: `${surah}:${from}${to ? `-${to}` : ''}`,
+      href: `#/quran/${surah}/${from}${to ? `-${to}` : ''}`,
+      error: null,
+    };
+  },
+
+  /** The area above the surah list: a Go to card, a hint, the offer to search
+      the translation, or its results. */
+  renderFind() {
+    const box = el('qr-find');
+    const f = this.find;
+    clearTimeout(this.previewTimer);
+
+    if (!f) {
+      box.hidden = true;
+      box.innerHTML = '';
+      return;
+    }
+    box.hidden = false;
+
+    if (f.kind === 'ref' && f.error) {
+      box.innerHTML = `<p class="qr-find-msg">${esc(f.error)}</p>`;
+      return;
+    }
+
+    if (f.kind === 'ref') {
+      const t = translationOf(this.settings.edition);
+      box.innerHTML = `
+        <a class="qr-go" href="${f.href}">
+          <span class="qr-go-kicker">Go to</span>
+          <span class="qr-go-head">
+            <span class="qr-go-name">${esc(this.surahName(f.surah))}</span>
+            <span class="qr-go-ref">${f.label}</span>
+          </span>
+          <span id="qr-go-preview" class="qr-go-preview${t.rtl ? ' is-rtl' : ''}"${t.rtl ? ` lang="${t.lang}" dir="rtl"` : ''}>&nbsp;</span>
+        </a>`;
+      // The preview waits for typing to settle.
+      this.previewTimer = setTimeout(() => this.fillPreview(f), 250);
+      return;
+    }
+
+    // keyword
+    const s = this.search;
+    const edition = this.settings.edition;
+    if (!s || s.q !== f.q || s.edition !== edition) {
+      box.innerHTML = `<button class="qr-find-search" type="button">
+          Search the translation for &lsquo;${esc(f.q)}&rsquo;
+        </button>`;
+      return;
+    }
+    if (s.status === 'loading') {
+      box.innerHTML = `<p class="qr-find-msg" role="status">Searching&hellip;</p>`;
+      return;
+    }
+    if (s.status === 'error') {
+      box.innerHTML = `<p class="qr-find-msg" role="status">The search could not be completed. Check your connection and try again.</p>`;
+      return;
+    }
+    if (!s.count) {
+      box.innerHTML = `<p class="qr-find-msg" role="status">No ayat found for &lsquo;${esc(s.q)}&rsquo; in ${esc(translationOf(edition).label)}.</p>`;
+      return;
+    }
+    const shown = s.matches.slice(0, 50);
+    const t = translationOf(edition);
+    box.innerHTML = `
+      <p class="qr-find-count" role="status">${s.count} ${s.count === 1 ? 'ayah' : 'ayat'} mention &lsquo;${esc(s.q)}&rsquo;${s.count > 50 ? ' · showing the first 50' : ''}</p>
+      <ol class="qr-results">${shown.map((m) => `
+        <li>
+          <a class="qr-result" href="#/quran/${m.surah}/${m.ayah}">
+            <span class="qr-result-ref">${esc(this.surahName(m.surah))} · ${m.surah}:${m.ayah}</span>
+            <span class="qr-result-text${t.rtl ? ' is-rtl' : ''}"${t.rtl ? ` lang="${t.lang}" dir="rtl"` : ''}>${markKeyword(m.text, s.q)}</span>
+          </a>
+        </li>`).join('')}</ol>`;
+  },
+
+  /** One line of the referenced ayah's translation, cached. Quiet on failure. */
+  async fillPreview(f) {
+    const edition = this.settings.edition;
+    try {
+      let text = (await QuranCache.get(`text:${edition}:${f.surah}`))?.[f.from - 1];
+      if (!text) text = await QuranCache.get(`ayah:${edition}:${f.surah}:${f.from}`);
+      if (!text) {
+        text = (await quranFetch(`ayah/${f.surah}:${f.from}/${edition}`)).text;
+        QuranCache.put(`ayah:${edition}:${f.surah}:${f.from}`, text);
+      }
+      const line = document.getElementById('qr-go-preview');
+      if (line && this.find === f) line.textContent = text;
+    } catch { /* the card works without it */ }
+  },
+
+  /** The API's translation search, in the chosen edition. */
+  async runSearch(q) {
+    const edition = this.settings.edition;
+    this.search = { q, edition, status: 'loading', count: 0, matches: [] };
+    this.renderFind();
+    try {
+      const res = await fetch(`${QURAN_API}search/${encodeURIComponent(q)}/all/${edition}`);
+      const body = await res.json().catch(() => null);
+      if (this.search?.q !== q) return;
+      if (res.status === 404 || body?.code === 404) {
+        // The API's way of saying "nothing found".
+        this.search = { q, edition, status: 'done', count: 0, matches: [] };
+      } else if (!res.ok || body?.code !== 200) {
+        throw new Error('search failed');
+      } else {
+        this.search = {
+          q,
+          edition,
+          status: 'done',
+          count: body.data.count,
+          matches: body.data.matches.map((m) => ({ surah: m.surah.number, ayah: m.numberInSurah, text: m.text })),
+        };
+      }
+    } catch {
+      if (this.search?.q === q) this.search = { q, edition, status: 'error', count: 0, matches: [] };
+    }
+    this.renderFind();
   },
 
   async renderJuzList() {
@@ -471,7 +692,7 @@ const Quran = {
 
   /* ----------------------------------------------------------- reader --- */
 
-  async openReader(n, ayah) {
+  async openReader(n, ayah, to = null) {
     this.stopTracking();
     this.toggleOptions(false);
     el('qr-list-view').hidden = true;
@@ -508,7 +729,7 @@ const Quran = {
     // Arabic metrics change once the font arrives; wait briefly before jumping.
     await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 1500))]);
     if (token !== this.openToken) return;
-    if (ayah) this.scrollToAyah(ayah, true);
+    if (ayah) this.scrollToAyah(ayah, true, to);
     else window.scrollTo(0, 0);
     this.startTracking();
   },
@@ -675,14 +896,20 @@ const Quran = {
     if ('edition' in patch) this.renderBookmarks();
   },
 
-  scrollToAyah(n, highlight) {
+  /** Scroll to an ayah. With highlight, it (or the whole range up to `to`)
+      shows a soft gold background that then fades out over about 2s (CSS). */
+  scrollToAyah(n, highlight, to = null) {
     const node = document.getElementById(`qr-ayah-${n}`);
     if (!node) return;
     node.scrollIntoView({ block: 'start' });
-    if (highlight) {
-      node.classList.add('is-target');
-      setTimeout(() => node.classList.remove('is-target'), 2600);
+    if (!highlight) return;
+    const nodes = [];
+    for (let i = n; i <= (to || n); i += 1) {
+      const li = document.getElementById(`qr-ayah-${i}`);
+      if (li) nodes.push(li);
     }
+    nodes.forEach((li) => li.classList.add('is-target'));
+    setTimeout(() => nodes.forEach((li) => li.classList.remove('is-target')), 700);
   },
 
   refreshMarkers() {
