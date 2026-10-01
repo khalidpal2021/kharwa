@@ -9,14 +9,6 @@
 const PERSON_STORE = 'kharwa.person';
 const CYCLE = ['none', 'on_time', 'late', 'missed'];
 
-const PRAYER_ARABIC = {
-  fajr: 'الفجر',
-  dhuhr: 'الظهر',
-  asr: 'العصر',
-  maghrib: 'المغرب',
-  isha: 'العشاء',
-};
-
 const el = (id) => document.getElementById(id);
 
 /** Display names come from the database, so never drop them into HTML raw. */
@@ -94,7 +86,9 @@ for (const btn of document.querySelectorAll('.gate-btn')) {
 
 function renderHeader() {
   const now = new Date();
-  el('gregorian').textContent = fmtGregorian.format(now);
+  el('gregorian').innerHTML =
+    `<span class="greg-long">${esc(fmtGregorian.format(now))}</span>` +
+    `<span class="greg-short">${esc(fmtGregorianShort.format(now))}</span>`;
   el('hijri').textContent = hijriFor(now);
 }
 
@@ -106,12 +100,6 @@ function renderNextUp() {
   el('next-until').textContent = untilText(next.time - now);
   el('next-time').textContent = timeText(next.time) + (next.tomorrow ? ' tomorrow' : '');
   return next;
-}
-
-function renderSource() {
-  const { estimated } = timesFor(State.viewDate);
-  el('source').innerHTML =
-    `<span>${TIMES_SOURCE}</span>${estimated ? '<span class="chip">Estimated</span>' : ''}`;
 }
 
 function renderDayNav() {
@@ -222,7 +210,7 @@ function markMarkup(person, prayer) {
     <button class="mark" type="button" data-person="${person}" data-prayer="${prayer}"
             aria-label="${label}. Activate to change.">${markSvg(status)}</button>
     <div class="markmenu">
-      ${item('on_time', 'On time')}${item('late', 'Late')}${item('missed', 'Missed')}${item('none', 'Clear')}
+      ${item('on_time', 'On time')}${item('late', 'Made up')}${item('missed', 'Missed')}${item('none', 'Clear')}
     </div>
   </div>`;
 }
@@ -241,10 +229,7 @@ function renderTimetable() {
     const isNext = next && !next.tomorrow && next.key === p.key;
     return `
       <li class="tt-row${isNext ? ' is-next' : ''}" data-prayer="${p.key}">
-        <div class="tt-names">
-          <div class="tt-en">${p.label}</div>
-          <div class="tt-ar" lang="ar" dir="rtl">${PRAYER_ARABIC[p.key]}</div>
-        </div>
+        <div class="tt-names"><span class="tt-en">${p.label}</span></div>
         <div class="tt-time">${timeText(times[p.key])}</div>
         ${markMarkup('khalid', p.key)}
         ${markMarkup('marwa', p.key)}
@@ -352,7 +337,6 @@ function renderStatuses() {
 function render() {
   renderHeader();
   renderNextUp();
-  renderSource();
   renderDayNav();
   renderTimeline();
   renderStatuses();
@@ -400,7 +384,6 @@ el('timetable').addEventListener('click', (event) => {
 async function goToDay(key) {
   State.viewDate = key;
   renderDayNav();
-  renderSource();
   renderTimeline();
   renderStatuses();
   await Data.ensureDay(key).catch(() => {});
@@ -495,7 +478,7 @@ function onRemoteChange(change) {
   const prayer = PRAYER_LABEL[change.prayer];
   let line;
   if (change.status === 'on_time') line = `<b>${who}</b> prayed ${prayer}`;
-  else if (change.status === 'late') line = `<b>${who}</b> prayed ${prayer} late`;
+  else if (change.status === 'late') line = `<b>${who}</b> made up ${prayer}`;
   else if (change.status === 'missed') line = `<b>${who}</b> missed ${prayer}`;
   else line = `<b>${who}</b> cleared ${prayer}`;
 

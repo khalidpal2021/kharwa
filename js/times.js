@@ -18,10 +18,12 @@ const PRAYERS = [
 
 const PRAYER_LABEL = Object.fromEntries(PRAYERS.map((p) => [p.key, p.label]));
 
+/* A made-up prayer is still a prayer prayed: it counts as positive everywhere.
+   Only the label changes here — the stored value is still 'late'. */
 const STATUS_LABEL = {
   none:    'Not logged',
   on_time: 'On time',
-  late:    'Late',
+  late:    'Made up',
   missed:  'Missed',
 };
 
@@ -69,6 +71,13 @@ const fmtTime = new Intl.DateTimeFormat(undefined, {
 const fmtGregorian = new Intl.DateTimeFormat(undefined, {
   weekday: 'long',
   month: 'long',
+  day: 'numeric',
+});
+
+/* The long form does not fit beside the Hijri date on a phone. */
+const fmtGregorianShort = new Intl.DateTimeFormat(undefined, {
+  weekday: 'short',
+  month: 'short',
   day: 'numeric',
 });
 

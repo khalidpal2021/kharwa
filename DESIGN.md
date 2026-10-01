@@ -80,21 +80,35 @@ shape or fill, not just hue.
 | Status     | Mark                                           |
 | ---------- | ---------------------------------------------- |
 | On time    | filled gold circle with a white checkmark      |
-| Late       | gold outline with a half fill                  |
+| Made up    | gold circle, half filled                       |
 | Missed     | warm gray circle with a thin strike-through    |
 | Not logged | empty thin-bordered circle, no text            |
 
+A made-up prayer is a prayer prayed. It reads gold and positive, and counts
+exactly like an on-time prayer in every summary — streaks and the week bars
+alike. Only *missed* is negative. The stored value is still `late`; only the
+label and the summary treatment changed.
+
+In the week bars: gold for prayed (on time or made up), warm gray
+(`--mark-empty`) for missed, and a light `--border-hover` outline for not
+logged.
+
 ## Desktop layout (≥ 900px)
 
-Max width ~1200px, centered. Today's view fits a laptop screen without
+Max width 1920px, centered, and the page fills the viewport height: the
+masthead, next prayer and timeline take what they need and the two columns
+share the rest, so the prayer rows grow taller instead of leaving dead space
+below. Type and spacing scale with `clamp()` so 1920px and 2560px look
+deliberate rather than magnified. Today's view fits a laptop screen without
 scrolling.
 
 1. **Masthead** — "Kharwa" wordmark in Playfair on the left; the Gregorian date
    with the Hijri date beneath it as a small-caps line; a settings ghost button
    on the right. A thin rule underneath.
 2. **Next prayer** — the prayer name in large Playfair with "in 1h 12m" beside
-   it. Under it, a thin horizontal rule-line timeline with the five prayers
-   evenly spaced and a small gold marker showing where we are in the day.
+   it. Under it, in a full-width row of its own, a thin rule-line timeline with
+   the five prayers evenly spaced and a small gold marker showing where we are
+   in the day, with clear space beneath it before the columns begin.
 3. **Two columns**, asymmetric at about 1.3fr / 0.7fr:
    - **Left — Today**, styled like a printed timetable. Section label "TODAY"
      with ‹ › day navigation. One row per prayer: English name in Playfair,
@@ -113,8 +127,13 @@ scrolling.
 ## Mobile (< 900px)
 
 The same style, stacked: masthead, next prayer, Today timetable, This Week.
-Tap your own mark to cycle on time → late → missed → clear. 44px minimum tap
-targets, no horizontal scrolling.
+The masthead is the wordmark with a gear on the right and the Gregorian and
+Hijri dates on one quiet line beneath. The timeline is dropped, since the
+timetable already lists the times. Tap your own mark to cycle on time → made up
+→ missed → clear. 44px minimum tap targets, no horizontal scrolling.
+
+Spacing follows one rhythm throughout, as the tokens `--s1` 8px, `--s2` 16px,
+`--s3` 24px and `--s4` 40px.
 
 ## "Who's this?" screen
 
