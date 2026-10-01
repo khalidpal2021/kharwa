@@ -40,10 +40,11 @@ Loaded from Google Fonts with `font-display: swap`.
 - **Display and headings** — "Playfair Display", Georgia, serif. Normal weight,
   tracking `-0.02em` on large display text and `-0.01em` on section heads,
   line-height 1.1–1.2.
-- **Body and UI** — "Source Sans 3", system-ui, sans-serif. 16px minimum,
-  line-height 1.75, tracking `0.01em`. Buttons and nav use medium weight with
+- **Body and UI** — "Source Sans 3", system-ui, sans-serif. 15px body text,
+  line-height 1.7, tracking `0.01em`; form fields stay at 16px or more so iOS
+  doesn't zoom on focus. Buttons and nav use medium weight with
   `0.05em` tracking.
-- **Labels** — "IBM Plex Mono", 12px, weight 500, uppercase, letter-spacing
+- **Labels** — "IBM Plex Mono", 11px, weight 500, uppercase, letter-spacing
   `0.15em`, in gold. Section labels follow the pattern: thin rule, label,
   thin rule.
 - **Big numbers** — countdown and streaks are large Playfair display numerals.
@@ -180,8 +181,8 @@ Hijri dates on one quiet line beneath. The timeline is dropped, since the
 timetable already lists the times. Tap your own mark to cycle on time → made up
 → missed → clear. 44px minimum tap targets, no horizontal scrolling.
 
-Spacing follows one rhythm throughout, as the tokens `--s1` 8px, `--s2` 16px,
-`--s3` 24px and `--s4` 40px.
+Spacing follows one rhythm throughout, as the tokens `--s1` 8px, `--s2` 14px,
+`--s3` 20px and `--s4` 32px.
 
 ## "Who's this?" screen
 
