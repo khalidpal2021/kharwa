@@ -50,10 +50,15 @@ Loaded from Google Fonts with `font-display: swap`.
 
 ### Contrast
 
-`--accent` (#B8860B) on ivory is 3.16:1. That clears WCAG AA for UI components
-and large text, but not the 4.5:1 required for small text. Small gold text —
-the mono labels — therefore uses `--accent-text` (#8A6508, 5.2:1). Gold as a
-fill, rule, mark or large numeral still uses `--accent`.
+`--accent` (#B8860B) on ivory measures 3.11:1. That clears WCAG AA for UI
+components and large text, but not the 4.5:1 required for small text. Small gold
+text — the mono labels — therefore uses `--accent-text` (#8A6508, 5.09:1). Gold
+as a fill, rule, mark or large numeral still uses `--accent`.
+
+White on gold is 3.25:1, which is enough for the checkmark inside the on-time
+mark (a graphic needs 3:1) but not for button text. The primary button keeps
+both specified golds and sets its label in `--foreground`: 5.35:1 at rest and
+7.94:1 on hover.
 
 ## Surfaces and effects
 
@@ -68,7 +73,8 @@ fill, rule, mark or large numeral still uses `--accent`.
   translate on hover. Hover is a subtle shadow, border or colour shift.
   `prefers-reduced-motion` is respected.
 - **Focus** — 2px gold ring at 2px offset, always visible.
-- **Buttons** — primary is gold with white text, lighter gold on hover. Ghost is
+- **Buttons** — primary is gold, lighter gold on hover, with a rich-black label
+  for contrast (see *Contrast*). Ghost is
   muted text that darkens on hover and gains a gold underline at 4px offset.
   44px minimum tap height.
 
@@ -111,15 +117,15 @@ scrolling.
    in the day, with clear space beneath it before the columns begin.
 3. **Two columns**, asymmetric at about 1.3fr / 0.7fr:
    - **Left — Today**, styled like a printed timetable. Section label "TODAY"
-     with ‹ › day navigation. One row per prayer: English name in Playfair,
-     Arabic name in small muted text, the time, then Khalid's mark and Marwa's
-     mark under small-caps column headings. Thin rules between rows, no boxed
-     cards. A small "Times from Islamic Society of Tracy" note at the bottom.
+     with ‹ › day navigation. One row per prayer: the name in Playfair, the
+     time, then Khalid's mark and Marwa's mark under small, quiet column
+     headings. Thin rules between rows, no boxed cards. The rows share whatever
+     height is left over, so the column reaches the bottom of the screen.
    - **Right — This Week**. For each person: their name, their current streak as
      a large Playfair number with a small "day streak" label, and seven small
-     5-segment bars (one segment per prayer; gold when prayed, gray when missed,
-     nearly invisible when not logged). Clicking a day jumps Today to that date.
-4. Hovering or focusing your own mark shows a small menu: On time / Late /
+     5-segment bars (one segment per prayer). Clicking a day jumps Today to that
+     date.
+4. Hovering or focusing your own mark shows a small menu: On time / Made up /
    Missed / Clear. The other person's marks are read-only and must not look
    clickable.
 5. **Keyboard** — ← → change day, T jumps to today.
