@@ -62,7 +62,8 @@ root.
   or late. An unfinished today is skipped rather than counted as a break, so the
   streak does not read as broken before the day is over.
 - **Live sync** uses Supabase Realtime. When one of us logs a prayer the other
-  screen updates without a refresh and shows a small toast.
+  screen updates without a refresh and shows a small toast: "Marwa prayed Asr",
+  or "Marwa prayed Asr (late)". Clearing a prayer is silent.
 - **Settings** holds the display name, stored per person in the `people` table
   so it follows you between devices.
 - **Ayah of the Day** picks one reference a day from the curated list in
@@ -74,13 +75,15 @@ root.
 ### On a phone (under 900px)
 
 Prayer cards in the sky colours, with Today and Week behind two tabs. Tap your
-own square to cycle: on time, late, missed, clear.
+own mark to cycle: on time, late, clear. Missed is never chosen: an empty
+prayer turns to missed by itself once the next prayer's time arrives (Isha at
+the next day's Fajr), and can still be logged afterwards.
 
 ### On a laptop (900px and up)
 
 A sticky sidebar with the date, a large countdown and a vertical day timeline
 with a "now" marker, beside a pane holding both Today and Week at once. Hover or
-focus your own cell to get On time / Late / Missed / Clear buttons. Clicking a
+focus your own cell to get On time / Late / Clear buttons. Clicking a
 day in the week grid moves the Today table to it. Arrow keys change the day and
 `T` jumps back to today.
 

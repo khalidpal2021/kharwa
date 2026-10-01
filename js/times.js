@@ -18,12 +18,13 @@ const PRAYERS = [
 
 const PRAYER_LABEL = Object.fromEntries(PRAYERS.map((p) => [p.key, p.label]));
 
-/* A made-up prayer is still a prayer prayed: it counts as positive everywhere.
-   Only the label changes here — the stored value is still 'late'. */
+/* Only 'on_time' and 'late' are ever stored, and a late prayer is still a
+   prayer prayed: it counts as positive everywhere. 'missed' is never stored;
+   it is shown when a prayer is still empty after its window has closed. */
 const STATUS_LABEL = {
   none:    'Not logged',
   on_time: 'On time',
-  late:    'Made up',
+  late:    'Late',
   missed:  'Missed',
 };
 
@@ -180,6 +181,17 @@ function nextPrayerFrom(now) {
   }
   const tomorrow = timesFor(addDays(dateKey(now), 1)).times;
   return { key: 'fajr', label: 'Fajr', time: tomorrow.fajr, tomorrow: true };
+}
+
+/**
+ * When a prayer's window closes: the next prayer's time, or for Isha the next
+ * day's Fajr. An empty prayer past this point shows as missed.
+ */
+function windowEnd(key, prayer) {
+  const i = PRAYERS.findIndex((p) => p.key === prayer);
+  return i < PRAYERS.length - 1
+    ? timesFor(key).times[PRAYERS[i + 1].key]
+    : timesFor(addDays(key, 1)).times.fajr;
 }
 
 /** The prayer currently in progress, or null before Fajr. */

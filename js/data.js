@@ -65,10 +65,12 @@ const Data = {
     return this.logs.get(this.cacheKey(person, date, prayer)) || 'none';
   },
 
+  /** Only on time and late are kept. Older rows stored as 'missed' read as
+      empty, and show as missed once the prayer's window has passed. */
   setLocal(person, date, prayer, status) {
     const k = this.cacheKey(person, date, prayer);
-    if (status === 'none') this.logs.delete(k);
-    else this.logs.set(k, status);
+    if (status === 'on_time' || status === 'late') this.logs.set(k, status);
+    else this.logs.delete(k);
   },
 
   /* ------------------------------------------------------------ reads ---- */

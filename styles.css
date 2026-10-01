@@ -558,10 +558,27 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 .mark-fill   { fill: var(--accent); }
 .mark-half   { fill: var(--accent); }
 .mark-check  { stroke: var(--accent-foreground); }
-.mark-strike { stroke: var(--muted-foreground); }
-.mark-ring--gold  { stroke: var(--accent); }
-.mark-ring--gray  { stroke: var(--muted-foreground); }
-.mark-ring--empty { stroke: var(--mark-empty); }
+.mark-strike { stroke: var(--mark-empty); }
+.mark-ring--gold   { stroke: var(--accent); }
+.mark-ring--missed { stroke: var(--mark-empty); }
+.mark-ring--empty  { stroke: var(--mark-empty); }
+
+/* the key under the timetable */
+.tt-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 4px 8px;
+  margin-top: 12px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted-foreground);
+}
+
+.tt-legend-item { display: inline-flex; align-items: center; gap: 5px; }
+.tt-legend svg { display: block; width: 12px; height: 12px; }
+.tt-legend-sep { color: var(--border-hover); }
 
 /* the menu that appears on hover or focus, desktop only */
 

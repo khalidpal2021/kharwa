@@ -105,18 +105,28 @@ shape or fill, not just hue.
 | Status     | Mark                                           |
 | ---------- | ---------------------------------------------- |
 | On time    | filled gold circle with a white checkmark      |
-| Made up    | gold circle, half filled                       |
-| Missed     | warm gray circle with a thin strike-through    |
+| Late       | gold circle, half filled                       |
+| Missed     | warm gray circle with a ✕                      |
 | Not logged | empty thin-bordered circle, no text            |
 
-A made-up prayer is a prayer prayed. It reads gold and positive, and counts
-exactly like an on-time prayer in every summary — streaks and the week bars
-alike. Only *missed* is negative. The stored value is still `late`; only the
-label and the summary treatment changed.
+Only *on time* and *late* are ever stored. A late prayer is a prayer prayed:
+it reads gold and counts exactly like an on-time one in streaks and the week
+bars. *Missed* is never chosen or stored. A prayer shows as missed when it is
+still empty after its window has closed:
 
-In the week bars: gold for prayed (on time or made up), warm gray
-(`--mark-empty`) for missed, and a light `--border-hover` outline for not
-logged.
+- Fajr, Dhuhr, Asr and Maghrib when the next prayer's time arrives;
+- Isha when the next day's Fajr arrives;
+- so every empty prayer on a past day, apart from last night's Isha before
+  this morning's Fajr.
+
+A missed prayer can still be tapped and logged as on time or late. Older rows
+stored as `missed` are read as empty, so they show as missed in the same way.
+
+In the week bars: gold for prayed (on time or late), warm gray
+(`--mark-empty`) for missed, and a light `--border-hover` outline for a prayer
+whose window is still open. A one-line legend under the timetable,
+"✓ on time · ◐ late · ✕ missed", is drawn with the marks themselves in small
+muted text.
 
 ## Desktop layout (≥ 900px)
 
@@ -167,8 +177,8 @@ taller than the window; at 1920x1080 it fits with room to spare.
    the Al-Quran Cloud API and is never written into the code. Everyone sees the
    same ayah on a given date, cached in `localStorage` for the day. If it
    can't be fetched and nothing is cached, the card stays hidden.
-5. Hovering or focusing your own mark shows a small menu: On time / Made up /
-   Missed / Clear. The other person's marks are read-only and must not look
+5. Hovering or focusing your own mark shows a small menu: On time / Late /
+   Clear. The other person's marks are read-only and must not look
    clickable.
 6. **Keyboard** — ← → change day, T jumps to today.
 
@@ -178,8 +188,8 @@ The same style, with the cards stacked: masthead, Next prayer, Today, This
 Week, Ayah of the Day.
 The masthead is the wordmark with a gear on the right and the Gregorian and
 Hijri dates on one quiet line beneath. The timeline is dropped, since the
-timetable already lists the times. Tap your own mark to cycle on time → made up
-→ missed → clear. 44px minimum tap targets, no horizontal scrolling.
+timetable already lists the times. Tap your own mark to cycle empty → on time →
+late → empty. 44px minimum tap targets, no horizontal scrolling.
 
 Spacing follows one rhythm throughout, as the tokens `--s1` 8px, `--s2` 14px,
 `--s3` 20px and `--s4` 32px.

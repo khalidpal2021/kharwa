@@ -7,7 +7,9 @@
    =========================================================================== */
 
 const PERSON_STORE = 'kharwa.person';
-const CYCLE = ['none', 'on_time', 'late', 'missed'];
+/* Tapping your own mark cycles through what can be stored. Missed is never
+   stored or chosen: see shownStatus(). */
+const CYCLE = ['none', 'on_time', 'late'];
 
 const el = (id) => document.getElementById(id);
 
@@ -37,6 +39,21 @@ const State = {
 
 function name(person) {
   return Data.people[person]?.display_name || person;
+}
+
+/**
+ * What a mark shows: the logged status, or 'missed' once an empty prayer's
+ * window has closed. That covers every empty prayer on a past day, except last
+ * night's Isha until this morning's Fajr.
+ */
+function shownStatus(person, date, prayer, now = new Date()) {
+  const stored = Data.status(person, date, prayer);
+  if (stored !== 'none') return stored;
+  const end = windowEnd(date, prayer);
+  const closed = end instanceof Date && !Number.isNaN(end.getTime())
+    ? now >= end
+    : date < todayKey();
+  return closed ? 'missed' : 'none';
 }
 
 function toast(message, { error = false } = {}) {
@@ -189,8 +206,8 @@ function markSvg(status) {
   }
   if (status === 'missed') {
     return `${open}
-      <circle class="mark-ring mark-ring--gray" cx="12" cy="12" r="10.25" fill="none" stroke-width="1.5"/>
-      <path class="mark-strike" d="M6.75 12h10.5" stroke-width="1.5" stroke-linecap="round"/>
+      <circle class="mark-ring mark-ring--missed" cx="12" cy="12" r="10.25" fill="none" stroke-width="1.5"/>
+      <path class="mark-strike" d="M8.6 8.6l6.8 6.8M15.4 8.6l-6.8 6.8" fill="none" stroke-width="1.75" stroke-linecap="round"/>
     </svg>`;
   }
   return `${open}
@@ -199,7 +216,8 @@ function markSvg(status) {
 }
 
 function markMarkup(person, prayer) {
-  const status = Data.status(person, State.viewDate, prayer);
+  const stored = Data.status(person, State.viewDate, prayer);
+  const status = shownStatus(person, State.viewDate, prayer);
   const mine = person === State.me;
   const who = esc(name(person));
   const label = `${who}, ${PRAYER_LABEL[prayer]}: ${STATUS_LABEL[status].toLowerCase()}`;
@@ -211,7 +229,7 @@ function markMarkup(person, prayer) {
   }
 
   const item = (value, text) => `
-    <button class="markmenu-btn${status === value ? ' is-active' : ''}" type="button"
+    <button class="markmenu-btn${stored === value ? ' is-active' : ''}" type="button"
             data-set="${value}" data-person="${person}" data-prayer="${prayer}"
             aria-label="${PRAYER_LABEL[prayer]}: ${text}">${text}</button>`;
 
@@ -219,9 +237,16 @@ function markMarkup(person, prayer) {
     <button class="mark" type="button" data-person="${person}" data-prayer="${prayer}"
             aria-label="${label}. Activate to change.">${markSvg(status)}</button>
     <div class="markmenu">
-      ${item('on_time', 'On time')}${item('late', 'Made up')}${item('missed', 'Missed')}${item('none', 'Clear')}
+      ${item('on_time', 'On time')}${item('late', 'Late')}${item('none', 'Clear')}
     </div>
   </div>`;
+}
+
+/** ✓ on time · ◐ late · ✕ missed, drawn with the marks themselves. */
+function renderLegend() {
+  el('tt-legend').innerHTML = ['on_time', 'late', 'missed']
+    .map((s) => `<span class="tt-legend-item">${markSvg(s)}${STATUS_LABEL[s].toLowerCase()}</span>`)
+    .join('<span class="tt-legend-sep" aria-hidden="true">·</span>');
 }
 
 /* ============================================================ timetable === */
@@ -281,7 +306,7 @@ function lastSevenDays() {
 
 function daySummary(person, key) {
   return PRAYERS
-    .map((p) => `${p.label} ${STATUS_LABEL[Data.status(person, key, p.key)].toLowerCase()}`)
+    .map((p) => `${p.label} ${STATUS_LABEL[shownStatus(person, key, p.key)].toLowerCase()}`)
     .join(', ');
 }
 
@@ -293,7 +318,7 @@ function renderWeek() {
     const n = streakFor(person);
     const cells = days.map((key) => {
       const segs = PRAYERS.map((p) => {
-        const status = Data.status(person, key, p.key);
+        const status = shownStatus(person, key, p.key);
         return `<i class="wk-seg" data-prayer="${p.key}" data-status="${status}"></i>`;
       }).join('');
       const classes = [
@@ -372,6 +397,7 @@ function render() {
   renderDayNav();
   renderTimeline();
   renderStatuses();
+  renderLegend();
   renderAyah();
 }
 
@@ -507,13 +533,16 @@ function onRemoteChange(change) {
     return;
   }
 
+  // Only logging a prayer is news; clearing one passes quietly.
+  if (change.status !== 'on_time' && change.status !== 'late') {
+    renderStatuses();
+    return;
+  }
+
   const who = esc(name(change.person));
   const prayer = PRAYER_LABEL[change.prayer];
-  let line;
-  if (change.status === 'on_time') line = `<b>${who}</b> prayed ${prayer}`;
-  else if (change.status === 'late') line = `<b>${who}</b> made up ${prayer}`;
-  else if (change.status === 'missed') line = `<b>${who}</b> missed ${prayer}`;
-  else line = `<b>${who}</b> cleared ${prayer}`;
+  let line = `<b>${who}</b> prayed ${prayer}`;
+  if (change.status === 'late') line += ' (late)';
 
   if (change.date !== todayKey()) line += ` · ${friendlyDay(change.date)}`;
 
@@ -575,9 +604,11 @@ function startClock() {
       return;
     }
 
+    // A prayer time arriving closes the previous window, so marks can turn
+    // to missed: redraw everything that shows a status.
     if (next && next.key !== lastNext) {
       lastNext = next.key;
-      renderTimetable();
+      renderStatuses();
       renderTimeline();
     } else if (now.getMinutes() !== lastMinute) {
       lastMinute = now.getMinutes();
