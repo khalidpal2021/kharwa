@@ -32,6 +32,10 @@
   --accent-glow:       rgba(184, 134, 11, 0.02);
   --accent-wash:       rgba(184, 134, 11, 0.10);
   --accent-tint:       rgba(184, 134, 11, 0.18);
+  --accent-hairline:   rgba(184, 134, 11, 0.30);
+
+  /* The Ayah of the Day's paper: a breath warmer than a plain card. */
+  --card-warm:         #FFFCF8;
   --shadow-ink:        rgba(26, 26, 26, 0.04);
   --shadow-ink-md:     rgba(26, 26, 26, 0.06);
   --scrim:             rgba(26, 26, 26, 0.32);
@@ -299,7 +303,7 @@ button, a, input, select, textarea, label,
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-width: 1160px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: calc(8px + env(safe-area-inset-top, 0px)) var(--s2)
            calc(var(--tabbar-h) + var(--s3) + env(safe-area-inset-bottom, 0px));
@@ -730,41 +734,85 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 /* ------------------------------------------------------ ayah of the day -- */
 
-/* Arabic, then the translation, then the reference: centred, one column. */
-.ayah { text-align: center; }
+/* Like an illuminated page: warm paper, a fine gold rule just inside the
+   border, a small star, then the Arabic, the translation and the reference,
+   all centred. */
+.ayah {
+  position: relative;
+  text-align: center;
+  background: var(--card-warm);
+}
+
+.ayah::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border: 1px solid var(--accent-hairline);
+  border-radius: 5px;
+  pointer-events: none;
+}
+
+.ayah-orn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 0;
+}
+
+.ayah-orn-rule { width: 28px; height: 1px; background: var(--accent-hairline); }
+
+.ayah-orn svg { display: block; }
+
+.ayah-orn rect {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1;
+}
 
 .ayah-ar {
   font-family: var(--quran);
-  font-size: 25px;
+  font-size: 1.6rem;
   line-height: 2.1;
   color: var(--foreground);
   overflow-wrap: break-word;
 }
 
+.ayah-divider {
+  display: block;
+  width: 40px;
+  height: 1px;
+  margin: 6px auto 10px;
+  background: var(--accent);
+}
+
 .ayah-en {
-  max-width: 62ch;
-  margin: 12px auto 0;
+  max-width: 36ch;
+  margin: 0 auto;
   font-family: var(--serif);
   font-style: italic;
-  font-size: 15.5px;
-  line-height: 1.65;
-  color: var(--foreground);
+  font-size: 1.05rem;
+  line-height: 1.55;
+  color: var(--muted-foreground);
 }
 
 .ayah-ref {
-  display: inline-block;
-  margin-top: 12px;
-  text-decoration: none;
+  margin-top: 10px;
   font-family: var(--mono);
   font-size: 11px;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.15em;
   line-height: 1.4;
-  color: var(--muted-foreground);
+  color: var(--accent-text);
 }
 
-.ayah-ref:hover { color: var(--accent-text); }
+.ayah-link {
+  min-height: 32px;
+  margin-top: 0;
+  font-size: 13px;
+  text-decoration: none;
+}
 
 /* ------------------------------------------------------------ navigation -- */
 
@@ -1380,7 +1428,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
   .hero-line { gap: 4px; }
 
-  .hero-name { font-size: clamp(40px, 3.6vw, 52px); }
+  .hero-name { font-size: clamp(40px, 3.4vw, 48px); }
   .hero-until { font-size: clamp(20px, 1.6vw, 24px); }
   .hero-time { font-size: 14px; }
 
@@ -1394,8 +1442,8 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
     display: block;
     position: relative;
     flex: none;
-    height: 50px;
-    margin: 14px 24px 0;
+    height: 46px;
+    margin: 10px 24px 0;
   }
 
   .timeline::before {
@@ -1446,15 +1494,24 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
     box-shadow: 0 0 0 4px var(--background);
   }
 
-  /* Today and This week side by side, the same height */
+  /* The Ayah of the Day over This week on the left, Today on the right.
+     Every card is as tall as its content. */
 
   .columns {
-    grid-template-columns: 1.3fr 0.7fr;
+    grid-template-columns: 0.85fr 1.15fr;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "ayah today"
+      "week today";
     gap: var(--s3);
-    align-items: stretch;
+    align-items: start;
   }
 
-  .tt-row { padding: 3px 0; }
+  .ayah        { grid-area: ayah; }
+  .col--week   { grid-area: week; }
+  .col--today  { grid-area: today; }
+
+  .tt-row { padding: 12px 0; }
 
   .tt-head,
   .tt-row {
@@ -1484,21 +1541,11 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
   /* week */
 
-  .week { gap: var(--s3); }
-  .wk-person { gap: 8px; }
+  .week { gap: 16px; }
+  .wk-person { gap: 6px; }
   .wk-name { font-size: 17px; }
   .wk-streak-n { font-size: 26px; }
-  .wk-bar { height: 34px; }
-
-  /* ayah: full width under the columns, text kept to a readable measure */
-
-  .ayah-ar {
-    max-width: 30em;
-    margin: 0 auto;
-    font-size: 29px;
-  }
-
-  .ayah-en { font-size: 16.5px; }
+  .wk-bar { height: 26px; }
 
   /* quran: the list in two columns, the reader as one centred page */
 

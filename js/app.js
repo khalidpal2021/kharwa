@@ -361,7 +361,7 @@ async function renderAyah() {
     el('ayah-ar').textContent = ayah.arabic;
     el('ayah-en').textContent = ayah.english;
     el('ayah-ref').textContent = `${ayah.surah} · ${ayah.number}`;
-    el('ayah-ref').href = `#/quran/${ayah.number.replace(':', '/')}`;
+    el('ayah-link').href = `#/quran/${ayah.number.replace(':', '/')}`;
     el('ayah').hidden = false;
     State.ayahFor = key;
   } catch {

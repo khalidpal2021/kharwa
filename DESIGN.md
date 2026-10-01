@@ -130,7 +130,7 @@ muted text.
 
 ## Desktop layout (≥ 900px)
 
-Content is capped at 1160px wide and centred. The page is only as tall as its
+Content is capped at 1200px wide and centred. The page is only as tall as its
 content: the rows keep a fixed height instead of stretching to fill the
 screen. The few sizes that still use `clamp()` grow slightly with the window
 and stop by about 1440px, so 1920px and 2560px look the same as a laptop,
@@ -153,9 +153,12 @@ taller than the window; at 1920x1080 it fits with room to spare.
    Playfair, the countdown beneath it and the clock time beneath that, all
    centred; then the rule-line timeline with the five prayers evenly spaced and
    a small gold marker showing where we are in the day.
-3. **Two cards side by side**, asymmetric at about 1.3fr / 0.7fr and equal in
-   height:
-   - **Left — Today**, styled like a printed timetable. Under the card header
+3. **Two columns** at about 0.85fr / 1.15fr, each card only as tall as its
+   content. The left column holds the Ayah of the Day with This Week directly
+   under it; the right holds Today. On a 1920x1080 screen the page fits without
+   scrolling for short and median ayat, and the two columns end within about
+   25–130px of each other depending on the ayah's length.
+   - **Right — Today**, styled like a printed timetable. Under the card header
      sits one centred row: a ‹ arrow, the full date, a › arrow. The arrows are
      44px round ghost buttons and never move — the date label is sized by a
      hidden copy of the longest date it can hold and uses tabular figures. The
@@ -167,16 +170,21 @@ taller than the window; at 1920x1080 it fits with room to spare.
      only as wide as "12:45 PM", so the spare width goes to the prayer names.
      The headings and the columns share one set of explicit widths, so they
      line up exactly. Thin rules between rows.
-   - **Right — This Week**. For each person: their name, their current streak as
+   - **Left, below — This Week**. For each person: their name, their current streak as
      a large Playfair number with a small "day streak" label, and seven small
      5-segment bars (one segment per prayer). Clicking a day jumps Today to that
      date.
-4. **Ayah of the Day** — full width under the two cards, same card style, with
-   an AYAH OF THE DAY header. The Arabic (Uthmani) is centred, right-to-left,
-   in Amiri Quran at a generous line height. Beneath it, the Sahih
-   International translation is in Playfair italic, kept to a readable measure.
-   The reference ("AL-HASHR · 59:10") sits at the bottom in small-caps Plex
-   Mono, muted. `js/ayat.js` holds only references. The text always comes from
+4. **Ayah of the Day** — top of the left column, like an illuminated page in a
+   fine mushaf. Warm paper (`--card-warm`) and a fine gold hairline rule just
+   inside the card border, kept restrained. Under the AYAH OF THE DAY header, a
+   small thin-gold eight-pointed star between two short rules. The Arabic
+   (Uthmani) is centred, right-to-left, in Amiri Quran at 1.6rem, line-height
+   2.1, in rich black. Then a short gold divider and the Sahih International
+   translation, centred in Playfair italic, muted, 1.05rem, at most 36ch wide.
+   The reference ("AL-HASHR · 59:10") follows in gold small caps, then a quiet
+   ghost link, "Read in context →", to the ayah in the Quran reader
+   (`#/quran/{surah}/{ayah}`). `js/ayat.js` holds only references, kept to ayat
+   whose translation is 250 characters or less so the card stays compact. The text always comes from
    the Al-Quran Cloud API and is never written into the code. Everyone sees the
    same ayah on a given date, cached in `localStorage` for the day. If it
    can't be fetched and nothing is cached, the card stays hidden.
@@ -227,8 +235,9 @@ from the Al-Quran Cloud API and is never written into the code.
 
 ## Mobile (< 900px)
 
-The same style, with the cards stacked: masthead, Next prayer, Today, This
-Week, Ayah of the Day, and the tab bar fixed at the bottom. With Safari's own
+The same style, with the cards stacked: masthead, Next prayer, Today, Ayah of
+the Day, This Week, and the tab bar fixed at the bottom. (The markup is in this
+order; desktop rearranges it with grid areas.) With Safari's own
 toolbars on a 390px iPhone, the next-prayer card and all five Today rows still
 end above the tab bar.
 The masthead is the wordmark with a gear on the right and the Gregorian and
