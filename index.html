@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0d0f20" />
+  <meta name="description" content="Kharwa — a prayer tracker for two." />
+  <title>Kharwa</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%230d0f20'/%3E%3Cpath d='M20.5 9a7.5 7.5 0 1 0 0 14 9 9 0 0 1 0-14z' fill='%23f2c879'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ------------------------------------------------- who's this? ------- -->
+  <section id="gate" class="gate" hidden>
+    <div class="gate-inner">
+      <p class="gate-brand">Kharwa</p>
+      <h1 class="gate-title">Who&rsquo;s this?</h1>
+      <p class="gate-sub">We&rsquo;ll remember on this device.</p>
+      <div class="gate-buttons">
+        <button class="gate-btn gate-btn--khalid" type="button" data-person="khalid">
+          <span class="gate-btn-name">Khalid</span>
+        </button>
+        <button class="gate-btn gate-btn--marwa" type="button" data-person="marwa">
+          <span class="gate-btn-name">Marwa</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------- app ------- -->
+  <div id="app" class="app" hidden>
+
+    <header class="top">
+      <div class="top-row">
+        <div class="top-dates">
+          <h1 id="gregorian" class="gregorian">&nbsp;</h1>
+          <p id="hijri" class="hijri">&nbsp;</p>
+        </div>
+        <button id="settings-open" class="icon-btn" type="button" aria-label="Settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true" width="22" height="22">
+            <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" fill="none" stroke="currentColor" stroke-width="1.7"/>
+            <path d="M19.4 13.9a7.6 7.6 0 0 0 0-3.8l2-1.2-2-3.4-2.1 1a7.7 7.7 0 0 0-3.3-1.9L13.7 2h-3.4l-.3 2.6a7.7 7.7 0 0 0-3.3 1.9l-2.1-1-2 3.4 2 1.2a7.6 7.6 0 0 0 0 3.8l-2 1.2 2 3.4 2.1-1a7.7 7.7 0 0 0 3.3 1.9l.3 2.6h3.4l.3-2.6a7.7 7.7 0 0 0 3.3-1.9l2.1 1 2-3.4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <div id="next-up" class="next-up" hidden>
+        <span class="next-up-label">Next</span>
+        <strong id="next-name" class="next-up-name"></strong>
+        <span id="next-time" class="next-up-time"></span>
+        <span id="next-count" class="next-up-count"></span>
+      </div>
+
+      <p id="place" class="place"></p>
+
+      <div class="tabs" role="tablist" aria-label="Views">
+        <button id="tab-today" class="tab" type="button" role="tab" aria-selected="true" aria-controls="view-today">Today</button>
+        <button id="tab-week" class="tab" type="button" role="tab" aria-selected="false" aria-controls="view-week">Week</button>
+      </div>
+    </header>
+
+    <main class="main">
+
+      <!-- ------------------------------------------------- today view --- -->
+      <section id="view-today" class="view" role="tabpanel" aria-labelledby="tab-today">
+        <nav class="daynav" aria-label="Day navigation">
+          <button id="day-prev" class="daynav-btn" type="button" aria-label="Previous day">
+            <svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="daynav-mid">
+            <span id="day-label" class="daynav-label"></span>
+            <button id="day-today" class="daynav-today" type="button" hidden>Jump to today</button>
+          </div>
+          <button id="day-next" class="daynav-btn" type="button" aria-label="Next day">
+            <svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </nav>
+
+        <ul id="prayers" class="prayers"></ul>
+
+        <p class="hint">Tap your own square to cycle: on time &rarr; late &rarr; missed &rarr; clear.</p>
+      </section>
+
+      <!-- -------------------------------------------------- week view --- -->
+      <section id="view-week" class="view" role="tabpanel" aria-labelledby="tab-week" hidden>
+        <div id="streaks" class="streaks"></div>
+        <div id="week" class="week"></div>
+        <div class="legend">
+          <span class="legend-item"><i class="swatch swatch--on_time"></i>on time</span>
+          <span class="legend-item"><i class="swatch swatch--late"></i>late</span>
+          <span class="legend-item"><i class="swatch swatch--missed"></i>missed</span>
+          <span class="legend-item"><i class="swatch swatch--none"></i>not logged</span>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ----------------------------------------------------- settings --- -->
+    <div id="settings" class="sheet" hidden>
+      <div id="settings-scrim" class="sheet-scrim"></div>
+      <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <div class="sheet-head">
+          <h2 id="settings-title">Settings</h2>
+          <button id="settings-close" class="icon-btn" type="button" aria-label="Close settings">
+            <svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+
+        <p id="settings-who" class="sheet-who"></p>
+
+        <label class="field">
+          <span class="field-label">Display name</span>
+          <input id="set-name" class="input" type="text" autocomplete="off" maxlength="40" />
+        </label>
+
+        <label class="field">
+          <span class="field-label">Calculation method</span>
+          <select id="set-method" class="input">
+            <option value="NorthAmerica">North America (ISNA)</option>
+            <option value="MuslimWorldLeague">Muslim World League</option>
+            <option value="Egyptian">Egyptian General Authority</option>
+            <option value="Karachi">University of Islamic Sciences, Karachi</option>
+            <option value="UmmAlQura">Umm al-Qura, Makkah</option>
+            <option value="Dubai">Dubai</option>
+            <option value="Qatar">Qatar</option>
+            <option value="Kuwait">Kuwait</option>
+            <option value="Singapore">Singapore</option>
+            <option value="Turkey">Turkey (Diyanet)</option>
+            <option value="Tehran">Tehran</option>
+            <option value="MoonsightingCommittee">Moonsighting Committee</option>
+          </select>
+        </label>
+
+        <fieldset class="field">
+          <legend class="field-label">Asr</legend>
+          <div class="segmented">
+            <label class="seg">
+              <input type="radio" name="madhab" value="standard" />
+              <span>Standard</span>
+            </label>
+            <label class="seg">
+              <input type="radio" name="madhab" value="hanafi" />
+              <span>Hanafi</span>
+            </label>
+          </div>
+        </fieldset>
+
+        <button id="set-save" class="btn btn--primary" type="button">Save settings</button>
+        <p id="set-status" class="sheet-status" role="status"></p>
+
+        <hr class="rule" />
+
+        <button id="switch-person" class="btn btn--ghost" type="button">Switch person</button>
+        <p class="sheet-note">Forgets who you are on this device and asks again.</p>
+      </div>
+    </div>
+
+    <p id="banner" class="banner" hidden></p>
+  </div>
+
+  <div id="toasts" class="toasts" aria-live="polite" aria-atomic="false"></div>
+
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/adhan@4.4.3/lib/bundles/adhan.umd.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
+  <script src="js/times.js" defer></script>
+  <script src="js/data.js" defer></script>
+  <script src="js/app.js" defer></script>
+</body>
+</html>
