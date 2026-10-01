@@ -39,6 +39,7 @@
   --serif: "Playfair Display", Georgia, "Times New Roman", serif;
   --sans:  "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono:  "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --quran: "Amiri Quran", "Amiri", "Scheherazade New", "Geeza Pro", serif;
 
   /* One vertical rhythm, used everywhere */
   --s1: 8px;
@@ -693,6 +694,40 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 .wk-day.is-today .wk-dlabel { color: var(--accent-text); }
 
+/* ------------------------------------------------------ ayah of the day -- */
+
+/* Arabic, then the translation, then the reference: centred, one column. */
+.ayah { text-align: center; }
+
+.ayah-ar {
+  font-family: var(--quran);
+  font-size: 25px;
+  line-height: 2.1;
+  color: var(--foreground);
+  overflow-wrap: break-word;
+}
+
+.ayah-en {
+  max-width: 62ch;
+  margin: 12px auto 0;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 15.5px;
+  line-height: 1.65;
+  color: var(--foreground);
+}
+
+.ayah-ref {
+  margin-top: 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  line-height: 1.4;
+  color: var(--muted-foreground);
+}
+
 /* ------------------------------------------------------------ settings -- */
 
 .sheet { position: fixed; inset: 0; z-index: 40; }
@@ -973,6 +1008,16 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   .wk-name { font-size: 17px; }
   .wk-streak-n { font-size: 26px; }
   .wk-bar { height: 34px; }
+
+  /* ayah: full width under the columns, text kept to a readable measure */
+
+  .ayah-ar {
+    max-width: 30em;
+    margin: 0 auto;
+    font-size: 29px;
+  }
+
+  .ayah-en { font-size: 16.5px; }
 
   /* settings as a centred dialog */
 

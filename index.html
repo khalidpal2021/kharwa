@@ -13,7 +13,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&family=Source+Sans+3:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Source+Sans+3:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -114,6 +114,20 @@
 
     </div>
 
+    <!-- ----------------------------------------------- ayah of the day --- -->
+    <!-- Text comes from the Al-Quran Cloud API (js/ayat.js); hidden until it does. -->
+    <section id="ayah" class="card ayah" aria-labelledby="ayah-label" hidden>
+      <div class="cardhead">
+        <span class="rule" aria-hidden="true"></span>
+        <h2 id="ayah-label" class="cardhead-text">Ayah of the day</h2>
+        <span class="rule" aria-hidden="true"></span>
+      </div>
+
+      <p id="ayah-ar" class="ayah-ar" lang="ar" dir="rtl"></p>
+      <p id="ayah-en" class="ayah-en"></p>
+      <p id="ayah-ref" class="ayah-ref"></p>
+    </section>
+
     <!-- ----------------------------------------------------- settings --- -->
     <div id="settings" class="sheet" hidden>
       <div id="settings-scrim" class="sheet-scrim"></div>
@@ -156,6 +170,7 @@
   <script src="js/timetable.js" defer></script>
   <script src="js/times.js" defer></script>
   <script src="js/data.js" defer></script>
+  <script src="js/ayat.js" defer></script>
   <script src="js/app.js" defer></script>
 </body>
 </html>

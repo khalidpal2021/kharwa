@@ -47,6 +47,8 @@ Loaded from Google Fonts with `font-display: swap`.
   `0.15em`, in gold. Section labels follow the pattern: thin rule, label,
   thin rule.
 - **Big numbers** — countdown and streaks are large Playfair display numerals.
+- **Quranic Arabic** — "Amiri Quran", falling back to Amiri, Scheherazade New
+  and Geeza Pro, used only for the Ayah of the Day.
 
 ### Contrast
 
@@ -155,15 +157,24 @@ taller than the window; at 1920x1080 it fits with room to spare.
      a large Playfair number with a small "day streak" label, and seven small
      5-segment bars (one segment per prayer). Clicking a day jumps Today to that
      date.
-4. Hovering or focusing your own mark shows a small menu: On time / Made up /
+4. **Ayah of the Day** — full width under the two cards, same card style, with
+   an AYAH OF THE DAY header. The Arabic (Uthmani) is centred, right-to-left,
+   in Amiri Quran at a generous line height. Beneath it, the Sahih
+   International translation is in Playfair italic, kept to a readable measure.
+   The reference ("AL-HASHR · 59:10") sits at the bottom in small-caps Plex
+   Mono, muted. `js/ayat.js` holds only references. The text always comes from
+   the Al-Quran Cloud API and is never written into the code. Everyone sees the
+   same ayah on a given date, cached in `localStorage` for the day. If it
+   can't be fetched and nothing is cached, the card stays hidden.
+5. Hovering or focusing your own mark shows a small menu: On time / Made up /
    Missed / Clear. The other person's marks are read-only and must not look
    clickable.
-5. **Keyboard** — ← → change day, T jumps to today.
+6. **Keyboard** — ← → change day, T jumps to today.
 
 ## Mobile (< 900px)
 
-The same style, with the three cards stacked: masthead, Next prayer, Today,
-This Week.
+The same style, with the cards stacked: masthead, Next prayer, Today, This
+Week, Ayah of the Day.
 The masthead is the wordmark with a gear on the right and the Gregorian and
 Hijri dates on one quiet line beneath. The timeline is dropped, since the
 timetable already lists the times. Tap your own mark to cycle on time → made up

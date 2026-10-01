@@ -29,6 +29,8 @@ const State = {
   me: null,            // 'khalid' | 'marwa'
   viewDate: todayKey(),
   tick: null,
+  ayahFor: null,       // date key of the ayah on screen
+  ayahLoading: null,   // date key being fetched
 };
 
 /* ============================================================== helpers === */
@@ -320,6 +322,29 @@ function renderWeek() {
   }).join('');
 }
 
+/* ================================================================= ayah === */
+
+/** Once per date; a failure with nothing cached just leaves the card hidden. */
+async function renderAyah() {
+  const key = todayKey();
+  if (State.ayahFor === key || State.ayahLoading === key) return;
+  State.ayahLoading = key;
+
+  try {
+    const ayah = await loadAyah(key);
+    if (todayKey() !== key) return;
+    el('ayah-ar').textContent = ayah.arabic;
+    el('ayah-en').textContent = ayah.english;
+    el('ayah-ref').textContent = `${ayah.surah} · ${ayah.number}`;
+    el('ayah').hidden = false;
+    State.ayahFor = key;
+  } catch {
+    el('ayah').hidden = true;
+  } finally {
+    State.ayahLoading = null;
+  }
+}
+
 /* ============================================================== render ==== */
 
 /** Everything that shows a logged status. */
@@ -347,6 +372,7 @@ function render() {
   renderDayNav();
   renderTimeline();
   renderStatuses();
+  renderAyah();
 }
 
 /* ========================================================= interaction === */

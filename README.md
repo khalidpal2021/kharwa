@@ -65,6 +65,11 @@ root.
   screen updates without a refresh and shows a small toast.
 - **Settings** holds the display name, stored per person in the `people` table
   so it follows you between devices.
+- **Ayah of the Day** picks one reference a day from the curated list in
+  `js/ayat.js`, the same for both of us, and fetches its Arabic and Sahih
+  International text from the [Al-Quran Cloud API](https://alquran.cloud/api)
+  (no key). The result is cached in `localStorage` for the day; if the API is
+  unreachable and nothing is cached, the card is simply hidden.
 
 ### On a phone (under 900px)
 
