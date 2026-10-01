@@ -229,7 +229,7 @@ from the Al-Quran Cloud API and is never written into the code.
     a phone, two on desktop.
   - *Juz*: the 30 juz in the same row style, "Juz 2 · Starts at Al-Baqara ·
     ayah 142", each opening the reader at that ayah.
-  - *Bookmarks*: newest first. Each row leads with the saved bookmark icon,
+  - *Bookmarks*: newest first. Each row leads with a small filled gold star,
     which also removes it, then the surah name, "AYAH 10", and the first line
     of its translation (truncated, muted).
 - **Reader** — one centred page, at most 820px wide. The surah header is a
@@ -256,16 +256,17 @@ from the Al-Quran Cloud API and is never written into the code.
   with extra line height. With Arabic off, the star number leads the first line
   shown instead, so every ayah stays numbered. Thin rules separate the ayat;
   previous and next surah links close the page.
-- **Bookmarks** — a bookmark button in the top-left corner of every ayah,
-  floated so a long first line of Arabic wraps around it, never under it. The
-  icon is drawn for Kharwa: a slim ribbon (about 14×20px) whose foot ends in a
-  pointed mihrab arch rather than a V-notch, with a small eight-pointed star
-  (two squares) near the top. Not saved: a 1.25px outline, muted until hover,
-  then gold. Saved: solid gold with the star cut out in ivory, fading in over
-  150ms with no bounce, and instant under prefers-reduced-motion. The tap area
-  is 44px; aria-pressed follows the state, and the label reads "Bookmark ayah
-  2:255" or "Remove bookmark". A toast confirms: "Bookmarked Al-Baqara 2:255"
-  or "Bookmark removed". The ayah's number star is only a number.
+- **Bookmarks** — the eight-pointed star that numbers each ayah is the
+  bookmark button. Not bookmarked: a thin gold outline with the numeral in
+  gold. Bookmarked: solid gold with the numeral in ivory, filling in over
+  150ms (instant under prefers-reduced-motion). On desktop, hovering darkens
+  the outline slightly. The tap area is 44px; aria-pressed follows the state,
+  and the label reads "Bookmark ayah 2:255" or "Remove bookmark". A toast
+  confirms: "Bookmarked Al-Baqara 2:255" or "Bookmark removed". With Arabic
+  off, the star leads the first line shown, floated so the line spacing stays
+  even, so every ayah can still be bookmarked. Under the options bar, a short
+  muted hint, "Tap ✦ to bookmark", shows until the first bookmark is saved on
+  the device, or whenever there are none yet.
 
   Bookmarks and the reading position (the topmost ayah in a band across the
   upper screen, saved 1.5s after it settles) are kept per person in Supabase;

@@ -82,15 +82,13 @@ function translationOf(id) {
   return QURAN_TRANSLATIONS.find((t) => t.id === id) || QURAN_TRANSLATIONS[0];
 }
 
-/**
- * The bookmark: a slim ribbon whose foot ends in a pointed mihrab arch rather
- * than a V-notch, with a small eight-pointed star (two squares) near the top.
- * Outline when not saved; gold with the star cut out when saved (CSS).
- */
-const QURAN_BOOKMARK_ICON = `<svg class="qbm" viewBox="0 0 16 22" width="16" height="22" aria-hidden="true" focusable="false">
-  <path class="qbm-ribbon" d="M3.5 1.5H12.5A1.5 1.5 0 0 1 14 3V20.5H11.5V17.5C11.5 15.3 9.6 14.2 8 12.5C6.4 14.2 4.5 15.3 4.5 17.5V20.5H2V3A1.5 1.5 0 0 1 3.5 1.5Z"/>
-  <rect class="qbm-star" x="5.9" y="4.9" width="4.2" height="4.2"/>
-  <rect class="qbm-star" x="5.9" y="4.9" width="4.2" height="4.2" transform="rotate(45 8 7)"/>
+const QURAN_HINT_STORE = 'kharwa.quran.bookmarkHintDone';
+
+/* The eight-pointed star (two squares) of the ayah marker. */
+const QURAN_STAR_SVG = `<svg viewBox="0 0 40 40" aria-hidden="true" focusable="false">
+  <rect class="qr-num-star" x="9" y="9" width="22" height="22"/>
+  <rect class="qr-num-star" x="9" y="9" width="22" height="22" transform="rotate(45 20 20)"/>
+  <circle class="qr-num-ring" cx="20" cy="20" r="10.5"/>
 </svg>`;
 
 /* ---------------------------------------------------------------- state --- */
@@ -256,6 +254,7 @@ const Quran = {
     this.renderBookmarks();
     this.renderSurahList();
     this.refreshMarkers();
+    this.renderHint();
   },
 
   /* ---------------------------------------------------------- routing --- */
@@ -289,8 +288,8 @@ const Quran = {
     });
 
     el('qr-text').addEventListener('click', (event) => {
-      const btn = event.target.closest('.qr-bm-btn');
-      if (btn) this.toggleBookmark(this.surah.number, Number(btn.dataset.ayah));
+      const num = event.target.closest('.qr-num');
+      if (num) this.toggleBookmark(this.surah.number, Number(num.dataset.ayah));
     });
 
     // Reading options
@@ -438,10 +437,8 @@ const Quran = {
     const t = translationOf(this.settings.edition);
     list.innerHTML = this.bookmarks.map((b) => `
       <li class="qr-bm-row">
-        <button class="qr-bm-btn qr-bm-remove is-saved" type="button" data-surah="${b.surah}" data-ayah="${b.ayah}"
-                aria-pressed="true" aria-label="Remove bookmark: ${esc(this.surahName(b.surah))} ${b.surah}:${b.ayah}">
-          ${QURAN_BOOKMARK_ICON}
-        </button>
+        <button class="qr-bm-remove" type="button" data-surah="${b.surah}" data-ayah="${b.ayah}"
+                aria-label="Remove bookmark: ${esc(this.surahName(b.surah))} ${b.surah}:${b.ayah}">${QURAN_STAR_SVG}</button>
         <a class="qr-bm-link" href="#/quran/${b.surah}/${b.ayah}">
           <span class="qr-bm-head">
             <span class="qr-bookmark-name">${esc(this.surahName(b.surah))}</span>
@@ -537,24 +534,24 @@ const Quran = {
     el('qr-meta').textContent = s.type ? `${s.type} · ${s.ayahs} ayat` : '';
   },
 
-  /** The ornamental ayah number. Just the number: bookmarking has its own button. */
+  /** The ornamental ayah number, which is also the bookmark button: an
+      outlined star when not saved, solid gold when saved. */
   marker(n) {
-    return `<span class="qr-num${n > 99 ? ' qr-num--3' : ''}" role="img" aria-label="Ayah ${n}">
-      <svg viewBox="0 0 40 40" aria-hidden="true" focusable="false">
-        <rect class="qr-num-star" x="9" y="9" width="22" height="22"/>
-        <rect class="qr-num-star" x="9" y="9" width="22" height="22" transform="rotate(45 20 20)"/>
-        <circle class="qr-num-ring" cx="20" cy="20" r="10.5"/>
-      </svg>
-      <span class="qr-num-text" lang="ar" aria-hidden="true">${fmtArabicDigits.format(n)}</span>
-    </span>`;
-  },
-
-  /** The bookmark button in each ayah's top-left corner. */
-  bookmarkButton(n) {
     const surah = this.surah.number;
     const on = this.bookmarkSet.has(`${surah}:${n}`);
-    return `<button class="qr-bm-btn${on ? ' is-saved' : ''}" type="button" data-ayah="${n}"
-        aria-pressed="${on}" aria-label="${on ? 'Remove bookmark' : `Bookmark ayah ${surah}:${n}`}">${QURAN_BOOKMARK_ICON}</button>`;
+    return `<button class="qr-num${on ? ' is-bookmarked' : ''}${n > 99 ? ' qr-num--3' : ''}" type="button" data-ayah="${n}"
+        aria-pressed="${on}" aria-label="${on ? 'Remove bookmark' : `Bookmark ayah ${surah}:${n}`}">${QURAN_STAR_SVG}<span
+        class="qr-num-text" lang="ar" aria-hidden="true">${fmtArabicDigits.format(n)}</span></button>`;
+  },
+
+  /** "Tap ✦ to bookmark", until the first bookmark is saved on this device
+      (or there already are some). */
+  renderHint() {
+    let done = this.bookmarks.length > 0;
+    try {
+      done = done || localStorage.getItem(QURAN_HINT_STORE) === '1';
+    } catch { /* show it */ }
+    el('qr-hint').hidden = done;
   },
 
   renderText() {
@@ -592,7 +589,6 @@ const Quran = {
       const lead = arabic ? '' : this.marker(n);
       return `
         <li class="qr-ayah" id="qr-ayah-${n}" data-ayah="${n}">
-          ${this.bookmarkButton(n)}
           ${arabic ? `<p class="qr-ar" lang="ar" dir="rtl">${esc(i === 0 ? first : arText)} ${this.marker(n)}</p>` : ''}
           ${tr ? `<p class="qr-tr${lead ? ' qr-lead' : ''}">${lead}${esc(tr[i])}</p>` : ''}
           ${tx ? `<p class="qr-en${t.rtl ? ' is-rtl' : ''}${lead && !tr ? ' qr-lead' : ''}"${t.rtl ? ` lang="${t.lang}" dir="rtl"` : ''}>${
@@ -601,6 +597,7 @@ const Quran = {
     }).join('')}</ol>`;
 
     this.renderOptions();
+    this.renderHint();
   },
 
   /** The bar's controls reflect the settings; the last layer on can't go off. */
@@ -691,9 +688,9 @@ const Quran = {
   refreshMarkers() {
     if (!this.surah) return;
     const surah = this.surah.number;
-    for (const btn of document.querySelectorAll('#qr-text .qr-bm-btn')) {
+    for (const btn of document.querySelectorAll('#qr-text .qr-num')) {
       const on = this.bookmarkSet.has(`${surah}:${btn.dataset.ayah}`);
-      btn.classList.toggle('is-saved', on);
+      btn.classList.toggle('is-bookmarked', on);
       btn.setAttribute('aria-pressed', String(on));
       btn.setAttribute('aria-label', on ? 'Remove bookmark' : `Bookmark ayah ${surah}:${btn.dataset.ayah}`);
     }
@@ -717,6 +714,12 @@ const Quran = {
     this.refreshMarkers();
     this.renderBookmarks();
     toast(adding ? `Bookmarked ${esc(this.surahName(surah))} ${surah}:${ayah}` : 'Bookmark removed');
+    if (adding) {
+      try {
+        localStorage.setItem(QURAN_HINT_STORE, '1');
+      } catch { /* the hint just stays */ }
+      this.renderHint();
+    }
 
     try {
       if (adding) await Data.addBookmark(State.me, surah, ayah);
