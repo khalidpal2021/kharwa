@@ -422,16 +422,25 @@ button, a, input, select, textarea, label,
 
 /* ------------------------------------------------------ today timetable -- */
 
-/* One centred row: round ghost arrows either side of a fixed-width date. */
+/* The Today card's header row: rule, ‹ date ›, rule, with the Today pill at
+   the right end. */
+.cardhead--nav {
+  position: relative;
+  gap: 6px;
+  margin-bottom: 0;
+}
+
 .daynav {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--s1);
+  gap: 0;
 }
 
+/* 36px wide to leave the rules some room; the tap area is still 44px. */
 .daynav-btn {
-  width: var(--tap);
+  position: relative;
+  width: 36px;
   height: var(--tap);
   flex: none;
   display: grid;
@@ -455,19 +464,23 @@ button, a, input, select, textarea, label,
   color: var(--accent-text);
 }
 
+.daynav-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0 -2px;
+}
+
 .daynav-btn:disabled { opacity: 0.3; cursor: default; }
 
-/* Sized by the longest date it can ever hold, so the arrows never move. The
-   hidden sizer and the real text share one grid cell. */
+/* In the card-label style (small caps, monospaced, so the figures are
+   tabular). Sized by the longest date it can hold, so the arrows never move:
+   the hidden sizer and the real text share one grid cell. */
 .daynav-label {
   display: grid;
   align-items: center;
   justify-items: center;
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.12em;
   font-variant-numeric: tabular-nums;
-  color: var(--foreground);
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -477,24 +490,40 @@ button, a, input, select, textarea, label,
 .daynav-label-text { grid-area: 1 / 1; white-space: nowrap; }
 
 .daynav-label::after {
-  content: "Wednesday, September 30";
+  content: "Wednesday, Sept 30";
   visibility: hidden;
   pointer-events: none;
 }
 
-/* Always in flow, so showing it moves nothing. */
-.daynav-back {
-  display: flex;
-  justify-content: center;
-  margin-top: 0;
-}
-
+/* A small gold pill at the right end of the header row. Out of flow, so
+   showing it moves nothing; the ring of card colour hides the rule beneath. */
 .daynav-today {
-  min-height: 20px;
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  min-height: 24px;
   padding: 0 10px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: 0 0 0 6px var(--card);
+  color: var(--accent-text);
   font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--ease);
 }
 
+.daynav-today::after {
+  content: "";
+  position: absolute;
+  inset: -10px 0;
+}
+
+.daynav-today:hover { background: var(--accent-wash); }
 .daynav-today.is-invisible { visibility: hidden; }
 
 .tt-head,
@@ -507,7 +536,7 @@ button, a, input, select, textarea, label,
 }
 
 .tt-head {
-  margin-top: 4px;
+  margin-top: 0;
   padding-bottom: 4px;
   border-bottom: 1px solid var(--border);
 }
@@ -1527,6 +1556,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   .tt-time { font-size: 12.5px; }
 
   .cardhead { margin-bottom: 14px; }
+  .cardhead--nav { margin-bottom: 2px; }
 
 
   /* the hover/focus menu is a pointer affordance, so desktop only */

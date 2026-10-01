@@ -83,6 +83,13 @@ const fmtGregorianShort = new Intl.DateTimeFormat(undefined, {
 });
 
 const fmtDayShort = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
+
+/* The tracker's header: "Friday, Oct 2". */
+const fmtDayNav = new Intl.DateTimeFormat(undefined, {
+  weekday: 'long',
+  month: 'short',
+  day: 'numeric',
+});
 const fmtDateShort = new Intl.DateTimeFormat(undefined, { month: 'numeric', day: 'numeric' });
 
 let fmtHijri;

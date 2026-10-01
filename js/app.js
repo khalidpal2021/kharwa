@@ -123,19 +123,10 @@ function renderNextUp() {
 
 function renderDayNav() {
   const today = todayKey();
-  const isToday = State.viewDate === today;
+  el('day-label').textContent = fmtDayNav.format(parseKey(State.viewDate));
 
-  // The card header says which day this is; the row below gives the full date.
-  el('day-label').textContent = fmtGregorian.format(parseKey(State.viewDate));
-
-  el('today-label').textContent =
-    isToday ? 'Today'
-      : State.viewDate === addDays(today, -1) ? 'Yesterday'
-      : State.viewDate === addDays(today, 1) ? 'Tomorrow'
-      : 'Past day';
-
-  // Hidden by visibility, not display, so the row keeps its shape.
-  el('day-today').classList.toggle('is-invisible', isToday);
+  // Hidden by visibility, not display, so nothing around it moves.
+  el('day-today').classList.toggle('is-invisible', State.viewDate === today);
   el('day-next').disabled = State.viewDate >= addDays(today, 1);
 }
 
@@ -145,17 +136,19 @@ function renderDayNav() {
  * The five prayers evenly spaced along a rule, with the marker interpolated
  * inside whichever segment the clock currently sits in — so even spacing and a
  * truthful marker do not contradict each other.
+ *
+ * Part of the Next Prayer card, so always the real today: the day chosen in the
+ * tracker never changes it.
  */
 function renderTimeline() {
-  const { times } = timesFor(State.viewDate);
-  const step = 100 / (PRAYERS.length - 1);
   const now = new Date();
-  const isToday = State.viewDate === todayKey();
-  const current = isToday ? currentPrayerAt(now) : null;
+  const { times } = timesFor(dateKey(now));
+  const step = 100 / (PRAYERS.length - 1);
+  const current = currentPrayerAt(now);
 
   let html = PRAYERS.map((p, i) => {
     const t = times[p.key];
-    const past = isToday && t <= now;
+    const past = t <= now;
     return `
       <div class="tl-point${past ? ' is-past' : ''}${current === p.key ? ' is-current' : ''}"
            data-prayer="${p.key}" style="left: ${(i * step).toFixed(2)}%">
@@ -165,22 +158,20 @@ function renderTimeline() {
       </div>`;
   }).join('');
 
-  if (isToday) {
-    const n = now.getTime();
-    let pos = null;
-    if (n >= times.fajr.getTime() && n <= times.isha.getTime()) {
-      for (let i = 0; i < PRAYERS.length - 1; i += 1) {
-        const a = times[PRAYERS[i].key].getTime();
-        const b = times[PRAYERS[i + 1].key].getTime();
-        if (n >= a && n <= b) {
-          pos = (i + (b > a ? (n - a) / (b - a) : 0)) * step;
-          break;
-        }
+  const n = now.getTime();
+  let pos = null;
+  if (n >= times.fajr.getTime() && n <= times.isha.getTime()) {
+    for (let i = 0; i < PRAYERS.length - 1; i += 1) {
+      const a = times[PRAYERS[i].key].getTime();
+      const b = times[PRAYERS[i + 1].key].getTime();
+      if (n >= a && n <= b) {
+        pos = (i + (b > a ? (n - a) / (b - a) : 0)) * step;
+        break;
       }
     }
-    if (pos !== null) {
-      html += `<div class="tl-marker" style="left: ${pos.toFixed(2)}%" aria-hidden="true"></div>`;
-    }
+  }
+  if (pos !== null) {
+    html += `<div class="tl-marker" style="left: ${pos.toFixed(2)}%" aria-hidden="true"></div>`;
   }
 
   el('timeline').innerHTML = html;
@@ -441,10 +432,10 @@ el('timetable').addEventListener('click', (event) => {
 
 /* day navigation */
 
+/** Only the tracker follows the chosen day; the Next Prayer card stays on today. */
 async function goToDay(key) {
   State.viewDate = key;
   renderDayNav();
-  renderTimeline();
   renderStatuses();
   await Data.ensureDay(key).catch(() => {});
   renderStatuses();

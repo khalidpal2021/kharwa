@@ -81,21 +81,19 @@
     <div class="columns">
 
       <!-- -------------------------------------------------- today card --- -->
-      <section class="card col--today" aria-labelledby="today-label">
-        <div class="cardhead">
+      <section class="card col--today" aria-labelledby="day-label">
+        <!-- The card header is the day navigation: ‹ date ›, between the rules.
+             The Today pill sits at the right end, out of flow, so the date
+             never moves. -->
+        <div class="cardhead cardhead--nav">
           <span class="rule" aria-hidden="true"></span>
-          <h2 id="today-label" class="cardhead-text">Today</h2>
+          <nav class="daynav" aria-label="Day navigation">
+            <button id="day-prev" class="daynav-btn" type="button" aria-label="Previous day">&lsaquo;</button>
+            <h2 class="daynav-label cardhead-text"><span id="day-label" class="daynav-label-text"></span></h2>
+            <button id="day-next" class="daynav-btn" type="button" aria-label="Next day">&rsaquo;</button>
+          </nav>
           <span class="rule" aria-hidden="true"></span>
-        </div>
-
-        <nav class="daynav" aria-label="Day navigation">
-          <button id="day-prev" class="daynav-btn" type="button" aria-label="Previous day">&lsaquo;</button>
-          <span class="daynav-label"><span id="day-label" class="daynav-label-text"></span></span>
-          <button id="day-next" class="daynav-btn" type="button" aria-label="Next day">&rsaquo;</button>
-        </nav>
-
-        <div class="daynav-back">
-          <button id="day-today" class="btn btn--ghost daynav-today is-invisible" type="button">Back to today</button>
+          <button id="day-today" class="daynav-today is-invisible" type="button" aria-label="Back to today">Today</button>
         </div>
 
         <div class="tt-head" aria-hidden="true">
