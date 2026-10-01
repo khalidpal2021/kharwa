@@ -82,25 +82,20 @@
 
       <!-- -------------------------------------------------- today card --- -->
       <section class="card col--today" aria-labelledby="day-label">
-        <!-- The card header is the day navigation: ‹ date ›, between the rules.
-             The Today pill sits at the right end, out of flow, so the date
-             never moves. -->
-        <div class="cardhead cardhead--nav">
-          <span class="rule" aria-hidden="true"></span>
+        <!-- The header is one row on the timetable's own grid: the day selector
+             over the name and time columns, the two names over their marks. -->
+        <div class="tt-head">
           <nav class="daynav" aria-label="Day navigation">
             <button id="day-prev" class="daynav-btn" type="button" aria-label="Previous day">&lsaquo;</button>
-            <h2 class="daynav-label cardhead-text"><span id="day-label" class="daynav-label-text"></span></h2>
+            <h2 class="daynav-label">
+              <span id="day-label" class="daynav-label-text"></span>
+              <span id="day-sizer" class="daynav-sizer" aria-hidden="true"></span>
+            </h2>
             <button id="day-next" class="daynav-btn" type="button" aria-label="Next day">&rsaquo;</button>
+            <button id="day-today" class="daynav-today is-invisible" type="button" aria-label="Back to today">Today</button>
           </nav>
-          <span class="rule" aria-hidden="true"></span>
-          <button id="day-today" class="daynav-today is-invisible" type="button" aria-label="Back to today">Today</button>
-        </div>
-
-        <div class="tt-head" aria-hidden="true">
-          <span></span>
-          <span></span>
-          <span id="head-khalid"></span>
-          <span id="head-marwa"></span>
+          <span id="head-khalid" class="tt-col" aria-hidden="true"></span>
+          <span id="head-marwa" class="tt-col" aria-hidden="true"></span>
         </div>
 
         <ol id="timetable" class="timetable"></ol>

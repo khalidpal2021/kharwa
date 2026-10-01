@@ -158,17 +158,20 @@ taller than the window; at 1920x1080 it fits with room to spare.
 3. **Two columns** at about 0.85fr / 1.15fr, each card only as tall as its
    content. The left column holds the Ayah of the Day with This Week directly
    under it; the right holds Today. On a 1920x1080 screen the page fits without
-   scrolling for short and median ayat, and the two columns end within about
-   25–130px of each other depending on the ayah's length.
-   - **Right — Today**, styled like a printed timetable. Its card header is
-     the day navigation itself, in the usual rule / label / rule pattern:
-     ‹ FRIDAY, OCT 2 › in gold small caps. The arrows are round ghost buttons
-     with 44px-tall tap areas, and never move: the date label is sized by a
-     hidden copy of the longest date it can hold ("Wednesday, Sept 30") and its
-     figures are monospaced. Away from today, a small gold "Today" pill appears
-     at the right end of the row and jumps back. It sits out of flow, so
-     showing or hiding it moves nothing. The column headings follow directly
-     beneath. Then one row per prayer: the
+   scrolling for short and median ayat. With Today's compact header, the left
+   column runs about 110–220px longer, depending on the ayah's length.
+   - **Right — Today**, styled like a printed timetable. It has no separate
+     card label: its header is one compact row on the timetable's own grid.
+     On the left is a small day selector, ‹ Fri, Oct 2 ›, in the body font at
+     0.9rem with tabular figures. On the right are the KHALID and MARWA
+     headings, exactly over their marks. The date label is as wide as the
+     widest date it can show: a hidden stack of every weekday and month in the
+     browser's locale shares its grid cell, so the arrows never shift. The
+     arrows are small (30px wide) with 44px tap areas. Away from today, a small
+     gold "Today" pill appears right after the › arrow and jumps back. Its
+     space is always kept, so nothing moves. On narrow phones the selector text
+     shrinks (down to 11px at 320px) rather than wrapping. A thin rule closes
+     the row. Then one row per prayer: the
      name in Playfair, the time, then Khalid's mark and Marwa's mark under
      small, quiet column headings. The time needs no heading, and its column is
      only as wide as "12:45 PM", so the spare width goes to the prayer names.

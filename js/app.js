@@ -121,8 +121,29 @@ function renderNextUp() {
   return next;
 }
 
+/**
+ * The date label is as wide as the widest date it can show, so the arrows
+ * never shift. In a proportional font that depends on the weekday and month
+ * ("Wed, May 30" can outgrow "Wed, Sep 30"), so every combination is stacked,
+ * hidden, in the label's grid cell, in this browser's own locale.
+ */
+function fillDaySizer() {
+  const sizer = el('day-sizer');
+  if (sizer.childElementCount) return;
+  const spans = [];
+  for (let month = 0; month < 12; month += 1) {
+    for (let day = 24; day <= 30; day += 1) { // seven days covers every weekday
+      const span = document.createElement('span');
+      span.textContent = fmtDayNav.format(new Date(2026, month, day));
+      spans.push(span);
+    }
+  }
+  sizer.replaceChildren(...spans);
+}
+
 function renderDayNav() {
   const today = todayKey();
+  fillDaySizer();
   el('day-label').textContent = fmtDayNav.format(parseKey(State.viewDate));
 
   // Hidden by visibility, not display, so nothing around it moves.

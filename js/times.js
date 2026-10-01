@@ -84,9 +84,9 @@ const fmtGregorianShort = new Intl.DateTimeFormat(undefined, {
 
 const fmtDayShort = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
 
-/* The tracker's header: "Friday, Oct 2". */
+/* The tracker's day selector: "Fri, Oct 2". */
 const fmtDayNav = new Intl.DateTimeFormat(undefined, {
-  weekday: 'long',
+  weekday: 'short',
   month: 'short',
   day: 'numeric',
 });

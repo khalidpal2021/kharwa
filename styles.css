@@ -422,25 +422,21 @@ button, a, input, select, textarea, label,
 
 /* ------------------------------------------------------ today timetable -- */
 
-/* The Today card's header row: rule, ‹ date ›, rule, with the Today pill at
-   the right end. */
-.cardhead--nav {
-  position: relative;
-  gap: 6px;
-  margin-bottom: 0;
-}
-
+/* The card's header row starts with a small day selector: ‹ Fri, Oct 2 ›,
+   then a Today pill whose space is always kept. It spans the name and time
+   columns, so the person headings sit over their marks. */
 .daynav {
+  grid-column: 1 / 3;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0;
+  min-width: 0;
+  margin-left: -8px;
 }
 
-/* 36px wide to leave the rules some room; the tap area is still 44px. */
+/* 30px wide, with the tap area widened to 44px by ::after. */
 .daynav-btn {
   position: relative;
-  width: 36px;
+  width: 30px;
   height: var(--tap);
   flex: none;
   display: grid;
@@ -449,7 +445,7 @@ button, a, input, select, textarea, label,
   border-radius: 50%;
   background: none;
   color: var(--muted-foreground);
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1;
   cursor: pointer;
   user-select: none;
@@ -467,47 +463,48 @@ button, a, input, select, textarea, label,
 .daynav-btn::after {
   content: "";
   position: absolute;
-  inset: 0 -2px;
+  inset: 0 -7px;
 }
 
 .daynav-btn:disabled { opacity: 0.3; cursor: default; }
 
-/* In the card-label style (small caps, monospaced, so the figures are
-   tabular). Sized by the longest date it can hold, so the arrows never move:
-   the hidden sizer and the real text share one grid cell. */
+/* Body font, tabular figures. The label, the real text and a hidden stack of
+   every weekday/month share one grid cell, so its width never changes. Narrow
+   phones get smaller text rather than a wrap. */
 .daynav-label {
   display: grid;
   align-items: center;
   justify-items: center;
-  letter-spacing: 0.12em;
+  font-family: var(--sans);
+  font-size: clamp(12px, 3.6vw, 0.9rem);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+  text-transform: none;
   font-variant-numeric: tabular-nums;
+  color: var(--foreground);
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
 
-.daynav-label::after,
-.daynav-label-text { grid-area: 1 / 1; white-space: nowrap; }
+.daynav-label-text,
+.daynav-sizer { grid-area: 1 / 1; white-space: nowrap; }
 
-.daynav-label::after {
-  content: "Wednesday, Sept 30";
-  visibility: hidden;
-  pointer-events: none;
-}
+.daynav-sizer { display: grid; visibility: hidden; pointer-events: none; }
+.daynav-sizer > span { grid-area: 1 / 1; }
 
-/* A small gold pill at the right end of the header row. Out of flow, so
-   showing it moves nothing; the ring of card colour hides the rule beneath. */
+/* Right after the › arrow. Hidden by visibility, so its space is kept and
+   nothing moves when it appears. */
 .daynav-today {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  position: relative;
+  flex: none;
   min-height: 24px;
-  padding: 0 10px;
+  margin-left: 8px;
+  padding: 0 9px;
   border: 1px solid var(--accent);
   border-radius: 999px;
   background: var(--card);
-  box-shadow: 0 0 0 6px var(--card);
   color: var(--accent-text);
   font-size: 12px;
   font-weight: 500;
@@ -524,6 +521,15 @@ button, a, input, select, textarea, label,
 }
 
 .daynav-today:hover { background: var(--accent-wash); }
+
+/* The smallest phones: slimmer arrows (tap area still 44px) and pill. */
+@media (max-width: 359px) {
+  .tt-head, .tt-row { column-gap: 6px; }
+  .daynav-btn { width: 22px; }
+  .daynav-btn::after { inset: 0 -11px; }
+  .daynav-label { font-size: 11px; }
+  .daynav-today { margin-left: 12px; padding: 0 6px; font-size: 11px; }
+}
 .daynav-today.is-invisible { visibility: hidden; }
 
 .tt-head,
@@ -536,13 +542,13 @@ button, a, input, select, textarea, label,
 }
 
 .tt-head {
-  margin-top: 0;
-  padding-bottom: 4px;
+  margin-top: -4px;
+  padding-bottom: 2px;
   border-bottom: 1px solid var(--border);
 }
 
 /* quieter than the gold section labels: these repeat on every row below */
-.tt-head > * {
+.tt-col {
   font-family: var(--mono);
   font-size: 10px;
   font-weight: 500;
@@ -1550,13 +1556,13 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
     gap: 0 12px;
   }
 
-  .tt-head { padding-bottom: 6px; }
+  .tt-head { margin-top: -6px; padding-bottom: 4px; }
 
   .tt-en { font-size: clamp(17px, 1.3vw, 19px); }
+  .daynav-label { font-size: 0.9rem; }
   .tt-time { font-size: 12.5px; }
 
   .cardhead { margin-bottom: 14px; }
-  .cardhead--nav { margin-bottom: 2px; }
 
 
   /* the hover/focus menu is a pointer affordance, so desktop only */
