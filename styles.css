@@ -221,10 +221,29 @@ button, input, select { font: inherit; color: inherit; }
   white-space: nowrap;
 }
 
-.place {
-  margin-top: 9px;
+/* times source + estimated flag */
+
+.source {
+  margin-top: 14px;
+  text-align: center;
   font-size: 12px;
   color: var(--text-faint);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.chip {
+  border: 1px solid rgba(236, 168, 69, 0.45);
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #f3dcae;
+  background: rgba(236, 168, 69, 0.12);
 }
 
 /* tabs */
@@ -787,4 +806,534 @@ select.input { appearance: none; }
 @media (min-width: 480px) {
   .gate-buttons { grid-template-columns: 1fr 1fr; }
   .week-head, .week-row { grid-template-columns: 92px 1fr 1fr; }
+}
+
+/* ===========================================================================
+   Desktop, from 900px up. Below that the phone layout above is untouched.
+   =========================================================================== */
+
+.layout-desktop { display: none; }
+
+@media (min-width: 900px) {
+
+  .app {
+    max-width: 1280px;
+    padding: 28px 28px calc(40px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .layout-mobile { display: none; }
+
+  .layout-desktop {
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+
+  /* ------------------------------------------------------- sidebar ---- */
+
+  .side {
+    position: sticky;
+    top: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    padding: 22px;
+    border: 1px solid var(--card-edge);
+    border-radius: 22px;
+    background:
+      radial-gradient(90% 55% at 50% 0%, rgba(122, 104, 227, 0.2), transparent 70%),
+      var(--card);
+  }
+
+  .side-greg {
+    font-size: 21px;
+    font-weight: 620;
+    letter-spacing: -0.015em;
+    line-height: 1.25;
+  }
+
+  .side-hijri { margin-top: 5px; font-size: 13px; color: var(--text-dim); }
+
+  .side-next {
+    padding: 16px 16px 14px;
+    border: 1px solid var(--card-edge);
+    border-radius: 16px;
+    background: rgba(0, 0, 0, 0.26);
+  }
+
+  .side-next-label {
+    font-size: 10.5px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+
+  .side-next-row {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+    margin-top: 7px;
+  }
+
+  .side-next-name { font-size: 20px; font-weight: 640; letter-spacing: -0.015em; }
+  .side-next-time { font-size: 14px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+
+  .countdown {
+    margin-top: 6px;
+    font-size: 34px;
+    font-weight: 640;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+    color: var(--focus);
+    line-height: 1.1;
+  }
+
+  .countdown small {
+    font-size: 15px;
+    font-weight: 560;
+    color: var(--text-faint);
+    margin-left: 1px;
+    margin-right: 7px;
+  }
+
+  /* ------------------------------------------------- day timeline ---- */
+
+  .timeline { position: relative; height: 330px; margin: 2px 2px 0 5px; }
+
+  .timeline::before {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 0; bottom: 0;
+    width: 2px;
+    border-radius: 2px;
+    background: linear-gradient(180deg,
+      var(--fajr) 0%, var(--dhuhr) 48%, var(--asr) 76%,
+      var(--maghrib) 90%, var(--isha) 100%);
+    opacity: 0.5;
+  }
+
+  .tl-item {
+    position: absolute;
+    z-index: 2;
+    left: 0;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    white-space: nowrap;
+  }
+
+  .tl-item[data-prayer="fajr"]    { --hue: var(--fajr); }
+  .tl-item[data-prayer="dhuhr"]   { --hue: var(--dhuhr); }
+  .tl-item[data-prayer="asr"]     { --hue: var(--asr); }
+  .tl-item[data-prayer="maghrib"] { --hue: var(--maghrib); }
+  .tl-item[data-prayer="isha"]    { --hue: var(--isha); }
+
+  .tl-dot {
+    flex: none;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--hue);
+    box-shadow: 0 0 0 3px var(--ink-2), 0 0 12px -2px var(--hue);
+  }
+
+  /* A pill behind the text so the dashed now-line passes behind it, never
+     through it, whatever time of day it lands on. */
+  .tl-text {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 7px;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: #161a3c;
+  }
+
+  .tl-name { font-size: 12.5px; font-weight: 580; }
+  .tl-time { font-size: 11.5px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+
+  .tl-item.is-past { opacity: 0.5; }
+  .tl-item.is-current .tl-name { color: var(--hue); }
+
+  .tl-now {
+    position: absolute;
+    left: 0; right: 0;
+    transform: translateY(-50%);
+    border-top: 1px dashed rgba(255, 217, 138, 0.75);
+  }
+
+  .tl-now span {
+    position: absolute;
+    right: 0;
+    top: -9px;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: var(--focus);
+    color: #241a08;
+    font-size: 9.5px;
+    font-weight: 650;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .side-foot { margin-top: auto; display: grid; gap: 12px; }
+  .side-foot .source { margin-top: 0; justify-content: flex-start; text-align: left; }
+
+  /* --------------------------------------------------------- panes ---- */
+
+  .pane { display: grid; gap: 22px; min-width: 0; }
+
+  .panel {
+    padding: 20px 22px 22px;
+    border: 1px solid var(--card-edge);
+    border-radius: 22px;
+    background: var(--card);
+    min-width: 0;
+  }
+
+  .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .panel-title { font-size: 17px; font-weight: 620; letter-spacing: -0.01em; }
+
+  .panel-head .legend { margin-top: 0; padding: 0; }
+
+  /* day nav */
+
+  .dnav { display: flex; align-items: center; gap: 8px; }
+
+  .dnav-btn {
+    width: 34px; height: 34px;
+    display: grid; place-items: center;
+    border: 1px solid var(--card-edge);
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.26);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: color 0.14s ease, border-color 0.14s ease;
+  }
+
+  .dnav-btn:hover:not(:disabled) { color: var(--text); border-color: rgba(255, 255, 255, 0.28); }
+  .dnav-btn:disabled { opacity: 0.3; cursor: default; }
+
+  .dnav-label {
+    min-width: 142px;
+    text-align: center;
+    font-size: 13.5px;
+    font-weight: 560;
+  }
+
+  .dnav-today {
+    border: 1px solid var(--card-edge);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--focus);
+    padding: 7px 11px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .dnav-today:hover { border-color: rgba(255, 217, 138, 0.5); }
+
+  /* ---------------------------------------------------- today table --- */
+
+  .ttable {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 8px;
+    table-layout: fixed;
+  }
+
+  .ttable th {
+    text-align: left;
+    padding: 0 12px 2px;
+    font-size: 10.5px;
+    font-weight: 560;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+
+  .th-name { width: 23%; }
+  .th-time { width: 17%; }
+  .th-who  { width: 30%; }
+
+  .trow[data-prayer="fajr"]    { --hue: var(--fajr); }
+  .trow[data-prayer="dhuhr"]   { --hue: var(--dhuhr); }
+  .trow[data-prayer="asr"]     { --hue: var(--asr); }
+  .trow[data-prayer="maghrib"] { --hue: var(--maghrib); }
+  .trow[data-prayer="isha"]    { --hue: var(--isha); }
+
+  .trow > * {
+    padding: 13px 12px;
+    vertical-align: middle;
+    background:
+      linear-gradient(90deg, color-mix(in oklab, var(--hue) 13%, transparent), transparent 46%),
+      rgba(255, 255, 255, 0.032);
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  }
+
+  .trow > *:first-child {
+    border-left: 3px solid var(--hue);
+    border-radius: 13px 0 0 13px;
+  }
+
+  .trow > *:last-child {
+    border-right: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 0 13px 13px 0;
+  }
+
+  .trow.is-next > * {
+    background:
+      linear-gradient(90deg, color-mix(in oklab, var(--hue) 22%, transparent), transparent 52%),
+      rgba(255, 255, 255, 0.05);
+    border-top-color: color-mix(in oklab, var(--hue) 34%, transparent);
+    border-bottom-color: color-mix(in oklab, var(--hue) 34%, transparent);
+  }
+
+  /* `.ttable th` is more specific than a bare `.tname`, so qualify it or the
+     prayer names inherit the uppercase column-header styling. */
+  .ttable th.tname {
+    font-size: 15px;
+    font-weight: 600;
+    text-align: left;
+    text-transform: none;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+
+  .tname .tflag {
+    margin-left: 8px;
+    font-size: 9.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--hue);
+  }
+
+  .ttime { font-size: 14px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+
+  /* status cells */
+
+  .tcell { position: relative; }
+
+  .tnow { font-size: 14px; font-weight: 560; color: var(--text-dim); }
+  .tcell[data-status="none"] .tnow { color: var(--text-faint); }
+  .tcell[data-status="on_time"] .tnow { color: #fff; }
+  .tcell[data-status="late"] .tnow { color: var(--text); }
+
+  .tcell[data-status="missed"] .tnow {
+    color: #e6c3d8;
+    text-decoration: line-through;
+    text-decoration-thickness: 1.5px;
+  }
+
+  .tdot {
+    display: inline-block;
+    width: 11px; height: 11px;
+    margin-right: 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(0, 0, 0, 0.3);
+    vertical-align: -1px;
+  }
+
+  .tcell[data-status="on_time"] .tdot { background: var(--hue); border-color: var(--hue); }
+
+  .tcell[data-status="late"] .tdot {
+    background: repeating-linear-gradient(-45deg, var(--hue) 0 3px, rgba(0, 0, 0, 0.5) 3px 6px);
+    border-color: color-mix(in oklab, var(--hue) 55%, transparent);
+  }
+
+  .tcell[data-status="missed"] .tdot {
+    background: rgba(141, 107, 134, 0.45);
+    border-color: rgba(141, 107, 134, 0.6);
+  }
+
+  /* the hover/focus picker */
+
+  /* Anchored right and sized to its buttons, so on a narrow desktop it grows
+     leftwards over the neighbouring column instead of clipping its labels. */
+  .pick {
+    position: absolute;
+    top: 5px; bottom: 5px;
+    right: 8px; left: auto;
+    z-index: 3;
+    width: max-content;
+    min-width: calc(100% - 16px);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0 4px;
+    border-radius: 10px;
+    background: rgba(13, 15, 32, 0.97);
+    box-shadow: 0 10px 28px -14px rgba(0, 0, 0, 0.95);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.12s ease;
+  }
+
+  .tcell.is-mine:hover .pick,
+  .tcell.is-mine:focus-within .pick { opacity: 1; pointer-events: auto; }
+
+  .pick-btn {
+    border: 1px solid var(--card-edge);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-dim);
+    padding: 6px 8px;
+    font-size: 11.5px;
+    font-weight: 540;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+  }
+
+  .pick-btn:hover { color: var(--text); border-color: rgba(255, 255, 255, 0.32); }
+
+  .pick-btn.is-active {
+    color: var(--text);
+    border-color: color-mix(in oklab, var(--hue) 60%, transparent);
+    background: color-mix(in oklab, var(--hue) 26%, transparent);
+  }
+
+  .pick-clear { margin-left: 3px; padding: 6px 9px; }
+
+  /* ----------------------------------------------------- week grid ---- */
+
+  .dweek { display: grid; gap: 8px; min-width: 0; }
+
+  .dweek-head,
+  .dweek-row {
+    display: grid;
+    grid-template-columns: 104px repeat(7, minmax(0, 1fr)) 84px;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .dweek-corner,
+  .dweek-streak-head {
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+
+  .dweek-streak-head { text-align: center; }
+
+  .dweek-day {
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: none;
+    padding: 6px 2px;
+    font-size: 11.5px;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: color 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+  }
+
+  .dweek-day small { display: block; font-size: 10.5px; color: var(--text-faint); }
+  .dweek-day:hover { background: rgba(255, 255, 255, 0.06); color: var(--text); }
+
+  .dweek-day.is-viewed {
+    border-color: color-mix(in oklab, var(--focus) 45%, transparent);
+    background: rgba(255, 217, 138, 0.1);
+    color: var(--text);
+  }
+
+  .dweek-day.is-today { color: var(--focus); font-weight: 600; }
+
+  .dweek-who { font-size: 13.5px; font-weight: 560; }
+
+  .dweek-cell {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 3px;
+    height: 36px;
+    padding: 5px;
+    border: 1px solid var(--card-edge);
+    border-radius: 11px;
+    background: rgba(0, 0, 0, 0.26);
+    cursor: pointer;
+    transition: border-color 0.12s ease, background 0.12s ease;
+  }
+
+  .dweek-cell:hover { border-color: rgba(255, 255, 255, 0.3); background: rgba(0, 0, 0, 0.14); }
+  .dweek-cell.is-viewed { border-color: color-mix(in oklab, var(--focus) 45%, transparent); }
+
+  .seg {
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.055);
+  }
+
+  .seg[data-prayer="fajr"]    { --hue: var(--fajr); }
+  .seg[data-prayer="dhuhr"]   { --hue: var(--dhuhr); }
+  .seg[data-prayer="asr"]     { --hue: var(--asr); }
+  .seg[data-prayer="maghrib"] { --hue: var(--maghrib); }
+  .seg[data-prayer="isha"]    { --hue: var(--isha); }
+
+  .seg[data-status="on_time"] { background: var(--hue); }
+
+  .seg[data-status="late"] {
+    background: repeating-linear-gradient(-45deg, var(--hue) 0 3px, rgba(0, 0, 0, 0.5) 3px 6px);
+  }
+
+  .seg[data-status="missed"] { background: rgba(141, 107, 134, 0.45); }
+
+  .dweek-streak {
+    display: grid;
+    place-items: center;
+    gap: 1px;
+    padding: 5px 0;
+    border: 1px solid var(--card-edge);
+    border-radius: 11px;
+    background:
+      radial-gradient(90% 130% at 50% 0%, rgba(255, 217, 138, 0.14), transparent 70%),
+      rgba(0, 0, 0, 0.2);
+  }
+
+  .dweek-streak b {
+    font-size: 17px;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+
+  .dweek-streak span {
+    font-size: 9.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+
+  .dhint { margin-top: 14px; font-size: 12px; color: var(--text-faint); }
+
+  /* ------------------------------------------------ settings dialog --- */
+
+  .sheet { display: grid; place-items: center; padding: 24px; }
+
+  .sheet-panel {
+    position: relative;
+    left: auto; right: auto; bottom: auto;
+    width: 100%;
+    max-width: 440px;
+    max-height: 86dvh;
+    border: 1px solid var(--card-edge);
+    border-radius: 22px;
+    animation: none;
+  }
+
+  .sheet-note--left { text-align: left; }
+}
+
+/* Very wide screens: the 1280px shell just centres, nothing stretches. */
+@media (min-width: 1600px) {
+  .app { padding-top: 40px; }
 }

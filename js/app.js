@@ -1,5 +1,9 @@
 /* ===========================================================================
    app.js — screens, rendering, and interaction.
+
+   Both layouts are rendered on every pass and CSS decides which one is on
+   screen (the 900px breakpoint). They are small enough that this is cheaper
+   than keeping a second source of truth about the viewport.
    =========================================================================== */
 
 const PERSON_STORE = 'kharwa.person';
@@ -24,8 +28,7 @@ function timeText(date) {
 const State = {
   me: null,            // 'khalid' | 'marwa'
   viewDate: todayKey(),
-  view: 'today',       // 'today' | 'week'
-  location: null,
+  view: 'today',       // mobile tabs only
   tick: null,
 };
 
@@ -33,15 +36,6 @@ const State = {
 
 function name(person) {
   return Data.people[person]?.display_name || person;
-}
-
-function other(person) {
-  return person === 'khalid' ? 'marwa' : 'khalid';
-}
-
-function myParams() {
-  const p = Data.people[State.me] || {};
-  return { method: p.calc_method || 'NorthAmerica', madhab: p.asr_madhab || 'standard' };
 }
 
 function toast(message, { error = false } = {}) {
@@ -89,49 +83,70 @@ for (const btn of document.querySelectorAll('.gate-btn')) {
   });
 }
 
-/* =========================================================== today view === */
+/* ========================================================= shared chrome === */
 
 function renderHeader() {
   const now = new Date();
-  el('gregorian').textContent = fmtGregorian.format(now);
-  el('hijri').textContent = hijriFor(now);
+  const greg = fmtGregorian.format(now);
+  const hij = hijriFor(now);
+  el('gregorian').textContent = greg;
+  el('hijri').textContent = hij;
+  el('d-gregorian').textContent = greg;
+  el('d-hijri').textContent = hij;
 }
 
 function renderNextUp() {
-  if (!State.location) return;
-  const { method, madhab } = myParams();
   const now = new Date();
-  const next = nextPrayerFrom(now, State.location, method, madhab);
+  const next = nextPrayerFrom(now);
+  const when = timeText(next.time) + (next.tomorrow ? ' tomorrow' : '');
 
   el('next-up').hidden = false;
   el('next-name').textContent = next.label;
-  el('next-time').textContent =
-    timeText(next.time) + (next.tomorrow ? ' tomorrow' : '');
+  el('next-time').textContent = when;
   el('next-count').textContent = untilText(next.time - now);
+
+  el('d-next-name').textContent = next.label;
+  el('d-next-time').textContent = when;
+
+  const { h, m, s } = untilParts(next.time - now);
+  el('d-countdown').innerHTML = h > 0
+    ? `${h}<small>h</small>${m}<small>m</small>`
+    : m > 0
+      ? `${m}<small>m</small>${s}<small>s</small>`
+      : `${s}<small>s</small>`;
+
   return next;
 }
 
-function renderPlace() {
-  if (!State.location) return;
-  const { method } = myParams();
-  const label = State.location.exact
-    ? 'Times for your location'
-    : `Times for ${State.location.name}`;
-  const methodName =
-    document.querySelector(`#set-method option[value="${method}"]`)?.textContent || method;
-  el('place').textContent = `${label} · ${methodName}`;
+function renderSource() {
+  const { estimated } = timesFor(State.viewDate);
+  const chip = estimated
+    ? '<span class="chip">Estimated</span>'
+    : '';
+  const html = `<span>${TIMES_SOURCE}</span>${chip}`;
+  el('source').innerHTML = html;
+  el('d-source').innerHTML = html;
 }
 
 function renderDayNav() {
   const today = todayKey();
-  el('day-label').textContent =
-    State.viewDate === today
-      ? `Today · ${fmtDateShort.format(parseKey(State.viewDate))}`
-      : friendlyDay(State.viewDate);
-  el('day-today').hidden = State.viewDate === today;
-  // Nothing to log past tomorrow.
-  el('day-next').disabled = State.viewDate >= addDays(today, 1);
+  const isToday = State.viewDate === today;
+  const atEnd = State.viewDate >= addDays(today, 1); // nothing to log past tomorrow
+
+  el('day-label').textContent = isToday
+    ? `Today · ${fmtDateShort.format(parseKey(State.viewDate))}`
+    : friendlyDay(State.viewDate);
+  el('day-today').hidden = isToday;
+  el('day-next').disabled = atEnd;
+
+  el('d-day-label').textContent = isToday
+    ? `Today · ${fmtDateShort.format(parseKey(State.viewDate))}`
+    : friendlyDay(State.viewDate);
+  el('d-day-today').hidden = isToday;
+  el('d-day-next').disabled = atEnd;
 }
+
+/* ========================================================== mobile today == */
 
 function cellMarkup(person, prayer) {
   const status = Data.status(person, State.viewDate, prayer);
@@ -157,15 +172,9 @@ function cellMarkup(person, prayer) {
 }
 
 function renderPrayers() {
-  const { method, madhab } = myParams();
-  const times = State.location
-    ? prayerTimesFor(State.viewDate, State.location, method, madhab)
-    : null;
-
+  const { times } = timesFor(State.viewDate);
   const isToday = State.viewDate === todayKey();
-  const next = isToday && State.location
-    ? nextPrayerFrom(new Date(), State.location, method, madhab)
-    : null;
+  const next = isToday ? nextPrayerFrom(new Date()) : null;
 
   el('prayers').innerHTML = PRAYERS.map((p) => {
     const isNext = next && !next.tomorrow && next.key === p.key;
@@ -173,7 +182,7 @@ function renderPrayers() {
       <li class="prayer${isNext ? ' is-next' : ''}" data-prayer="${p.key}">
         <div class="prayer-head">
           <span class="prayer-name">${p.label}</span>
-          <span class="prayer-time">${times ? timeText(times[p.key]) : '—'}</span>
+          <span class="prayer-time">${timeText(times[p.key])}</span>
           ${isNext ? '<span class="prayer-flag">next</span>' : ''}
         </div>
         <div class="cells">
@@ -184,7 +193,88 @@ function renderPrayers() {
   }).join('');
 }
 
-/* ============================================================ week view === */
+/* ========================================================= desktop today == */
+
+function tcellMarkup(person, prayer) {
+  const status = Data.status(person, State.viewDate, prayer);
+  const mine = person === State.me;
+  const who = esc(name(person));
+  const label = `${who}, ${PRAYER_LABEL[prayer]}: ${STATUS_LABEL[status].toLowerCase()}`;
+  const shown = `<span class="tdot"></span><span class="tnow">${STATUS_LABEL[status]}</span>`;
+
+  if (!mine) {
+    return `<td class="tcell" data-status="${status}" aria-label="${label}">${shown}</td>`;
+  }
+
+  const btn = (value, text, extra = '') => `
+    <button class="pick-btn${extra}${status === value ? ' is-active' : ''}" type="button"
+            data-set="${value}" data-person="${person}" data-prayer="${prayer}"
+            aria-label="${PRAYER_LABEL[prayer]}: ${text}">${text}</button>`;
+
+  return `
+    <td class="tcell is-mine" data-status="${status}" aria-label="${label}">
+      ${shown}
+      <div class="pick">
+        ${btn('on_time', 'On time')}${btn('late', 'Late')}${btn('missed', 'Missed')}
+        ${btn('none', 'Clear', ' pick-clear')}
+      </div>
+    </td>`;
+}
+
+function renderTable() {
+  const { times } = timesFor(State.viewDate);
+  const isToday = State.viewDate === todayKey();
+  const next = isToday ? nextPrayerFrom(new Date()) : null;
+
+  el('d-th-khalid').textContent = name('khalid');
+  el('d-th-marwa').textContent = name('marwa');
+
+  el('d-rows').innerHTML = PRAYERS.map((p) => {
+    const isNext = next && !next.tomorrow && next.key === p.key;
+    return `
+      <tr class="trow${isNext ? ' is-next' : ''}" data-prayer="${p.key}">
+        <th scope="row" class="tname">${p.label}${isNext ? '<span class="tflag">next</span>' : ''}</th>
+        <td class="ttime">${timeText(times[p.key])}</td>
+        ${tcellMarkup('khalid', p.key)}
+        ${tcellMarkup('marwa', p.key)}
+      </tr>`;
+  }).join('');
+}
+
+function renderTimeline() {
+  const { times } = timesFor(State.viewDate);
+  const fajr = times.fajr.getTime();
+  const isha = times.isha.getTime();
+  const span = isha - fajr || 1;
+  const pct = (t) => Math.max(0, Math.min(100, ((t - fajr) / span) * 100));
+
+  const now = new Date();
+  const isToday = State.viewDate === todayKey();
+  const current = isToday ? currentPrayerAt(now) : null;
+
+  let html = PRAYERS.map((p) => {
+    const t = times[p.key];
+    const past = isToday && t <= now;
+    return `
+      <div class="tl-item${past ? ' is-past' : ''}${current === p.key ? ' is-current' : ''}"
+           data-prayer="${p.key}" style="top: ${pct(t.getTime()).toFixed(2)}%">
+        <i class="tl-dot"></i>
+        <span class="tl-text">
+          <span class="tl-name">${p.label}</span>
+          <span class="tl-time">${timeText(t)}</span>
+        </span>
+      </div>`;
+  }).join('');
+
+  // Only mark "now" while it actually sits on the timeline.
+  if (isToday && now.getTime() >= fajr && now.getTime() <= isha) {
+    html += `<div class="tl-now" style="top: ${pct(now.getTime()).toFixed(2)}%"><span>now</span></div>`;
+  }
+
+  el('d-timeline').innerHTML = html;
+}
+
+/* ================================================================ week ==== */
 
 function dayComplete(person, dateKeyStr) {
   return PRAYERS.every((p) => {
@@ -210,6 +300,19 @@ function streakFor(person) {
   return count;
 }
 
+function lastSevenDays() {
+  const today = todayKey();
+  const days = [];
+  for (let i = 6; i >= 0; i -= 1) days.push(addDays(today, -i));
+  return days;
+}
+
+function daySummary(person, key) {
+  return PRAYERS
+    .map((p) => `${p.label} ${STATUS_LABEL[Data.status(person, key, p.key)].toLowerCase()}`)
+    .join(', ');
+}
+
 function renderWeek() {
   el('streaks').innerHTML = PEOPLE_IDS.map((person) => {
     const n = streakFor(person);
@@ -222,21 +325,15 @@ function renderWeek() {
   }).join('');
 
   const today = todayKey();
-  const days = [];
-  for (let i = 6; i >= 0; i -= 1) days.push(addDays(today, -i));
-
-  const rows = days.map((key) => {
+  const rows = lastSevenDays().map((key) => {
     const cells = PEOPLE_IDS.map((person) => {
       const dots = PRAYERS.map((p) => {
         const status = Data.status(person, key, p.key);
         return `<i class="dot" data-prayer="${p.key}" data-status="${status}"
                    title="${PRAYER_LABEL[p.key]}: ${STATUS_LABEL[status]}"></i>`;
       }).join('');
-      const summary = PRAYERS.map((p) =>
-        `${p.label} ${STATUS_LABEL[Data.status(person, key, p.key)].toLowerCase()}`
-      ).join(', ');
       return `<div class="dots" role="img"
-                   aria-label="${esc(name(person))} on ${friendlyDay(key)}: ${summary}">${dots}</div>`;
+                   aria-label="${esc(name(person))} on ${friendlyDay(key)}: ${daySummary(person, key)}">${dots}</div>`;
     }).join('');
 
     const d = parseKey(key);
@@ -256,57 +353,169 @@ function renderWeek() {
     ${rows}`;
 }
 
+function renderDesktopWeek() {
+  const today = todayKey();
+  const days = lastSevenDays();
+
+  const head = `
+    <div class="dweek-head">
+      <span class="dweek-corner"></span>
+      ${days.map((key) => {
+        const d = parseKey(key);
+        const cls = [
+          key === today ? 'is-today' : '',
+          key === State.viewDate ? 'is-viewed' : '',
+        ].join(' ').trim();
+        return `<button class="dweek-day ${cls}" type="button" data-date="${key}"
+                        aria-label="Show ${friendlyDay(key)}">
+                  ${fmtDayShort.format(d)}<small>${fmtDateShort.format(d)}</small>
+                </button>`;
+      }).join('')}
+      <span class="dweek-streak-head">Streak</span>
+    </div>`;
+
+  const rows = PEOPLE_IDS.map((person) => {
+    const cells = days.map((key) => {
+      const segs = PRAYERS.map((p) => {
+        const status = Data.status(person, key, p.key);
+        return `<i class="seg" data-prayer="${p.key}" data-status="${status}"
+                   title="${PRAYER_LABEL[p.key]}: ${STATUS_LABEL[status]}"></i>`;
+      }).join('');
+      return `<div class="dweek-cell${key === State.viewDate ? ' is-viewed' : ''}"
+                   data-date="${key}" role="img"
+                   aria-label="${esc(name(person))} on ${friendlyDay(key)}: ${daySummary(person, key)}">${segs}</div>`;
+    }).join('');
+
+    const n = streakFor(person);
+    return `
+      <div class="dweek-row">
+        <span class="dweek-who">${esc(name(person))}</span>
+        ${cells}
+        <div class="dweek-streak"><b>${n}</b><span>${n === 1 ? 'day' : 'days'}</span></div>
+      </div>`;
+  }).join('');
+
+  el('d-week').innerHTML = head + rows;
+}
+
 /* ============================================================== render ==== */
+
+/** Everything that shows a logged status. */
+function renderStatuses() {
+  const focused = document.activeElement;
+  const restore = focused && focused.classList && focused.classList.contains('pick-btn')
+    ? { set: focused.dataset.set, person: focused.dataset.person, prayer: focused.dataset.prayer }
+    : null;
+
+  renderPrayers();
+  renderTable();
+  renderWeek();
+  renderDesktopWeek();
+
+  // Re-rendering replaces the button the keyboard was on; put focus back.
+  if (restore) {
+    const again = document.querySelector(
+      `.pick-btn[data-set="${restore.set}"][data-person="${restore.person}"][data-prayer="${restore.prayer}"]`
+    );
+    if (again) again.focus();
+  }
+}
 
 function render() {
   renderHeader();
-  renderPlace();
   renderNextUp();
+  renderSource();
   renderDayNav();
-  renderPrayers();
-  renderWeek();
+  renderTimeline();
+  renderStatuses();
 }
 
 /* ========================================================= interaction === */
 
-el('prayers').addEventListener('click', async (event) => {
-  const cell = event.target.closest('button.cell');
-  if (!cell) return;
-
-  const { person, prayer } = cell.dataset;
+/** The one place a status is written, from either layout. */
+async function setStatus(person, prayer, next) {
   if (person !== State.me) return;
 
-  const before = Data.status(person, State.viewDate, prayer);
-  const after = CYCLE[(CYCLE.indexOf(before) + 1) % CYCLE.length];
+  const date = State.viewDate;
+  const before = Data.status(person, date, prayer);
+  if (before === next) return;
 
   // Optimistic, so a tap feels instant on a phone.
-  Data.setLocal(person, State.viewDate, prayer, after);
-  renderPrayers();
-  renderWeek();
+  Data.setLocal(person, date, prayer, next);
+  renderStatuses();
 
   try {
-    await Data.writeStatus(person, State.viewDate, prayer, after);
+    await Data.writeStatus(person, date, prayer, next);
   } catch (err) {
-    Data.setLocal(person, State.viewDate, prayer, before);
-    renderPrayers();
-    renderWeek();
+    Data.setLocal(person, date, prayer, before);
+    renderStatuses();
     toast(`Could not save: ${esc(err.message || err)}`, { error: true });
   }
+}
+
+/* mobile: tap to cycle */
+el('prayers').addEventListener('click', (event) => {
+  const cell = event.target.closest('button.cell');
+  if (!cell) return;
+  const { person, prayer } = cell.dataset;
+  const before = Data.status(person, State.viewDate, prayer);
+  setStatus(person, prayer, CYCLE[(CYCLE.indexOf(before) + 1) % CYCLE.length]);
 });
 
-el('day-prev').addEventListener('click', () => goToDay(addDays(State.viewDate, -1)));
-el('day-next').addEventListener('click', () => goToDay(addDays(State.viewDate, 1)));
-el('day-today').addEventListener('click', () => goToDay(todayKey()));
+/* desktop: pick a status directly */
+el('d-rows').addEventListener('click', (event) => {
+  const btn = event.target.closest('.pick-btn');
+  if (!btn) return;
+  setStatus(btn.dataset.person, btn.dataset.prayer, btn.dataset.set);
+});
+
+/* day navigation */
 
 async function goToDay(key) {
   State.viewDate = key;
   renderDayNav();
-  renderPrayers();
+  renderSource();
+  renderTimeline();
+  renderStatuses();
   await Data.ensureDay(key).catch(() => {});
-  renderPrayers();
+  renderStatuses();
 }
 
-/* tabs */
+el('day-prev').addEventListener('click', () => goToDay(addDays(State.viewDate, -1)));
+el('day-next').addEventListener('click', () => goToDay(addDays(State.viewDate, 1)));
+el('day-today').addEventListener('click', () => goToDay(todayKey()));
+el('d-day-prev').addEventListener('click', () => goToDay(addDays(State.viewDate, -1)));
+el('d-day-next').addEventListener('click', () => goToDay(addDays(State.viewDate, 1)));
+el('d-day-today').addEventListener('click', () => goToDay(todayKey()));
+
+/* clicking a day in the week grid jumps the Today table to it */
+el('d-week').addEventListener('click', (event) => {
+  const target = event.target.closest('[data-date]');
+  if (target) goToDay(target.dataset.date);
+});
+
+/* keyboard: arrows change day, T jumps to today */
+document.addEventListener('keydown', (event) => {
+  if (event.metaKey || event.ctrlKey || event.altKey) return;
+  if (!el('settings').hidden) return;
+
+  const t = event.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+
+  if (event.key === 'ArrowLeft') {
+    event.preventDefault();
+    goToDay(addDays(State.viewDate, -1));
+  } else if (event.key === 'ArrowRight') {
+    if (State.viewDate >= addDays(todayKey(), 1)) return;
+    event.preventDefault();
+    goToDay(addDays(State.viewDate, 1));
+  } else if (event.key === 't' || event.key === 'T') {
+    event.preventDefault();
+    goToDay(todayKey());
+  }
+});
+
+/* mobile tabs */
 
 function setView(view) {
   State.view = view;
@@ -315,7 +524,6 @@ function setView(view) {
   el('tab-week').setAttribute('aria-selected', String(!isToday));
   el('view-today').hidden = !isToday;
   el('view-week').hidden = isToday;
-  if (!isToday) renderWeek();
 }
 
 el('tab-today').addEventListener('click', () => setView('today'));
@@ -327,9 +535,6 @@ function openSettings() {
   const me = Data.people[State.me] || {};
   el('settings-who').textContent = `Signed in on this device as ${name(State.me)}.`;
   el('set-name').value = me.display_name || '';
-  el('set-method').value = me.calc_method || 'NorthAmerica';
-  const madhab = me.asr_madhab === 'hanafi' ? 'hanafi' : 'standard';
-  document.querySelector(`input[name="madhab"][value="${madhab}"]`).checked = true;
   el('set-status').textContent = '';
   el('settings').hidden = false;
   el('set-name').focus();
@@ -341,6 +546,7 @@ function closeSettings() {
 }
 
 el('settings-open').addEventListener('click', openSettings);
+el('d-settings-open').addEventListener('click', openSettings);
 el('settings-close').addEventListener('click', closeSettings);
 el('settings-scrim').addEventListener('click', closeSettings);
 
@@ -349,11 +555,7 @@ document.addEventListener('keydown', (event) => {
 });
 
 el('set-save').addEventListener('click', async () => {
-  const patch = {
-    display_name: el('set-name').value.trim() || name(State.me),
-    calc_method: el('set-method').value,
-    asr_madhab: document.querySelector('input[name="madhab"]:checked').value,
-  };
+  const patch = { display_name: el('set-name').value.trim() || name(State.me) };
 
   el('set-status').textContent = 'Saving…';
   try {
@@ -378,7 +580,7 @@ el('switch-person').addEventListener('click', () => {
 function onRemoteChange(change) {
   // My own edits already rendered optimistically.
   if (change.person === State.me) {
-    render();
+    renderStatuses();
     return;
   }
 
@@ -393,15 +595,12 @@ function onRemoteChange(change) {
   if (change.date !== todayKey()) line += ` · ${friendlyDay(change.date)}`;
 
   toast(line);
-  render();
+  renderStatuses();
 }
 
 /* ================================================================= boot === */
 
 async function start() {
-  render();
-
-  State.location = await resolveLocation();
   render();
 
   if (!Data.configured) {
@@ -439,21 +638,30 @@ function startClock() {
   if (State.tick) clearInterval(State.tick);
   let lastDate = todayKey();
   let lastNext = null;
+  let lastMinute = -1;
 
   State.tick = setInterval(() => {
     const next = renderNextUp();
+    const now = new Date();
 
     if (todayKey() !== lastDate) {
       lastDate = todayKey();
       lastNext = next?.key || null;
+      lastMinute = now.getMinutes();
       render();
       return;
     }
 
-    // The "next" marker on the cards has to move when a prayer time passes.
+    // The "next" marker on the cards, table and timeline has to move when a
+    // prayer time passes; the timeline's now-marker creeps every minute.
     if (next && next.key !== lastNext) {
       lastNext = next.key;
       renderPrayers();
+      renderTable();
+      renderTimeline();
+    } else if (now.getMinutes() !== lastMinute) {
+      lastMinute = now.getMinutes();
+      renderTimeline();
     }
   }, 1000);
 }

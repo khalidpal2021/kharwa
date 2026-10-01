@@ -1,6 +1,11 @@
 /* ===========================================================================
-   times.js — dates, prayer times, Hijri formatting.
-   Depends on the adhan UMD bundle (global `adhan`) and window.KHARWA_CONFIG.
+   times.js — dates, Hijri formatting, and prayer times.
+
+   Times come from the Islamic Society of Tracy's published timetable
+   (timetable.js). For a month we do not have on file, they are calculated
+   with adhan.js using ISOT's own method, and flagged as estimated.
+
+   Depends on the adhan UMD bundle (global `adhan`) and timetable.js.
    =========================================================================== */
 
 const PRAYERS = [
@@ -18,6 +23,15 @@ const STATUS_LABEL = {
   on_time: 'On time',
   late:    'Late',
   missed:  'Missed',
+};
+
+const TIMES_SOURCE = 'Times from Islamic Society of Tracy';
+
+/** The ISOT masjid. Times are always for here, never the device location. */
+const ISOT = {
+  name: 'Islamic Society of Tracy',
+  latitude: 37.7646866,
+  longitude: -121.4525833,
 };
 
 /* ------------------------------------------------------- date key helpers -- */
@@ -87,103 +101,84 @@ function friendlyDay(key) {
   return fmtGregorian.format(parseKey(key));
 }
 
-/* --------------------------------------------------------------- location -- */
+/* ---------------------------------------------------- published timetable -- */
 
-const COORDS_STORE = 'kharwa.coords';
-const COORDS_TTL = 7 * 24 * 60 * 60 * 1000;
-
-function cachedCoords() {
-  try {
-    const raw = localStorage.getItem(COORDS_STORE);
-    if (!raw) return null;
-    const saved = JSON.parse(raw);
-    if (!saved || Date.now() - saved.at > COORDS_TTL) return null;
-    return saved;
-  } catch {
-    return null;
-  }
+/** "HH:MM" on the given local date, as a Date. */
+function atLocalTime(key, hhmm) {
+  const [y, m, d] = key.split('-').map(Number);
+  const [h, min] = hhmm.split(':').map(Number);
+  return new Date(y, m - 1, d, h, min, 0, 0);
 }
+
+/** The published row for a date, or null when that month is not on file. */
+function timetableRow(key) {
+  const [y, m, d] = key.split('-').map(Number);
+  const month = TIMETABLE[`${y}-${String(m).padStart(2, '0')}`];
+  return (month && month[d]) || null;
+}
+
+/* ---------------------------------------------------- calculated fallback -- */
 
 /**
- * Resolve a location: cached device position, then a fresh one, then the
- * configured fallback. Always resolves — never rejects.
+ * ISOT's published method: ISNA angles (Fajr 15, Isha 15), Hanafi Asr,
+ * Maghrib nudged three minutes after sunset, rounded to the nearest minute.
  */
-function resolveLocation() {
-  const fallback = {
-    latitude: KHARWA_CONFIG.FALLBACK_LOCATION.latitude,
-    longitude: KHARWA_CONFIG.FALLBACK_LOCATION.longitude,
-    name: KHARWA_CONFIG.FALLBACK_LOCATION.name,
-    exact: false,
-  };
-
-  const cached = cachedCoords();
-  if (cached) {
-    return Promise.resolve({
-      latitude: cached.latitude,
-      longitude: cached.longitude,
-      name: 'your location',
-      exact: true,
-    });
-  }
-
-  if (!('geolocation' in navigator)) return Promise.resolve(fallback);
-
-  return new Promise((resolve) => {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const found = {
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          name: 'your location',
-          exact: true,
-        };
-        try {
-          localStorage.setItem(
-            COORDS_STORE,
-            JSON.stringify({ ...found, at: Date.now() })
-          );
-        } catch { /* private mode — fine, we just recompute next time */ }
-        resolve(found);
-      },
-      () => resolve(fallback),
-      { timeout: 8000, maximumAge: 60 * 60 * 1000 }
-    );
-  });
-}
-
-/* ---------------------------------------------------------- prayer times --- */
-
-function calcParams(method, madhab) {
-  const factory = adhan.CalculationMethod[method] || adhan.CalculationMethod.NorthAmerica;
-  const params = factory();
-  params.madhab = madhab === 'hanafi' ? adhan.Madhab.Hanafi : adhan.Madhab.Shafi;
+function isotParams() {
+  const params = adhan.CalculationMethod.NorthAmerica();
+  params.madhab = adhan.Madhab.Hanafi;
+  params.adjustments.maghrib = 3;
+  params.rounding = adhan.Rounding.Nearest;
   return params;
 }
 
-/**
- * Times for one local day as { fajr: Date, dhuhr: Date, ... }.
- */
-function prayerTimesFor(key, location, method, madhab) {
-  const coords = new adhan.Coordinates(location.latitude, location.longitude);
-  const times = new adhan.PrayerTimes(coords, parseKey(key), calcParams(method, madhab));
+function calculatedTimes(key) {
+  const coords = new adhan.Coordinates(ISOT.latitude, ISOT.longitude);
+  const times = new adhan.PrayerTimes(coords, parseKey(key), isotParams());
   const out = {};
   for (const p of PRAYERS) out[p.key] = times[p.key];
+  out.sunrise = times.sunrise;
   return out;
+}
+
+/* ------------------------------------------------------------- the times -- */
+
+/**
+ * Times for one local day.
+ * Returns { times: { fajr: Date, ... }, estimated: boolean }.
+ * `estimated` is true when the month is not in the published timetable.
+ */
+function timesFor(key) {
+  const row = timetableRow(key);
+  if (row) {
+    const times = {};
+    for (const p of PRAYERS) times[p.key] = atLocalTime(key, row[p.key]);
+    if (row.sunrise) times.sunrise = atLocalTime(key, row.sunrise);
+    return { times, estimated: false };
+  }
+  return { times: calculatedTimes(key), estimated: true };
 }
 
 /**
  * The next prayer from `now`, rolling over to tomorrow's Fajr after Isha.
  * Returns { key, label, time, tomorrow }.
  */
-function nextPrayerFrom(now, location, method, madhab) {
-  const today = prayerTimesFor(dateKey(now), location, method, madhab);
+function nextPrayerFrom(now) {
+  const today = timesFor(dateKey(now)).times;
   for (const p of PRAYERS) {
     if (today[p.key] > now) {
       return { key: p.key, label: p.label, time: today[p.key], tomorrow: false };
     }
   }
-  const tomorrow = prayerTimesFor(addDays(dateKey(now), 1), location, method, madhab);
+  const tomorrow = timesFor(addDays(dateKey(now), 1)).times;
   return { key: 'fajr', label: 'Fajr', time: tomorrow.fajr, tomorrow: true };
+}
+
+/** The prayer currently in progress, or null before Fajr. */
+function currentPrayerAt(now) {
+  const today = timesFor(dateKey(now)).times;
+  let current = null;
+  for (const p of PRAYERS) if (today[p.key] <= now) current = p.key;
+  return current;
 }
 
 /** "2h 14m", "43m", "38s" */
@@ -195,4 +190,14 @@ function untilText(ms) {
   if (h > 0) return `in ${h}h ${String(m).padStart(2, '0')}m`;
   if (m > 0) return `in ${m}m`;
   return `in ${s}s`;
+}
+
+/** Split countdown for the big desktop block. */
+function untilParts(ms) {
+  const total = Math.max(0, Math.round(ms / 1000));
+  return {
+    h: Math.floor(total / 3600),
+    m: Math.floor((total % 3600) / 60),
+    s: total % 60,
+  };
 }
