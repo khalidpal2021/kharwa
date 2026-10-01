@@ -143,9 +143,12 @@ sets the row height. On a 390x844 iPhone the next-prayer card and all five
 Today rows fit on the first screen. At 1366x768 the whole view is about 40px
 taller than the window; at 1920x1080 it fits with room to spare.
 
-1. **Masthead** — "Kharwa" wordmark in Playfair on the left; the Gregorian date
-   with the Hijri date beneath it as a small-caps line; a settings ghost button
-   on the right. A thin rule underneath. Not a card.
+1. **Masthead** — "Kharwa" wordmark in Playfair on the left, then the section
+   tabs (Prayer, Quran) in quiet sans, the current one in ink with a gold
+   underline resting on the masthead rule; the Gregorian date with the Hijri
+   date beneath it as a small-caps line; a settings ghost button on the right.
+   A thin rule underneath. Not a card. The masthead is shared by every section;
+   what follows is the Prayer section.
 2. **Next prayer card** — full width, featured. The prayer name in large
    Playfair, the countdown beneath it and the clock time beneath that, all
    centred; then the rule-line timeline with the five prayers evenly spaced and
@@ -182,10 +185,52 @@ taller than the window; at 1920x1080 it fits with room to spare.
    clickable.
 6. **Keyboard** — ← → change day, T jumps to today.
 
+## Sections and navigation
+
+The app is a set of sections behind hash routes (`#/prayer`, the default, and
+`#/quran`), drawn from one registry in `js/router.js`. On desktop the tabs sit
+in the masthead; on a phone a bottom tab bar (50px plus the iPhone safe area,
+white with a hairline top border) shows each section's line icon and label, the
+current one in dark gold. A new section is one module and its markup; both
+navs pick it up.
+
+## Quran
+
+Calm and spacious, like a printed mushaf. All Arabic and translation text comes
+from the Al-Quran Cloud API and is never written into the code.
+
+- **Surah list** — a featured *Continue reading* card ("Al-Kahf · ayah 24" in
+  Playfair, linking straight there), with a quieter line beneath for where the
+  other person is reading. Then *Bookmarks* (when there are any), then
+  *Surahs*: a search box (name, meaning or number, forgiving of transliteration)
+  over all 114, each row with its number in a small gold diamond, the English
+  name in Playfair, the meaning, "MECCAN · 110 AYAT" in small caps, and the
+  Arabic name on the right in Amiri Quran. Two columns on desktop.
+- **Reader** — one centred page, at most 820px wide. The surah header is a
+  cartouche framed in a double gold rule: "SURAH 18", the Arabic name large,
+  the English name in Playfair, the meaning in italic, and "MECCAN · 110 AYAT".
+  Below it, small chips for Arabic size (S / M / L), Translation and Arabic
+  only, saved per device, and a one-line hint. The basmala is centred above
+  every surah except Al-Fatihah, where it is ayah 1, and At-Tawbah, which has
+  none. It is taken from Al-Fatihah 1:1 and split from the start of ayah 1 as
+  the API gives it, and only when it is found there. Each ayah is the Arabic
+  right-aligned in Amiri Quran (26/31px, line-height 2.15) ending in an
+  ornamental number: an eight-point gold star with the Arabic-Indic numeral
+  inside. The Sahih International translation sits beneath in the body font,
+  with a small gold ayah number, and thin rules separate the ayat. *Arabic only*
+  flows the ayat together as one right-aligned page. Previous and next surah
+  links close the page.
+- **Bookmarks** — tap an ayah's number star. A bookmarked star fills with pale
+  gold. Bookmarks and the reading position (the topmost ayah in a band across
+  the upper screen, saved 1.5s after it settles) are kept per person in
+  Supabase; the position is also kept on the device, and the newer copy wins.
+
 ## Mobile (< 900px)
 
 The same style, with the cards stacked: masthead, Next prayer, Today, This
-Week, Ayah of the Day.
+Week, Ayah of the Day, and the tab bar fixed at the bottom. With Safari's own
+toolbars on a 390px iPhone, the next-prayer card and all five Today rows still
+end above the tab bar.
 The masthead is the wordmark with a gear on the right and the Gregorian and
 Hijri dates on one quiet line beneath. The timeline is dropped, since the
 timetable already lists the times. Tap your own mark to cycle empty → on time →

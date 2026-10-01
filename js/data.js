@@ -159,6 +159,60 @@ const Data = {
     this.people[person] = { ...this.people[person], ...patch };
   },
 
+  /* ----------------------------------------------------- quran reading --- */
+
+  /** Both people's last reading position: { khalid: { surah, ayah, updated_at }, ... } */
+  async loadQuranProgress() {
+    if (!this.configured) return {};
+    const { data, error } = await this.db
+      .from('quran_progress')
+      .select('person, surah, ayah, updated_at');
+    if (error) throw error;
+    return Object.fromEntries((data || []).map((r) => [r.person, r]));
+  },
+
+  async saveQuranProgress(person, surah, ayah) {
+    if (!this.configured) return;
+    const { error } = await this.db
+      .from('quran_progress')
+      .upsert(
+        { person, surah, ayah, updated_at: new Date().toISOString() },
+        { onConflict: 'person' }
+      );
+    if (error) throw error;
+  },
+
+  /** One person's bookmarks, newest first: [{ surah, ayah, created_at }] */
+  async loadBookmarks(person) {
+    if (!this.configured) return [];
+    const { data, error } = await this.db
+      .from('quran_bookmarks')
+      .select('surah, ayah, created_at')
+      .eq('person', person)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  async addBookmark(person, surah, ayah) {
+    if (!this.configured) throw new Error('Supabase is not configured yet.');
+    const { error } = await this.db
+      .from('quran_bookmarks')
+      .upsert({ person, surah, ayah }, { onConflict: 'person,surah,ayah', ignoreDuplicates: true });
+    if (error) throw error;
+  },
+
+  async removeBookmark(person, surah, ayah) {
+    if (!this.configured) throw new Error('Supabase is not configured yet.');
+    const { error } = await this.db
+      .from('quran_bookmarks')
+      .delete()
+      .eq('person', person)
+      .eq('surah', surah)
+      .eq('ayah', ayah);
+    if (error) throw error;
+  },
+
   /* --------------------------------------------------------- realtime ---- */
 
   /**

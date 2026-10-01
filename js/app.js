@@ -1,5 +1,5 @@
 /* ===========================================================================
-   app.js — screens, rendering, and interaction.
+   app.js — the Prayer section, settings, and boot.
 
    One set of markup for both widths; CSS reflows it at 900px. The only
    behavioural difference is the hover menu, which is a pointer affordance and
@@ -361,6 +361,7 @@ async function renderAyah() {
     el('ayah-ar').textContent = ayah.arabic;
     el('ayah-en').textContent = ayah.english;
     el('ayah-ref').textContent = `${ayah.surah} · ${ayah.number}`;
+    el('ayah-ref').href = `#/quran/${ayah.number.replace(':', '/')}`;
     el('ayah').hidden = false;
     State.ayahFor = key;
   } catch {
@@ -462,6 +463,7 @@ el('week').addEventListener('click', (event) => {
 document.addEventListener('keydown', (event) => {
   if (event.metaKey || event.ctrlKey || event.altKey) return;
   if (!el('settings').hidden) return;
+  if (Sections.current !== 'prayer') return;
 
   const t = event.target;
   if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
@@ -550,9 +552,25 @@ function onRemoteChange(change) {
   renderStatuses();
 }
 
+/* ============================================================== section === */
+
+Sections.register({
+  id: 'prayer',
+  label: 'Prayer',
+  order: 1,
+  icon: `<svg viewBox="0 0 24 24" width="22" height="22" focusable="false">
+    <path d="M6 20.5V11a6 6 0 0 1 6-6.5A6 6 0 0 1 18 11v9.5" fill="none" stroke="currentColor"
+          stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M4 20.5h16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+  </svg>`,
+  root: el('section-prayer'),
+  show: () => render(),
+});
+
 /* ================================================================= boot === */
 
 async function start() {
+  Sections.start();
   render();
 
   if (!Data.configured) {

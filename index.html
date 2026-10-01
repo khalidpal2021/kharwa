@@ -37,6 +37,8 @@
     <!-- ------------------------------------------------------ masthead --- -->
     <header class="masthead">
       <p class="wordmark">Kharwa</p>
+      <!-- Desktop section tabs; drawn by js/router.js -->
+      <nav id="nav-top" class="navtabs" aria-label="Sections"></nav>
       <div class="masthead-dates">
         <p id="gregorian" class="greg">&nbsp;</p>
         <p id="hijri" class="hijri">&nbsp;</p>
@@ -50,6 +52,9 @@
         <span class="settings-text">Settings</span>
       </button>
     </header>
+
+    <!-- ======================================================= prayer === -->
+    <div id="section-prayer" class="section" hidden>
 
     <!-- --------------------------------------------- next prayer card --- -->
     <section class="card card--feature" aria-labelledby="next-head">
@@ -127,8 +132,93 @@
 
       <p id="ayah-ar" class="ayah-ar" lang="ar" dir="rtl"></p>
       <p id="ayah-en" class="ayah-en"></p>
-      <p id="ayah-ref" class="ayah-ref"></p>
+      <a id="ayah-ref" class="ayah-ref"></a>
     </section>
+
+    </div>
+
+    <!-- ======================================================== quran === -->
+    <!-- All Quran text comes from the Al-Quran Cloud API (js/quran.js). -->
+    <div id="section-quran" class="section" hidden>
+
+      <!-- --------------------------------------------- surah list view --- -->
+      <div id="qr-list-view" class="qr-view">
+        <section class="card card--feature qr-continue" aria-labelledby="qr-continue-label">
+          <div class="cardhead">
+            <span class="rule" aria-hidden="true"></span>
+            <h2 id="qr-continue-label" class="cardhead-text">Continue reading</h2>
+            <span class="rule" aria-hidden="true"></span>
+          </div>
+          <a id="qr-continue-link" class="qr-continue-link" href="#/quran/1">
+            <span id="qr-continue-title" class="qr-continue-title"></span>
+            <span id="qr-continue-sub" class="qr-continue-sub"></span>
+          </a>
+          <p id="qr-other" class="qr-other" hidden></p>
+        </section>
+
+        <section id="qr-bookmarks" class="card" aria-labelledby="qr-bookmarks-label" hidden>
+          <div class="cardhead">
+            <span class="rule" aria-hidden="true"></span>
+            <h2 id="qr-bookmarks-label" class="cardhead-text">Bookmarks</h2>
+            <span class="rule" aria-hidden="true"></span>
+          </div>
+          <ul id="qr-bookmark-list" class="qr-bookmark-list"></ul>
+        </section>
+
+        <section class="card" aria-labelledby="qr-surahs-label">
+          <div class="cardhead">
+            <span class="rule" aria-hidden="true"></span>
+            <h2 id="qr-surahs-label" class="cardhead-text">Surahs</h2>
+            <span class="rule" aria-hidden="true"></span>
+          </div>
+          <label class="qr-search">
+            <span class="sr-only">Search surahs</span>
+            <input id="qr-search" class="input" type="search" placeholder="Search by name or number"
+                   autocomplete="off" autocapitalize="off" spellcheck="false" />
+          </label>
+          <ol id="qr-surah-list" class="qr-surah-list"></ol>
+          <p id="qr-list-status" class="qr-status" hidden></p>
+        </section>
+      </div>
+
+      <!-- ------------------------------------------------- reader view --- -->
+      <div id="qr-reader-view" class="qr-view qr-view--reader" hidden>
+        <a class="btn btn--ghost qr-back" href="#/quran">&lsaquo; All surahs</a>
+
+        <article class="card qr-page" aria-labelledby="qr-name-en">
+          <header class="qr-head">
+            <p id="qr-kicker" class="qr-kicker"></p>
+            <p id="qr-name-ar" class="qr-name-ar" lang="ar" dir="rtl"></p>
+            <h2 id="qr-name-en" class="qr-name-en"></h2>
+            <p id="qr-meaning" class="qr-meaning"></p>
+            <p id="qr-meta" class="qr-meta"></p>
+          </header>
+
+          <div class="qr-settings" role="group" aria-label="Reading settings">
+            <div class="qr-seg" role="group" aria-label="Arabic size">
+              <button class="qr-chip" type="button" data-size="s" aria-label="Small Arabic">S</button>
+              <button class="qr-chip" type="button" data-size="m" aria-label="Medium Arabic">M</button>
+              <button class="qr-chip" type="button" data-size="l" aria-label="Large Arabic">L</button>
+            </div>
+            <button id="qr-opt-translation" class="qr-chip" type="button">Translation</button>
+            <button id="qr-opt-arabic" class="qr-chip" type="button">Arabic only</button>
+          </div>
+          <p class="qr-hint">Tap an ayah number to bookmark it.</p>
+
+          <p id="qr-basmala" class="qr-basmala" lang="ar" dir="rtl" hidden></p>
+          <div id="qr-text" class="qr-text"></div>
+          <p id="qr-status" class="qr-status" hidden></p>
+
+          <nav class="qr-pager" aria-label="Other surahs">
+            <a id="qr-prev" class="qr-pager-link qr-pager-link--prev"></a>
+            <a id="qr-next" class="qr-pager-link qr-pager-link--next"></a>
+          </nav>
+        </article>
+      </div>
+    </div>
+
+    <!-- Mobile section tabs; drawn by js/router.js -->
+    <nav id="nav-bottom" class="tabbar" aria-label="Sections"></nav>
 
     <!-- ----------------------------------------------------- settings --- -->
     <div id="settings" class="sheet" hidden>
@@ -173,6 +263,8 @@
   <script src="js/times.js" defer></script>
   <script src="js/data.js" defer></script>
   <script src="js/ayat.js" defer></script>
+  <script src="js/router.js" defer></script>
+  <script src="js/quran.js" defer></script>
   <script src="js/app.js" defer></script>
 </body>
 </html>

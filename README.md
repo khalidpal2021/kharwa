@@ -1,7 +1,8 @@
 # Kharwa
 
-A small prayer tracker for two people — Khalid and Marwa. Five prayers a day,
-two columns, live sync between our phones. No login, no build step.
+A small Islamic app for two people — Khalid and Marwa. A prayer tracker (five
+prayers a day, two columns, live sync between our phones) and a Quran reader,
+with room for more sections. No login, no build step.
 
 Plain HTML, CSS, and JavaScript. [Supabase](https://supabase.com) for data and
 realtime, [adhan.js](https://github.com/batoulapps/adhan-js) as a fallback for
@@ -13,9 +14,9 @@ prayer times, both from the jsDelivr CDN.
 
 In your Supabase project, open the **SQL Editor**, paste in the whole of
 [`supabase/schema.sql`](supabase/schema.sql), and run it. It creates the
-`people` and `prayer_logs` tables, seeds both people, turns on RLS with open
-policies for the `anon` role, and adds `prayer_logs` to the realtime
-publication.
+`people`, `prayer_logs`, `quran_progress` and `quran_bookmarks` tables, seeds
+both people, turns on RLS with open policies for the `anon` role, and adds
+`prayer_logs` to the realtime publication.
 
 The file is idempotent — running it again is safe and will not drop any data.
 
@@ -116,21 +117,47 @@ The device location is not used and the browser never asks for it.
 
 ## A note on security
 
-There is no login, so the `anon` role has full read and write access to both
-tables. Anyone with the site URL and the anon key — which is necessarily public
+There is no login, so the `anon` role has full read and write access to every
+table. Anyone with the site URL and the anon key — which is necessarily public
 in a browser app — can read and change the logs. That is a deliberate
 trade-off for a two-person app on an unlisted URL, not an oversight. Do not put
 anything in here you would mind a stranger seeing.
 
+## Sections
+
+The app is split into sections behind simple hash routes: `#/prayer` (the
+default) and `#/quran`. A phone gets a bottom tab bar; a laptop gets tabs in
+the masthead. Both are drawn from one registry in `js/router.js`, so adding a
+section (say `#/dhikr`) means one new module that calls `Sections.register()`,
+plus its markup.
+
+### Quran
+
+- `#/quran` lists all 114 surahs, with search by name or number, a *Continue
+  reading* card, where the other person is reading, and your bookmarks.
+- `#/quran/18` opens Al-Kahf; `#/quran/2/255` jumps to that ayah. Back,
+  forward and shared links all work.
+- All Arabic (Uthmani) and English (Sahih International) text comes from the
+  [Al-Quran Cloud API](https://alquran.cloud/api); none is written into the
+  code. Each surah is cached in IndexedDB after its first load, so it reopens
+  instantly and without a connection.
+- The reading position (the ayah in view, saved a moment after you stop) and
+  bookmarks (tap an ayah's number) are stored per person in Supabase, with the
+  position also kept on the device. Text size, translation and Arabic-only
+  mode are saved per device.
+
 ## Layout
 
 ```
-index.html          markup for both screens
+index.html          markup for every section
 styles.css          the sky-through-the-day palette, phone and desktop
 config.js           Supabase URL and anon key (fill these in)
 js/timetable.js     the ISOT timetable, by month
 js/times.js         dates, Hijri formatting, prayer times
-js/data.js          Supabase client, log cache, realtime
-js/app.js           rendering and interaction, both layouts
+js/data.js          Supabase client, log cache, realtime, reading progress
+js/ayat.js          Ayah of the Day references
+js/router.js        sections and hash routing
+js/quran.js         the Quran section: list, reader, cache, progress
+js/app.js           the Prayer section, settings, boot
 supabase/schema.sql run this once in the SQL Editor
 ```
