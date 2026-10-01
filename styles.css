@@ -160,6 +160,28 @@ button, input { font: inherit; color: inherit; }
 
 .seclabel-text { white-space: nowrap; }
 
+/* The Today label carries the day navigation, centred over the table, with
+   "Back to today" pinned right so it cannot pull the navigation off-centre.
+   On a phone the navigation drops to its own line, where there is room for it. */
+.seclabel--today {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 10px;
+}
+
+.seclabel-lead {
+  grid-area: 1 / 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.seclabel-trail { grid-area: 1 / 2; justify-self: end; }
+.seclabel--today .daynav { grid-area: 2 / 1 / 3 / -1; justify-self: center; }
+
 /* buttons */
 
 .btn {
@@ -383,16 +405,35 @@ button, input { font: inherit; color: inherit; }
 .daynav-btn:hover:not(:disabled) { color: var(--accent-text); background: var(--muted); }
 .daynav-btn:disabled { opacity: 0.3; cursor: default; }
 
+/* Sized by the longest date it can ever hold, so the arrows never move. The
+   hidden sizer and the real text share one grid cell. */
 .daynav-label {
-  min-width: 112px;
-  text-align: center;
+  display: grid;
+  align-items: center;
+  justify-items: center;
   font-size: 13px;
   font-weight: 500;
   letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
   color: var(--muted-foreground);
 }
 
-.daynav-today { margin: 0 0 var(--s1); min-height: 32px; }
+.daynav-label::after,
+.daynav-label-text { grid-area: 1 / 1; white-space: nowrap; }
+
+.daynav-label::after {
+  content: "Wednesday, September 30";
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.daynav-today {
+  min-height: 32px;
+  padding: 0 8px;
+  font-size: 13px;
+}
+
+.daynav-today.is-invisible { visibility: hidden; }
 
 .tt-head,
 .tt-row {
@@ -890,7 +931,16 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   .tt-en { font-size: clamp(20px, 1.5vw, 34px); }
   .tt-time { font-size: clamp(13px, 0.95vw, 20px); }
 
-  .daynav-label { font-size: clamp(13px, 0.9vw, 18px); min-width: clamp(112px, 9vw, 180px); }
+  .seclabel--today {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    row-gap: 0;
+  }
+
+  .seclabel--today .daynav { grid-area: 1 / 2; justify-self: center; }
+  .seclabel-trail { grid-area: 1 / 3; }
+
+  .daynav-label { font-size: clamp(13px, 0.9vw, 18px); }
+  .daynav-today { font-size: clamp(13px, 0.85vw, 17px); }
   .daynav-btn { font-size: clamp(22px, 1.5vw, 32px); width: clamp(32px, 2.4vw, 44px); }
 
   /* the hover/focus menu is a pointer affordance, so desktop only */

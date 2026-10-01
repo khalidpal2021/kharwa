@@ -109,7 +109,14 @@ function renderDayNav() {
   el('day-label').textContent = isToday
     ? `Today · ${fmtDateShort.format(parseKey(State.viewDate))}`
     : friendlyDay(State.viewDate);
-  el('day-today').hidden = isToday;
+
+  // The section label carries the date once you leave today.
+  el('today-label').textContent = isToday
+    ? 'Today'
+    : fmtGregorianShort.format(parseKey(State.viewDate));
+
+  // Hidden by visibility, not display, so the row keeps its shape.
+  el('day-today').classList.toggle('is-invisible', isToday);
   el('day-next').disabled = State.viewDate >= addDays(today, 1);
 }
 
