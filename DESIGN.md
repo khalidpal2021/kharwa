@@ -205,8 +205,8 @@ taller than the window; at 1920x1080 it fits with room to spare.
 
 ## Sections and navigation
 
-The app is a set of sections behind hash routes (`#/prayer`, the default, and
-`#/quran`), drawn from one registry in `js/router.js`. On desktop the tabs sit
+The app is a set of sections behind hash routes (`#/prayer`, the default,
+`#/quran` and `#/hadith`), drawn from one registry in `js/router.js`. On desktop the tabs sit
 in the masthead; on a phone a bottom tab bar (50px plus the iPhone safe area,
 white with a hairline top border) shows each section's line icon and label, the
 current one in dark gold. A new section is one module and its markup; both
@@ -242,6 +242,30 @@ from the Al-Quran Cloud API and is never written into the code.
   gold. Bookmarks and the reading position (the topmost ayah in a band across
   the upper screen, saved 1.5s after it settles) are kept per person in
   Supabase; the position is also kept on the device, and the newer copy wins.
+
+## Hadith
+
+The same calm reader as the Quran, and the same pieces: the *Continue reading*
+card with the other person's quieter line, *Bookmarks*, the search box, chips,
+the framed header and the previous/next pager. All hadith text and grades come
+from the hadith API and are never written into the code.
+
+- **Collections** — each row has the name in Playfair, the compiler beneath in
+  muted text, and the count ("7,589 HADITH") in small caps on the right. Two
+  columns on desktop. The forties have a single chapter and open straight to
+  their hadith.
+- **Chapters** — the collection's name, compiler and size, a search box over
+  chapter titles, then each chapter with its number in the gold diamond, its
+  English title in Playfair, and its range ("1–7") in small caps.
+- **Reader** — the framed header reads "SAHIH AL-BUKHARI · CHAPTER 1", the
+  chapter title in Playfair, and "HADITH 1–7 · 7 HADITH". An Arabic chip
+  (saved per device) and a one-line hint follow. Each hadith has its number in
+  gold small caps, with a bookmark outline on the right that fills with gold
+  when saved. Then the Arabic, right-aligned in Amiri (21/24px, line-height
+  2.05), the English beneath in the body font, and the grades as small muted
+  pill tags, "Hasan Sahih · Al-Albani", exactly as the API gives them.
+  Bukhari and Muslim, which the API leaves ungraded, show "Sahih". Thin rules
+  separate the hadith; previous and next chapter links close the page.
 
 ## Mobile (< 900px)
 

@@ -223,6 +223,92 @@
       </div>
     </div>
 
+    <!-- ======================================================= hadith === -->
+    <!-- All hadith text and grades come from fawazahmed0/hadith-api (js/hadith.js).
+         Shared pieces (continue card, bookmarks, chips, pager) reuse the Quran's styles. -->
+    <div id="section-hadith" class="section" hidden>
+
+      <!-- --------------------------------------------- collections view --- -->
+      <div id="hd-collections-view" class="qr-view">
+        <section class="card card--feature qr-continue" aria-labelledby="hd-continue-label">
+          <div class="cardhead">
+            <span class="rule" aria-hidden="true"></span>
+            <h2 id="hd-continue-label" class="cardhead-text">Continue reading</h2>
+            <span class="rule" aria-hidden="true"></span>
+          </div>
+          <a id="hd-continue-link" class="qr-continue-link" href="#/hadith">
+            <span id="hd-continue-title" class="qr-continue-title"></span>
+            <span id="hd-continue-sub" class="qr-continue-sub"></span>
+          </a>
+          <p id="hd-other" class="qr-other" hidden></p>
+        </section>
+
+        <section id="hd-bookmarks" class="card" aria-labelledby="hd-bookmarks-label" hidden>
+          <div class="cardhead">
+            <span class="rule" aria-hidden="true"></span>
+            <h2 id="hd-bookmarks-label" class="cardhead-text">Bookmarks</h2>
+            <span class="rule" aria-hidden="true"></span>
+          </div>
+          <ul id="hd-bookmark-list" class="qr-bookmark-list"></ul>
+        </section>
+
+        <section class="card" aria-labelledby="hd-collections-label">
+          <div class="cardhead">
+            <span class="rule" aria-hidden="true"></span>
+            <h2 id="hd-collections-label" class="cardhead-text">Collections</h2>
+            <span class="rule" aria-hidden="true"></span>
+          </div>
+          <ol id="hd-collection-list" class="hd-collection-list"></ol>
+          <p id="hd-collections-status" class="qr-status" hidden></p>
+        </section>
+      </div>
+
+      <!-- ------------------------------------------------ chapters view --- -->
+      <div id="hd-book-view" class="qr-view" hidden>
+        <a class="btn btn--ghost qr-back" href="#/hadith">&lsaquo; All collections</a>
+        <section class="card" aria-labelledby="hd-book-name">
+          <header class="hd-book-head">
+            <h2 id="hd-book-name" class="hd-book-name"></h2>
+            <p id="hd-book-compiler" class="hd-book-compiler"></p>
+            <p id="hd-book-meta" class="qr-meta"></p>
+          </header>
+          <label class="qr-search">
+            <span class="sr-only">Search chapters</span>
+            <input id="hd-search" class="input" type="search" placeholder="Search chapters"
+                   autocomplete="off" autocapitalize="off" spellcheck="false" />
+          </label>
+          <ol id="hd-chapter-list" class="hd-chapter-list"></ol>
+          <p id="hd-chapter-status" class="qr-status" hidden></p>
+        </section>
+      </div>
+
+      <!-- -------------------------------------------------- reader view --- -->
+      <div id="hd-reader-view" class="qr-view qr-view--reader" hidden>
+        <a id="hd-back" class="btn btn--ghost qr-back" href="#/hadith">&lsaquo; All collections</a>
+
+        <article class="card qr-page" aria-labelledby="hd-title">
+          <header class="qr-head">
+            <p id="hd-kicker" class="qr-kicker"></p>
+            <h2 id="hd-title" class="hd-title"></h2>
+            <p id="hd-meta" class="qr-meta"></p>
+          </header>
+
+          <div class="qr-settings" role="group" aria-label="Reading settings">
+            <button id="hd-opt-arabic" class="qr-chip" type="button">Arabic</button>
+          </div>
+          <p class="qr-hint">Tap the bookmark beside a hadith to save it.</p>
+
+          <div id="hd-text" class="hd-text"></div>
+          <p id="hd-status" class="qr-status" hidden></p>
+
+          <nav class="qr-pager" aria-label="Other chapters">
+            <a id="hd-prev" class="qr-pager-link qr-pager-link--prev"></a>
+            <a id="hd-next" class="qr-pager-link qr-pager-link--next"></a>
+          </nav>
+        </article>
+      </div>
+    </div>
+
     <!-- Mobile section tabs; drawn by js/router.js -->
     <nav id="nav-bottom" class="tabbar" aria-label="Sections"></nav>
 
@@ -269,8 +355,10 @@
   <script src="js/times.js" defer></script>
   <script src="js/data.js" defer></script>
   <script src="js/ayat.js" defer></script>
+  <script src="js/store.js" defer></script>
   <script src="js/router.js" defer></script>
   <script src="js/quran.js" defer></script>
+  <script src="js/hadith.js" defer></script>
   <script src="js/app.js" defer></script>
 </body>
 </html>

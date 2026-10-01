@@ -1263,6 +1263,180 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 .qr-pager-name { font-family: var(--serif); font-size: 17px; }
 .qr-pager-link:hover .qr-pager-name { color: var(--accent-text); }
 
+/* ----------------------------------------------------------------- hadith -- */
+/* The Quran's continue card, bookmarks, chips, search and pager are reused. */
+
+.hd-collection-list,
+.hd-chapter-list { display: grid; }
+
+.hd-collection {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s2);
+  padding: 12px 2px;
+  border-bottom: 1px solid var(--border);
+  color: inherit;
+  text-decoration: none;
+}
+
+.hd-collection-main { display: grid; min-width: 0; }
+
+.hd-collection-name {
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.3;
+}
+
+.hd-collection-compiler { font-size: 13px; line-height: 1.4; color: var(--muted-foreground); }
+.hd-collection:hover .hd-collection-name { color: var(--accent-text); }
+
+.hd-collection-count,
+.hd-chapter-range,
+.hd-num {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  line-height: 1.4;
+  white-space: nowrap;
+  color: var(--muted-foreground);
+}
+
+.hd-collection-list li:last-child .hd-collection,
+.hd-chapter-list li:last-child .hd-chapter { border-bottom: 0; }
+
+/* chapters */
+
+.hd-book-head {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  margin-bottom: var(--s2);
+  text-align: center;
+}
+
+.hd-book-name {
+  font-family: var(--serif);
+  font-size: 24px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.hd-book-compiler {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 15px;
+  color: var(--muted-foreground);
+}
+
+.hd-chapter {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--border);
+  color: inherit;
+  text-decoration: none;
+}
+
+.hd-chapter-title { font-family: var(--serif); font-size: 16px; line-height: 1.35; }
+.hd-chapter:hover .hd-chapter-title { color: var(--accent-text); }
+
+/* reader */
+
+.hd-title {
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.hd-text { margin-top: var(--s2); }
+
+.hd-item {
+  padding: 18px 0 16px;
+  border-bottom: 1px solid var(--border);
+  scroll-margin-top: 16px;
+  transition: background 600ms ease-out;
+}
+
+.hd-item:last-child { border-bottom: 0; }
+.hd-item.is-target { background: var(--accent-wash); }
+
+.hd-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.hd-num { color: var(--accent-text); letter-spacing: 0.15em; }
+
+/* the bookmark: an outline that fills with gold */
+.hd-bm {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-right: -6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: color var(--ease);
+}
+
+.hd-bm::after { content: ""; position: absolute; inset: -6px; }
+
+.hd-bm path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.hd-bm:hover { color: var(--accent-text); }
+.hd-bm.is-bookmarked { color: var(--accent); }
+.hd-bm.is-bookmarked path { fill: var(--accent); }
+
+.hd-ar {
+  font-family: var(--quran);
+  font-size: 21px;
+  line-height: 2.05;
+  text-align: right;
+  color: var(--foreground);
+}
+
+.hd-en {
+  margin-top: 8px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--foreground);
+}
+
+.hd-grades {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.hd-grade {
+  padding: 1px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--muted-foreground);
+}
+
 /* ------------------------------------------------------------ settings -- */
 
 .sheet { position: fixed; inset: 0; z-index: 40; }
@@ -1613,6 +1787,21 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   .qr-text.qr-size-l { --qr-ar: 37px; }
 
   .qr-en { font-size: 16px; }
+
+  /* hadith: lists in two columns, like the surahs */
+
+  .hd-collection-list,
+  .hd-chapter-list {
+    grid-template-columns: 1fr 1fr;
+    column-gap: var(--s4);
+  }
+
+  .hd-collection-list li:nth-last-child(2):nth-child(odd) .hd-collection,
+  .hd-chapter-list li:nth-last-child(2):nth-child(odd) .hd-chapter { border-bottom: 0; }
+
+  .hd-title { font-size: 25px; }
+  .hd-ar { font-size: 24px; }
+  .hd-en { font-size: 16px; }
 
   /* settings as a centred dialog */
 

@@ -14,8 +14,8 @@ prayer times, both from the jsDelivr CDN.
 
 In your Supabase project, open the **SQL Editor**, paste in the whole of
 [`supabase/schema.sql`](supabase/schema.sql), and run it. It creates the
-`people`, `prayer_logs`, `quran_progress` and `quran_bookmarks` tables, seeds
-both people, turns on RLS with open policies for the `anon` role, and adds
+`people`, `prayer_logs`, `quran_progress`, `quran_bookmarks`, `hadith_progress`
+and `hadith_bookmarks` tables, seeds both people, turns on RLS with open policies for the `anon` role, and adds
 `prayer_logs` to the realtime publication.
 
 The file is idempotent — running it again is safe and will not drop any data.
@@ -126,7 +126,7 @@ anything in here you would mind a stranger seeing.
 ## Sections
 
 The app is split into sections behind simple hash routes: `#/prayer` (the
-default) and `#/quran`. A phone gets a bottom tab bar; a laptop gets tabs in
+default), `#/quran` and `#/hadith`. A phone gets a bottom tab bar; a laptop gets tabs in
 the masthead. Both are drawn from one registry in `js/router.js`, so adding a
 section (say `#/dhikr`) means one new module that calls `Sections.register()`,
 plus its markup.
@@ -146,6 +146,29 @@ plus its markup.
   position also kept on the device. Text size, translation and Arabic-only
   mode are saved per device.
 
+### Hadith
+
+- `#/hadith` lists the collections the API has in both English and Arabic:
+  Sahih al-Bukhari, Sahih Muslim, Sunan Abu Dawud, Jami at-Tirmidhi, Sunan
+  an-Nasa'i, Sunan Ibn Majah, Muwatta Malik, 40 Hadith Nawawi and 40 Hadith
+  Qudsi, with a *Continue reading* card and your bookmarks.
+- `#/hadith/bukhari` lists a collection's chapters, searchable;
+  `#/hadith/bukhari/8` opens a chapter; `#/hadith/bukhari/n/412` opens the
+  chapter holding hadith 412 and jumps to it (decimal numbers such as
+  `402.2` work too). A number that doesn't exist quietly lands on the chapter
+  list.
+- All hadith text and grades come from
+  [fawazahmed0/hadith-api](https://github.com/fawazahmed0/hadith-api) (no key);
+  none is written into the code. Each request tries the jsDelivr CDN
+  (`.min.json`, then `.json`) and then GitHub. The chapter list is slimmed
+  from the API's large `info.json` once, and every chapter is cached in
+  IndexedDB after its first load, so it reopens instantly and offline.
+- Grades are shown exactly as the API gives them, with each grader's name.
+  Bukhari and Muslim, which the API leaves ungraded, show "Sahih".
+- The reading position (per collection) and bookmarks are stored per person
+  in Supabase, the position also on the device; the Arabic on/off setting is
+  per device.
+
 ## Layout
 
 ```
@@ -156,8 +179,10 @@ js/timetable.js     the ISOT timetable, by month
 js/times.js         dates, Hijri formatting, prayer times
 js/data.js          Supabase client, log cache, realtime, reading progress
 js/ayat.js          Ayah of the Day references
+js/store.js         a small IndexedDB cache, shared by the sections
 js/router.js        sections and hash routing
 js/quran.js         the Quran section: list, reader, cache, progress
+js/hadith.js        the Hadith section: collections, chapters, reader, progress
 js/app.js           the Prayer section, settings, boot
 supabase/schema.sql run this once in the SQL Editor
 ```

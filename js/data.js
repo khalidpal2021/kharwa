@@ -213,6 +213,66 @@ const Data = {
     if (error) throw error;
   },
 
+  /* ---------------------------------------------------- hadith reading --- */
+
+  /** Every person's position in every collection, newest first:
+      [{ person, book, section, hadith_number, updated_at }] */
+  async loadHadithProgress() {
+    if (!this.configured) return [];
+    const { data, error } = await this.db
+      .from('hadith_progress')
+      .select('person, book, section, hadith_number, updated_at')
+      .order('updated_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  /** One row per person per collection. */
+  async saveHadithProgress(person, book, section, hadithNumber) {
+    if (!this.configured) return;
+    const { error } = await this.db
+      .from('hadith_progress')
+      .upsert(
+        { person, book, section, hadith_number: hadithNumber, updated_at: new Date().toISOString() },
+        { onConflict: 'person,book' }
+      );
+    if (error) throw error;
+  },
+
+  /** One person's hadith bookmarks, newest first: [{ book, hadith_number, created_at }] */
+  async loadHadithBookmarks(person) {
+    if (!this.configured) return [];
+    const { data, error } = await this.db
+      .from('hadith_bookmarks')
+      .select('book, hadith_number, created_at')
+      .eq('person', person)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  async addHadithBookmark(person, book, hadithNumber) {
+    if (!this.configured) throw new Error('Supabase is not configured yet.');
+    const { error } = await this.db
+      .from('hadith_bookmarks')
+      .upsert(
+        { person, book, hadith_number: hadithNumber },
+        { onConflict: 'person,book,hadith_number', ignoreDuplicates: true }
+      );
+    if (error) throw error;
+  },
+
+  async removeHadithBookmark(person, book, hadithNumber) {
+    if (!this.configured) throw new Error('Supabase is not configured yet.');
+    const { error } = await this.db
+      .from('hadith_bookmarks')
+      .delete()
+      .eq('person', person)
+      .eq('book', book)
+      .eq('hadith_number', hadithNumber);
+    if (error) throw error;
+  },
+
   /* --------------------------------------------------------- realtime ---- */
 
   /**

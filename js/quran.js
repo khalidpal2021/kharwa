@@ -10,8 +10,8 @@
             #/quran/18        Al-Kahf, from the top
             #/quran/2/255     Al-Baqarah, scrolled to ayah 255
 
-   Depends on router.js, data.js and, at run time, app.js (el, esc, name,
-   toast, State).
+   Depends on store.js, router.js, data.js and, at run time, app.js (el, esc,
+   name, toast, State).
    =========================================================================== */
 
 const QURAN_API = 'https://api.alquran.cloud/v1/';
@@ -21,44 +21,8 @@ const QURAN_SIZES = ['s', 'm', 'l'];
 
 /* ---------------------------------------------------------------- cache --- */
 
-/** A tiny IndexedDB key-value store. Every failure degrades to "not cached". */
-const QuranCache = {
-  db: null,
-
-  open() {
-    if (!this.db) {
-      this.db = new Promise((resolve, reject) => {
-        const req = indexedDB.open('kharwa-quran', 1);
-        req.onupgradeneeded = () => req.result.createObjectStore('kv');
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-      }).catch(() => null);
-    }
-    return this.db;
-  },
-
-  async get(key) {
-    const db = await this.open();
-    if (!db) return null;
-    return new Promise((resolve) => {
-      try {
-        const req = db.transaction('kv').objectStore('kv').get(key);
-        req.onsuccess = () => resolve(req.result ?? null);
-        req.onerror = () => resolve(null);
-      } catch {
-        resolve(null);
-      }
-    });
-  },
-
-  async put(key, value) {
-    const db = await this.open();
-    if (!db) return;
-    try {
-      db.transaction('kv', 'readwrite').objectStore('kv').put(value, key);
-    } catch { /* full or blocked: just don't cache */ }
-  },
-};
+/* Same database name as before, so surahs already cached stay cached. */
+const QuranCache = new IdbStore('kharwa-quran');
 
 async function quranFetch(path) {
   const res = await fetch(QURAN_API + path);
