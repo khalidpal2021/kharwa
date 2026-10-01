@@ -478,7 +478,8 @@ button, a, input, select, textarea, label,
 .tt-head,
 .tt-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 76px var(--tap) var(--tap);
+  /* the time column has no heading: just wide enough for "12:45 PM" */
+  grid-template-columns: minmax(0, 1fr) 66px var(--tap) var(--tap);
   align-items: center;
   gap: 0 10px;
 }
@@ -499,8 +500,6 @@ button, a, input, select, textarea, label,
   color: var(--muted-foreground);
   text-align: center;
 }
-
-.tt-head-time { text-align: right; }
 
 .tt-row {
   padding: 3px 0;
@@ -956,7 +955,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   .tt-head,
   .tt-row {
     grid-template-columns:
-      minmax(0, 1fr) clamp(82px, 6vw, 132px)
+      minmax(0, 1fr) clamp(70px, 5.1vw, 108px)
       clamp(84px, 7vw, 150px) clamp(84px, 7vw, 150px);
     gap: 0 clamp(10px, 1vw, 24px);
   }

@@ -144,8 +144,10 @@ short laptop screen again would mean smaller cards or smaller tap targets.
      DAY) and a centred "Back to today" link appears below the date when you are
      away from today, its space always reserved. Then one row per prayer: the
      name in Playfair, the time, then Khalid's mark and Marwa's mark under
-     small, quiet column headings. The headings and the columns share one set of
-     explicit widths, so they line up exactly. Thin rules between rows.
+     small, quiet column headings. The time needs no heading, and its column is
+     only as wide as "12:45 PM", so the spare width goes to the prayer names.
+     The headings and the columns share one set of explicit widths, so they
+     line up exactly. Thin rules between rows.
    - **Right — This Week**. For each person: their name, their current streak as
      a large Playfair number with a small "day streak" label, and seven small
      5-segment bars (one segment per prayer). Clicking a day jumps Today to that
