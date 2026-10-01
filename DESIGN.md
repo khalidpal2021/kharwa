@@ -73,10 +73,26 @@ both specified golds and sets its label in `--foreground`: 5.35:1 at rest and
   translate on hover. Hover is a subtle shadow, border or colour shift.
   `prefers-reduced-motion` is respected.
 - **Focus** — 2px gold ring at 2px offset, always visible.
+- **Tapping** — the arrows, the date and the prayer marks set `user-select: none`
+  and a transparent tap highlight, so tapping them does not flash grey or select
+  text on a phone.
 - **Buttons** — primary is gold, lighter gold on hover, with a rich-black label
   for contrast (see *Contrast*). Ghost is
   muted text that darkens on hover and gains a gold underline at 4px offset.
   44px minimum tap height.
+
+## Cards
+
+Each section sits on its own card: white on the ivory page, 1px `--border`,
+8px radius, `--shadow-sm`, and 32px of padding on desktop, 20px on a phone.
+Cards are separated by 40px on desktop and 24px on a phone. The masthead is not
+a card — it sits directly on the page background.
+
+The Next Prayer card is the featured one and carries a 2px gold top border.
+
+Every card opens with the same header: a centred small-caps gold label with a
+thin rule running out to each edge, spanning the full card width. A three-column
+grid — `1fr auto 1fr` — keeps the label centred whatever its length.
 
 ## Prayer status marks
 
@@ -101,26 +117,35 @@ logged.
 
 ## Desktop layout (≥ 900px)
 
-Max width 1920px, centered, and the page fills the viewport height: the
-masthead, next prayer and timeline take what they need and the two columns
-share the rest, so the prayer rows grow taller instead of leaving dead space
-below. Type and spacing scale with `clamp()` so 1920px and 2560px look
-deliberate rather than magnified. Today's view fits a laptop screen without
-scrolling.
+Max width 1920px, centered. The page is at least the viewport tall, so on a
+large screen the two lower cards stretch and the prayer rows grow with them
+rather than leaving dead space. Type and spacing scale with `clamp()` so 1920px
+and 2560px look deliberate rather than magnified.
+
+Note that the card padding and gaps cost height: at 1366x768 the view is about
+150px taller than the viewport and scrolls, and about 85px at 1920x1080. The
+prayer rows are already at their floor, the height of a 44px mark, so fitting a
+short laptop screen again would mean smaller cards or smaller tap targets.
 
 1. **Masthead** — "Kharwa" wordmark in Playfair on the left; the Gregorian date
    with the Hijri date beneath it as a small-caps line; a settings ghost button
-   on the right. A thin rule underneath.
-2. **Next prayer** — the prayer name in large Playfair with "in 1h 12m" beside
-   it. Under it, in a full-width row of its own, a thin rule-line timeline with
-   the five prayers evenly spaced and a small gold marker showing where we are
-   in the day, with clear space beneath it before the columns begin.
-3. **Two columns**, asymmetric at about 1.3fr / 0.7fr:
-   - **Left — Today**, styled like a printed timetable. Section label "TODAY"
-     with ‹ › day navigation. One row per prayer: the name in Playfair, the
-     time, then Khalid's mark and Marwa's mark under small, quiet column
-     headings. Thin rules between rows, no boxed cards. The rows share whatever
-     height is left over, so the column reaches the bottom of the screen.
+   on the right. A thin rule underneath. Not a card.
+2. **Next prayer card** — full width, featured. The prayer name in large
+   Playfair, the countdown beneath it and the clock time beneath that, all
+   centred; then the rule-line timeline with the five prayers evenly spaced and
+   a small gold marker showing where we are in the day.
+3. **Two cards side by side**, asymmetric at about 1.3fr / 0.7fr and equal in
+   height:
+   - **Left — Today**, styled like a printed timetable. Under the card header
+     sits one centred row: a ‹ arrow, the full date, a › arrow. The arrows are
+     44px round ghost buttons and never move — the date label is sized by a
+     hidden copy of the longest date it can hold and uses tabular figures. The
+     header label says which day you are on (TODAY, YESTERDAY, TOMORROW or PAST
+     DAY) and a centred "Back to today" link appears below the date when you are
+     away from today, its space always reserved. Then one row per prayer: the
+     name in Playfair, the time, then Khalid's mark and Marwa's mark under
+     small, quiet column headings. The headings and the columns share one set of
+     explicit widths, so they line up exactly. Thin rules between rows.
    - **Right — This Week**. For each person: their name, their current streak as
      a large Playfair number with a small "day streak" label, and seven small
      5-segment bars (one segment per prayer). Clicking a day jumps Today to that
@@ -132,7 +157,8 @@ scrolling.
 
 ## Mobile (< 900px)
 
-The same style, stacked: masthead, next prayer, Today timetable, This Week.
+The same style, with the three cards stacked: masthead, Next prayer, Today,
+This Week.
 The masthead is the wordmark with a gear on the right and the Gregorian and
 Hijri dates on one quiet line beneath. The timeline is dropped, since the
 timetable already lists the times. Tap your own mark to cycle on time → made up

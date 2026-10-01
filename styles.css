@@ -124,8 +124,6 @@ button, input { font: inherit; color: inherit; }
   line-height: 1.1;
 }
 
-.seclabel-text,
-.hero-label,
 .field-label,
 .wk-streak-label {
   font-family: var(--mono);
@@ -144,43 +142,42 @@ button, input { font: inherit; color: inherit; }
   border: 0;
 }
 
-.rule--short { width: 22px; flex: none; }
-.rule--grow { flex: 1 1 auto; min-width: 12px; }
 .rule--full { width: 100%; margin: var(--s3) 0 var(--s2); }
 
-/* Both section labels share a height so they sit on the same line, even though
-   only one of them carries the day navigation. */
-.seclabel {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 32px;
-  margin-bottom: var(--s2);
-}
+/* ---------------------------------------------------------------- cards -- */
 
-.seclabel-text { white-space: nowrap; }
-
-/* The Today label carries the day navigation, centred over the table, with
-   "Back to today" pinned right so it cannot pull the navigation off-centre.
-   On a phone the navigation drops to its own line, where there is room for it. */
-.seclabel--today {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  column-gap: 12px;
-  row-gap: 10px;
-}
-
-.seclabel-lead {
-  grid-area: 1 / 1;
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.card {
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  box-shadow: var(--shadow-sm);
   min-width: 0;
 }
 
-.seclabel-trail { grid-area: 1 / 2; justify-self: end; }
-.seclabel--today .daynav { grid-area: 2 / 1 / 3 / -1; justify-self: center; }
+/* the featured card */
+.card--feature { border-top: 2px solid var(--accent); }
+
+/* Every card opens the same way: a centred small-caps label with a thin rule
+   running out to each edge. */
+.cardhead {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: var(--s2);
+}
+
+.cardhead-text {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  line-height: 1.4;
+  color: var(--accent-text);
+  white-space: nowrap;
+}
 
 /* buttons */
 
@@ -277,6 +274,9 @@ button, input { font: inherit; color: inherit; }
 .app {
   position: relative;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
   max-width: 1920px;
   margin: 0 auto;
   padding: calc(var(--s3) + env(safe-area-inset-top, 0px)) var(--s3)
@@ -344,8 +344,6 @@ button, input { font: inherit; color: inherit; }
 
 /* ----------------------------------------------------------- next prayer -- */
 
-.hero { padding: var(--s3) 0 0; }
-
 /* label, name, countdown, then the clock time — stacked and centred. */
 .hero-line {
   display: grid;
@@ -385,30 +383,45 @@ button, input { font: inherit; color: inherit; }
 
 /* -------------------------------------------------------------- columns -- */
 
-.columns { display: grid; gap: var(--s4); margin-top: var(--s4); }
+.columns { display: grid; gap: var(--s3); }
 
 .col { min-width: 0; }
 
 /* ------------------------------------------------------ today timetable -- */
 
-.daynav { display: flex; align-items: center; gap: 2px; flex: none; }
+/* One centred row: round ghost arrows either side of a fixed-width date. */
+.daynav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s1);
+}
 
 .daynav-btn {
-  width: 32px;
-  min-height: 32px;
+  width: var(--tap);
+  height: var(--tap);
+  flex: none;
   display: grid;
   place-items: center;
-  border: 0;
-  border-radius: var(--radius-btn);
+  border: 1px solid transparent;
+  border-radius: 50%;
   background: none;
   color: var(--muted-foreground);
   font-size: 22px;
   line-height: 1;
   cursor: pointer;
-  transition: color var(--ease), background var(--ease);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background var(--ease), color var(--ease), border-color var(--ease);
 }
 
-.daynav-btn:hover:not(:disabled) { color: var(--accent-text); background: var(--muted); }
+.daynav-btn:hover:not(:disabled) {
+  background: var(--muted);
+  border-color: var(--border);
+  color: var(--accent-text);
+}
+
 .daynav-btn:disabled { opacity: 0.3; cursor: default; }
 
 /* Sized by the longest date it can ever hold, so the arrows never move. The
@@ -417,11 +430,14 @@ button, input { font: inherit; color: inherit; }
   display: grid;
   align-items: center;
   justify-items: center;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
-  color: var(--muted-foreground);
+  color: var(--foreground);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .daynav-label::after,
@@ -433,9 +449,16 @@ button, input { font: inherit; color: inherit; }
   pointer-events: none;
 }
 
+/* Always in flow, so showing it moves nothing. */
+.daynav-back {
+  display: flex;
+  justify-content: center;
+  margin-top: 2px;
+}
+
 .daynav-today {
-  min-height: 32px;
-  padding: 0 8px;
+  min-height: 30px;
+  padding: 0 10px;
   font-size: 13px;
 }
 
@@ -444,12 +467,13 @@ button, input { font: inherit; color: inherit; }
 .tt-head,
 .tt-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto var(--tap) var(--tap);
+  grid-template-columns: minmax(0, 1fr) 76px var(--tap) var(--tap);
   align-items: center;
   gap: 0 10px;
 }
 
 .tt-head {
+  margin-top: var(--s1);
   padding-bottom: var(--s1);
   border-bottom: 1px solid var(--border);
 }
@@ -509,6 +533,12 @@ button, input { font: inherit; color: inherit; }
 }
 
 button.mark { cursor: pointer; border-radius: var(--radius-btn); }
+
+.mark {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
 button.mark:hover .mark-ring { stroke: var(--accent); }
 
 .mark svg { display: block; width: var(--mark-size); height: var(--mark-size); }
@@ -778,11 +808,15 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
   .app {
     min-height: 100vh;
-    display: flex;
-    flex-direction: column;
+    gap: var(--s4);
     padding: clamp(18px, 2.6vh, 44px) clamp(32px, 4vw, 96px)
-             clamp(12px, 2.2vh, 40px);
+             clamp(16px, 2.4vh, 40px);
   }
+
+  .card { padding: 32px; }
+
+  /* the feature card spans the top; the two below share the rest */
+  .app > .card { flex: none; }
 
   .gate-buttons { grid-template-columns: 1fr 1fr; }
 
@@ -823,16 +857,13 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
   /* hero */
 
-  .hero { flex: none; padding: clamp(12px, 2.2vh, 40px) 0 0; }
-
   .hero-line { gap: clamp(4px, 0.6vh, 10px); }
 
   .hero-name { font-size: clamp(46px, 4.6vw, 96px); }
   .hero-until { font-size: clamp(26px, 2vw, 44px); }
   .hero-time { font-size: clamp(15px, 1vw, 21px); }
 
-  .seclabel-text,
-  .hero-label,
+  .cardhead-text,
   .wk-streak-label { font-size: clamp(12px, 0.8vw, 17px); }
 
   /* the timeline gets a full-width row of its own, with clear space beneath,
@@ -843,7 +874,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
     position: relative;
     flex: none;
     height: clamp(46px, 6.6vh, 86px);
-    margin: clamp(12px, 2.2vh, 36px) clamp(30px, 3vw, 64px) 0;
+    margin: clamp(14px, 2.2vh, 36px) clamp(8px, 1.4vw, 30px) 0;
   }
 
   .timeline::before {
@@ -900,14 +931,8 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
     flex: 1 1 auto;
     min-height: 0;
     grid-template-columns: 1.3fr 0.7fr;
-    gap: clamp(34px, 3.4vw, 80px);
+    gap: var(--s4);
     align-items: stretch;
-    margin-top: clamp(20px, 3.4vh, 60px);
-  }
-
-  .col--week {
-    border-left: 1px solid var(--border);
-    padding-left: clamp(30px, 3vw, 72px);
   }
 
   .col--today { display: flex; flex-direction: column; min-height: 0; }
@@ -920,7 +945,8 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   .tt-head,
   .tt-row {
     grid-template-columns:
-      minmax(0, 1fr) auto clamp(84px, 7vw, 150px) clamp(84px, 7vw, 150px);
+      minmax(0, 1fr) clamp(82px, 6vw, 132px)
+      clamp(84px, 7vw, 150px) clamp(84px, 7vw, 150px);
     gap: 0 clamp(10px, 1vw, 24px);
   }
 
@@ -930,19 +956,11 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   .tt-en { font-size: clamp(20px, 1.5vw, 34px); }
   .tt-time { font-size: clamp(13px, 0.95vw, 20px); }
 
-  .seclabel { margin-bottom: clamp(10px, 1.6vh, 22px); }
+  .cardhead { margin-bottom: clamp(14px, 2vh, 26px); }
 
-  .seclabel--today {
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-    row-gap: 0;
-  }
-
-  .seclabel--today .daynav { grid-area: 1 / 2; justify-self: center; }
-  .seclabel-trail { grid-area: 1 / 3; }
-
-  .daynav-label { font-size: clamp(13px, 0.9vw, 18px); }
+  .daynav-label { font-size: clamp(15px, 1vw, 20px); }
   .daynav-today { font-size: clamp(13px, 0.85vw, 17px); }
-  .daynav-btn { font-size: clamp(22px, 1.5vw, 32px); width: clamp(32px, 2.4vw, 44px); }
+  .daynav-btn { font-size: clamp(22px, 1.5vw, 32px); }
 
   /* the hover/focus menu is a pointer affordance, so desktop only */
   .markwrap.is-mine .markmenu { display: flex; }

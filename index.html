@@ -48,41 +48,44 @@
       </button>
     </header>
 
-    <!-- --------------------------------------------------- next prayer --- -->
-    <section class="hero" aria-labelledby="next-name">
+    <!-- --------------------------------------------- next prayer card --- -->
+    <section class="card card--feature" aria-labelledby="next-head">
+      <div class="cardhead">
+        <span class="rule" aria-hidden="true"></span>
+        <h2 id="next-head" class="cardhead-text">Next prayer</h2>
+        <span class="rule" aria-hidden="true"></span>
+      </div>
+
       <div class="hero-line">
-        <p class="hero-label">Next prayer</p>
-        <h1 id="next-name" class="hero-name">&nbsp;</h1>
+        <p id="next-name" class="hero-name">&nbsp;</p>
         <p class="hero-meta">
           <span id="next-until" class="hero-until"></span>
           <span id="next-time" class="hero-time"></span>
         </p>
       </div>
-    </section>
 
-    <div id="timeline" class="timeline" aria-hidden="true"></div>
+      <div id="timeline" class="timeline" aria-hidden="true"></div>
+    </section>
 
     <!-- -------------------------------------------------------- columns --- -->
     <div class="columns">
 
-      <!-- ------------------------------------------------------- today --- -->
-      <section class="col col--today" aria-labelledby="today-label">
-        <div class="seclabel seclabel--today">
-          <div class="seclabel-lead">
-            <span class="rule rule--short" aria-hidden="true"></span>
-            <h2 id="today-label" class="seclabel-text">Today</h2>
-            <span class="rule rule--grow" aria-hidden="true"></span>
-          </div>
+      <!-- -------------------------------------------------- today card --- -->
+      <section class="card col--today" aria-labelledby="today-label">
+        <div class="cardhead">
+          <span class="rule" aria-hidden="true"></span>
+          <h2 id="today-label" class="cardhead-text">Today</h2>
+          <span class="rule" aria-hidden="true"></span>
+        </div>
 
-          <nav class="daynav" aria-label="Day navigation">
-            <button id="day-prev" class="daynav-btn" type="button" aria-label="Previous day">&lsaquo;</button>
-            <span class="daynav-label"><span id="day-label" class="daynav-label-text"></span></span>
-            <button id="day-next" class="daynav-btn" type="button" aria-label="Next day">&rsaquo;</button>
-          </nav>
+        <nav class="daynav" aria-label="Day navigation">
+          <button id="day-prev" class="daynav-btn" type="button" aria-label="Previous day">&lsaquo;</button>
+          <span class="daynav-label"><span id="day-label" class="daynav-label-text"></span></span>
+          <button id="day-next" class="daynav-btn" type="button" aria-label="Next day">&rsaquo;</button>
+        </nav>
 
-          <div class="seclabel-trail">
-            <button id="day-today" class="btn btn--ghost daynav-today is-invisible" type="button">Back to today</button>
-          </div>
+        <div class="daynav-back">
+          <button id="day-today" class="btn btn--ghost daynav-today is-invisible" type="button">Back to today</button>
         </div>
 
         <div class="tt-head" aria-hidden="true">
@@ -95,12 +98,12 @@
         <ol id="timetable" class="timetable"></ol>
       </section>
 
-      <!-- -------------------------------------------------------- week --- -->
-      <section class="col col--week" aria-labelledby="week-label">
-        <div class="seclabel">
-          <span class="rule rule--short" aria-hidden="true"></span>
-          <h2 id="week-label" class="seclabel-text">This week</h2>
-          <span class="rule rule--grow" aria-hidden="true"></span>
+      <!-- --------------------------------------------------- week card --- -->
+      <section class="card col--week" aria-labelledby="week-label">
+        <div class="cardhead">
+          <span class="rule" aria-hidden="true"></span>
+          <h2 id="week-label" class="cardhead-text">This week</h2>
+          <span class="rule" aria-hidden="true"></span>
         </div>
 
         <div id="week" class="week"></div>

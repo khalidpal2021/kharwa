@@ -106,14 +106,14 @@ function renderDayNav() {
   const today = todayKey();
   const isToday = State.viewDate === today;
 
-  el('day-label').textContent = isToday
-    ? `Today · ${fmtDateShort.format(parseKey(State.viewDate))}`
-    : friendlyDay(State.viewDate);
+  // The card header says which day this is; the row below gives the full date.
+  el('day-label').textContent = fmtGregorian.format(parseKey(State.viewDate));
 
-  // The section label carries the date once you leave today.
-  el('today-label').textContent = isToday
-    ? 'Today'
-    : fmtGregorianShort.format(parseKey(State.viewDate));
+  el('today-label').textContent =
+    isToday ? 'Today'
+      : State.viewDate === addDays(today, -1) ? 'Yesterday'
+      : State.viewDate === addDays(today, 1) ? 'Tomorrow'
+      : 'Past day';
 
   // Hidden by visibility, not display, so the row keeps its shape.
   el('day-today').classList.toggle('is-invisible', isToday);
