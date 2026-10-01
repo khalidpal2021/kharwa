@@ -1,4 +1,4 @@
--- Kharwa — schema
+-- Kharwa - schema
 --
 -- Paste this whole file into the Supabase SQL Editor and run it.
 -- It is idempotent: re-running it is safe and will not drop data.
@@ -101,7 +101,7 @@ create table if not exists public.quran_bookmarks (
 
 -- One bookmark per ayah per person. Named so that the client can upsert with
 -- on_conflict=person,surah,ayah.
-do $
+do $$
 begin
   if not exists (
     select 1 from pg_constraint
@@ -112,7 +112,7 @@ begin
       add constraint quran_bookmarks_person_surah_ayah_key
       unique (person, surah, ayah);
   end if;
-end $;
+end $$;
 
 create index if not exists quran_bookmarks_person_created_idx
   on public.quran_bookmarks (person, created_at desc);
