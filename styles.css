@@ -96,7 +96,18 @@ body::after {
 
 h1, h2, h3, p, ol, ul, figure { margin: 0; }
 ol, ul { padding: 0; list-style: none; }
-button, input { font: inherit; color: inherit; }
+button, input, select, textarea { font: inherit; color: inherit; }
+
+/* iOS zooms into any focused field under 16px. */
+input, select, textarea { font-size: max(16px, 1em); }
+
+/* No double-tap zoom when marking prayers in quick succession;
+   pinch-zoom still works. */
+html, body,
+button, a, input, select, textarea, label,
+.mark, .markmenu-btn, .daynav-btn, .wk-day, .gate-btn {
+  touch-action: manipulation;
+}
 
 [hidden] { display: none !important; }
 
