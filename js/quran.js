@@ -1,12 +1,14 @@
 /* ===========================================================================
-   quran.js — the Quran section: surah list, reader, reading progress and
-   bookmarks.
+   quran.js — the Quran section: surah list, juz list, bookmarks, the reader,
+   reading progress.
 
-   All Arabic and translation text comes from the Al-Quran Cloud API and is
-   never written into this codebase. Each response is cached in IndexedDB, so a
-   surah opens instantly, and without a connection, after its first load.
+   All Arabic, transliteration and translation text comes from the Al-Quran
+   Cloud API and is never written into this codebase. Each edition of each
+   surah is cached in IndexedDB on its own, so a surah opens instantly, and
+   without a connection, after its first load, and switching translation
+   fetches only the new one.
 
-   Routes:  #/quran           the surah list
+   Routes:  #/quran           the surah list (with Juz and Bookmarks tabs)
             #/quran/18        Al-Kahf, from the top
             #/quran/2/255     Al-Baqarah, scrolled to ayah 255
 
@@ -18,6 +20,16 @@ const QURAN_API = 'https://api.alquran.cloud/v1/';
 const QURAN_SETTINGS_STORE = 'kharwa.quran.settings';
 const QURAN_POSITION_STORE = 'kharwa.quran.position.';   // + person
 const QURAN_SIZES = ['s', 'm', 'l'];
+const QURAN_ARABIC = 'quran-uthmani';
+const QURAN_TRANSLIT = 'en.transliteration';
+
+/* The translations on offer. Labels are ours; the text is the API's. */
+const QURAN_TRANSLATIONS = [
+  { id: 'en.sahih',     label: 'Sahih International' },
+  { id: 'en.asad',      label: 'Muhammad Asad' },
+  { id: 'en.pickthall', label: 'Pickthall' },
+  { id: 'ur.jalandhry', label: 'Urdu - Jalandhry', lang: 'ur', rtl: true },
+];
 
 /* ---------------------------------------------------------------- cache --- */
 
@@ -44,7 +56,8 @@ function arabicBase(text) {
 }
 
 /**
- * The API starts ayah 1 of most surahs with the basmala. Split it off, using
+ * The API starts ayah 1 of most surahs with the basmala, in the Uthmani text
+ * only (transliteration and translations don't). Split it off, using
  * Al-Fatihah's first ayah from the same API as the reference. Returns the rest
  * of the ayah, or null when the basmala is not there.
  */
@@ -65,19 +78,25 @@ function foldLatin(text) {
 
 const fmtArabicDigits = new Intl.NumberFormat('ar-EG', { useGrouping: false });
 
+function translationOf(id) {
+  return QURAN_TRANSLATIONS.find((t) => t.id === id) || QURAN_TRANSLATIONS[0];
+}
+
 /* ---------------------------------------------------------------- state --- */
 
 const Quran = {
   ready: false,
   surahs: null,             // [{ number, name, englishName, meaning, ayahs, type }]
-  surah: null,              // the surah open in the reader
-  basmala: null,            // Al-Fatihah 1:1, shown above other surahs
-  ayahs: [],                // the reader's ayahs, basmala split from the first
+  juzs: null,               // [{ surah, ayah }] where each of the 30 juz starts
+  surah: null,              // the surah open in the reader (list entry shape)
+  layers: {},               // edition id -> [text per ayah], for the open surah
+  basmala: null,            // Al-Fatihah 1:1 in each loaded edition
   progress: {},             // person -> { surah, ayah, updated_at }
   bookmarks: [],            // mine, newest first: [{ surah, ayah }]
   bookmarkSet: new Set(),   // "surah:ayah"
   remoteLoaded: false,
-  settings: { size: 'm', translation: true, arabicOnly: false },
+  tab: 'surahs',
+  settings: { size: 'm', arabic: true, translit: false, translation: true, edition: 'en.sahih' },
   observer: null,
   reading: null,            // { surah, ayah } most recently in view
   saveTimer: null,
@@ -105,27 +124,64 @@ const Quran = {
     return list;
   },
 
-  async loadSurah(n) {
-    const key = `surah:${n}`;
-    let surah = await QuranCache.get(key);
-    if (!surah) {
-      const data = await quranFetch(`surah/${n}/editions/quran-uthmani,en.sahih`);
-      const ar = data.find((e) => e.edition?.identifier === 'quran-uthmani');
-      const en = data.find((e) => e.edition?.identifier === 'en.sahih');
-      if (!ar?.ayahs?.length || ar.ayahs.length !== en?.ayahs?.length) {
-        throw new Error('Surah response incomplete');
-      }
-      surah = {
-        number: ar.number,
-        name: ar.name,
-        englishName: ar.englishName,
-        meaning: ar.englishNameTranslation,
-        type: ar.revelationType,
-        ayahs: ar.ayahs.map((a, i) => ({ n: a.numberInSurah, ar: a.text, en: en.ayahs[i].text })),
-      };
-      QuranCache.put(key, surah);
+  /** Where each juz starts, from the API's meta data. */
+  async loadJuzs() {
+    if (this.juzs) return this.juzs;
+    let refs = await QuranCache.get('juzs');
+    if (!refs) {
+      const meta = await quranFetch('meta');
+      refs = (meta.juzs?.references || []).map((r) => ({ surah: r.surah, ayah: r.ayah }));
+      if (refs.length !== 30) throw new Error('Juz data incomplete');
+      QuranCache.put('juzs', refs);
     }
-    return surah;
+    this.juzs = refs;
+    return refs;
+  },
+
+  /**
+   * The texts of some editions of one surah: { editionId: [text, ...] }.
+   * Cached per edition. Missing ones come in a single request, and a surah
+   * cached before editions were split (Uthmani + Sahih together) is reused.
+   */
+  async loadEditions(n, ids) {
+    const out = {};
+    let missing = [];
+    for (const id of ids) {
+      const texts = await QuranCache.get(`text:${id}:${n}`);
+      if (texts) out[id] = texts;
+      else missing.push(id);
+    }
+
+    if (missing.length) {
+      const legacy = await QuranCache.get(`surah:${n}`);
+      if (legacy?.ayahs?.length) {
+        const from = { [QURAN_ARABIC]: legacy.ayahs.map((a) => a.ar), 'en.sahih': legacy.ayahs.map((a) => a.en) };
+        for (const id of missing.filter((m) => from[m])) {
+          out[id] = from[id];
+          QuranCache.put(`text:${id}:${n}`, from[id]);
+        }
+        missing = missing.filter((m) => !from[m]);
+      }
+    }
+
+    if (missing.length) {
+      const data = await quranFetch(`surah/${n}/editions/${missing.join(',')}`);
+      const editions = Array.isArray(data) ? data : [data];
+      for (const id of missing) {
+        const ed = editions.find((e) => e.edition?.identifier === id);
+        if (!ed?.ayahs?.length) throw new Error(`Edition ${id} missing`);
+        out[id] = ed.ayahs.map((a) => a.text);
+        QuranCache.put(`text:${id}:${n}`, out[id]);
+      }
+    }
+    return out;
+  },
+
+  /** The editions the current settings need. Arabic always loads: it carries
+      the ayah count and the basmala check. */
+  neededEditions() {
+    const { translit, translation, edition } = this.settings;
+    return [QURAN_ARABIC, ...(translit ? [QURAN_TRANSLIT] : []), ...(translation ? [edition] : [])];
   },
 
   surahName(n) {
@@ -135,9 +191,19 @@ const Quran = {
   loadSettings() {
     try {
       const saved = JSON.parse(localStorage.getItem(QURAN_SETTINGS_STORE)) || {};
-      if (QURAN_SIZES.includes(saved.size)) this.settings.size = saved.size;
-      if (typeof saved.translation === 'boolean') this.settings.translation = saved.translation;
-      if (typeof saved.arabicOnly === 'boolean') this.settings.arabicOnly = saved.arabicOnly;
+      const s = this.settings;
+      if (QURAN_SIZES.includes(saved.size)) s.size = saved.size;
+      if ('arabicOnly' in saved) {
+        // The older two-button settings: carry them over.
+        s.arabic = true;
+        s.translation = saved.arabicOnly ? false : saved.translation !== false;
+      } else {
+        for (const k of ['arabic', 'translit', 'translation']) {
+          if (typeof saved[k] === 'boolean') s[k] = saved[k];
+        }
+      }
+      if (QURAN_TRANSLATIONS.some((t) => t.id === saved.edition)) s.edition = saved.edition;
+      if (!s.arabic && !s.translit && !s.translation) s.arabic = true;
     } catch { /* defaults */ }
   },
 
@@ -177,6 +243,7 @@ const Quran = {
     this.remoteLoaded = true;
     this.renderContinue();
     this.renderBookmarks();
+    this.renderSurahList();
     this.refreshMarkers();
   },
 
@@ -201,18 +268,40 @@ const Quran = {
 
     el('qr-search').addEventListener('input', () => this.renderSurahList());
 
-    el('qr-text').addEventListener('click', (event) => {
-      const num = event.target.closest('.qr-num');
-      if (num) this.toggleBookmark(Number(num.dataset.ayah));
+    for (const tab of document.querySelectorAll('.qr-tab')) {
+      tab.addEventListener('click', () => this.showTab(tab.dataset.tab));
+    }
+
+    el('qr-bookmark-list').addEventListener('click', (event) => {
+      const remove = event.target.closest('.qr-bm-remove');
+      if (remove) this.toggleBookmark(Number(remove.dataset.surah), Number(remove.dataset.ayah));
     });
 
-    for (const chip of document.querySelectorAll('.qr-seg .qr-chip')) {
+    el('qr-text').addEventListener('click', (event) => {
+      const num = event.target.closest('.qr-num');
+      if (num) this.toggleBookmark(this.surah.number, Number(num.dataset.ayah));
+    });
+
+    // Reading options
+    el('qr-edition').innerHTML = QURAN_TRANSLATIONS
+      .map((t) => `<option value="${t.id}">${esc(t.label)}</option>`).join('');
+    for (const chip of document.querySelectorAll('.qr-size .qr-chip')) {
       chip.addEventListener('click', () => this.changeSettings({ size: chip.dataset.size }));
     }
-    el('qr-opt-translation').addEventListener('click', () =>
-      this.changeSettings({ translation: !this.settings.translation }));
-    el('qr-opt-arabic').addEventListener('click', () =>
-      this.changeSettings({ arabicOnly: !this.settings.arabicOnly }));
+    for (const chip of document.querySelectorAll('.qr-layers .qr-chip')) {
+      chip.addEventListener('click', () => this.toggleLayer(chip.dataset.layer));
+    }
+    el('qr-edition').addEventListener('change', (event) =>
+      this.changeSettings({ edition: event.target.value, translation: true }));
+
+    // On a phone the options fold behind "Aa".
+    el('qr-aa').addEventListener('click', () => this.toggleOptions());
+    document.addEventListener('click', (event) => {
+      if (!el('qr-bar').contains(event.target)) this.toggleOptions(false);
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') this.toggleOptions(false);
+    });
 
     // Leaving the tab is a good moment to save where we are.
     document.addEventListener('visibilitychange', () => {
@@ -227,7 +316,7 @@ const Quran = {
     el('qr-reader-view').hidden = true;
     el('qr-list-view').hidden = false;
     this.renderContinue();
-    this.renderBookmarks();
+    this.showTab(this.tab);
 
     const status = el('qr-list-status');
     try {
@@ -240,6 +329,18 @@ const Quran = {
       status.textContent = 'The surah list could not be loaded. Check your connection and try again.';
       status.hidden = false;
     }
+  },
+
+  showTab(tab) {
+    this.tab = tab;
+    for (const t of document.querySelectorAll('.qr-tab')) {
+      const on = t.dataset.tab === tab;
+      t.setAttribute('aria-selected', String(on));
+      t.tabIndex = on ? 0 : -1;
+      el(t.getAttribute('aria-controls')).hidden = !on;
+    }
+    if (tab === 'juz') this.renderJuzList();
+    if (tab === 'bookmarks') this.renderBookmarks();
   },
 
   renderContinue() {
@@ -263,23 +364,13 @@ const Quran = {
     }
   },
 
-  renderBookmarks() {
-    el('qr-bookmarks').hidden = !this.bookmarks.length;
-    el('qr-bookmark-list').innerHTML = this.bookmarks.map((b) => `
-      <li>
-        <a class="qr-bookmark" href="#/quran/${b.surah}/${b.ayah}">
-          <span class="qr-bookmark-name">${esc(this.surahName(b.surah))}</span>
-          <span class="qr-bookmark-ref">${b.surah}:${b.ayah}</span>
-        </a>
-      </li>`).join('');
-  },
-
   renderSurahList() {
     if (!this.surahs) return;
     const q = el('qr-search').value.trim();
     const digits = /^\d+$/.test(q);
     const folded = foldLatin(q);
     const arabic = arabicBase(q);
+    const readingSurah = this.myPosition()?.surah;
 
     const rows = this.surahs.filter((s) => {
       if (!q) return true;
@@ -293,7 +384,8 @@ const Quran = {
         <a class="qr-surah" href="#/quran/${s.number}">
           <span class="qr-surah-num" aria-hidden="true"><span>${s.number}</span></span>
           <span class="qr-surah-main">
-            <span class="qr-surah-en">${esc(s.englishName)}</span>
+            <span class="qr-surah-en">${esc(s.englishName)}${s.number === readingSurah
+              ? ' <span class="qr-reading-tag">Reading</span>' : ''}</span>
             <span class="qr-surah-meaning">${esc(s.meaning)}</span>
             <span class="qr-surah-meta">${esc(s.type)} · ${s.ayahs} ayat</span>
           </span>
@@ -306,10 +398,76 @@ const Quran = {
     if (!rows.length) status.textContent = 'No surah matches that search.';
   },
 
+  async renderJuzList() {
+    const status = el('qr-juz-status');
+    try {
+      await Promise.all([this.loadJuzs(), this.loadSurahList()]);
+    } catch {
+      status.textContent = 'The juz list could not be loaded. Check your connection and try again.';
+      status.hidden = false;
+      return;
+    }
+    status.hidden = true;
+    el('qr-juz-list').innerHTML = this.juzs.map((j, i) => `
+      <li>
+        <a class="qr-surah qr-juz" href="#/quran/${j.surah}${j.ayah > 1 ? `/${j.ayah}` : ''}">
+          <span class="qr-surah-num" aria-hidden="true"><span>${i + 1}</span></span>
+          <span class="qr-surah-main">
+            <span class="qr-surah-en">Juz ${i + 1}</span>
+            <span class="qr-surah-meaning">Starts at ${esc(this.surahName(j.surah))} · ayah ${j.ayah}</span>
+          </span>
+          <span class="qr-surah-meta">${j.surah}:${j.ayah}</span>
+        </a>
+      </li>`).join('');
+  },
+
+  renderBookmarks() {
+    const list = el('qr-bookmark-list');
+    el('qr-bookmark-empty').hidden = this.bookmarks.length > 0;
+    const t = translationOf(this.settings.edition);
+    list.innerHTML = this.bookmarks.map((b) => `
+      <li class="qr-bm-row">
+        <a class="qr-bm-link" href="#/quran/${b.surah}/${b.ayah}">
+          <span class="qr-bm-head">
+            <span class="qr-bookmark-name">${esc(this.surahName(b.surah))}</span>
+            <span class="qr-bookmark-ref">Ayah ${b.ayah}</span>
+          </span>
+          <span class="qr-bm-line${t.rtl ? ' is-rtl' : ''}" data-ref="${b.surah}:${b.ayah}"
+                ${t.rtl ? `lang="${t.lang}" dir="rtl"` : ''}></span>
+        </a>
+        <button class="qr-bm-remove" type="button" data-surah="${b.surah}" data-ayah="${b.ayah}"
+                aria-label="Remove bookmark: ${esc(this.surahName(b.surah))}, ayah ${b.ayah}">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+            <path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </li>`).join('');
+    if (this.tab === 'bookmarks') this.fillBookmarkLines();
+  },
+
+  /** The first line of each bookmarked ayah's translation, from the cache when
+      possible, otherwise one small request per ayah. Fails quietly. */
+  async fillBookmarkLines() {
+    const edition = this.settings.edition;
+    for (const line of el('qr-bookmark-list').querySelectorAll('.qr-bm-line')) {
+      const [s, a] = line.dataset.ref.split(':').map(Number);
+      try {
+        let text = (await QuranCache.get(`text:${edition}:${s}`))?.[a - 1];
+        if (!text) text = await QuranCache.get(`ayah:${edition}:${s}:${a}`);
+        if (!text) {
+          text = (await quranFetch(`ayah/${s}:${a}/${edition}`)).text;
+          QuranCache.put(`ayah:${edition}:${s}:${a}`, text);
+        }
+        if (line.isConnected) line.textContent = text;
+      } catch { /* leave the line empty */ }
+    }
+  },
+
   /* ----------------------------------------------------------- reader --- */
 
   async openReader(n, ayah) {
     this.stopTracking();
+    this.toggleOptions(false);
     el('qr-list-view').hidden = true;
     el('qr-reader-view').hidden = false;
 
@@ -326,13 +484,14 @@ const Quran = {
     }
 
     try {
-      const [surah] = await Promise.all([this.loadSurah(n), this.loadSurahList().catch(() => null)]);
-      const basmala = n !== 1 && n !== 9 ? (await this.loadSurah(1)).ayahs[0].ar : null;
+      await this.loadSurahList().catch(() => null);
+      await this.loadLayers(n);
       if (token !== this.openToken) return;
-      this.surah = surah;
-      this.basmala = basmala;
+      this.surah = this.surahs?.[n - 1] || { number: n, englishName: `Surah ${n}`, name: '', meaning: '', ayahs: this.layers[QURAN_ARABIC].length };
       status.hidden = true;
-      this.renderReader();
+      this.renderHead(this.surah);
+      this.renderText();
+      this.renderPager();
     } catch {
       if (token !== this.openToken) return;
       status.textContent = 'This surah could not be loaded. Check your connection and try again.';
@@ -348,35 +507,25 @@ const Quran = {
     this.startTracking();
   },
 
+  /** The editions the settings need, for this surah and for the basmala. */
+  async loadLayers(n) {
+    const ids = this.neededEditions();
+    const [layers, fatiha] = await Promise.all([
+      this.loadEditions(n, ids),
+      n !== 1 && n !== 9 ? this.loadEditions(1, ids) : null,
+    ]);
+    this.layersFor = n;
+    this.layers = layers;
+    this.basmala = fatiha && Object.fromEntries(ids.map((id) => [id, fatiha[id][0]]));
+  },
+
   renderHead(s) {
     el('qr-kicker').textContent = `Surah ${s.number}`;
     el('qr-name-ar').textContent = s.name || '';
     el('qr-name-en').textContent = s.englishName || '';
+    el('qr-bar-title').textContent = s.englishName || '';
     el('qr-meaning').textContent = s.meaning || '';
-    el('qr-meta').textContent = s.type ? `${s.type} · ${s.ayahs.length ?? s.ayahs} ayat` : '';
-  },
-
-  renderReader() {
-    const s = this.surah;
-    this.renderHead(s);
-
-    // Basmala as the header; ayah 1 without it. Al-Fatihah keeps it as ayah 1
-    // and At-Tawbah has none. If it can't be found, ayah 1 stays as given.
-    let first = s.ayahs[0].ar;
-    let showBasmala = false;
-    if (this.basmala) {
-      const rest = splitBasmala(first, this.basmala);
-      if (rest !== null) {
-        first = rest;
-        showBasmala = true;
-      }
-    }
-    el('qr-basmala').textContent = showBasmala ? this.basmala : '';
-    el('qr-basmala').hidden = !showBasmala;
-    this.ayahs = s.ayahs.map((a, i) => (i === 0 ? { ...a, ar: first } : a));
-
-    this.renderText();
-    this.renderPager();
+    el('qr-meta').textContent = s.type ? `${s.type} · ${s.ayahs} ayat` : '';
   },
 
   /** The ornamental ayah number, which is also the bookmark toggle. */
@@ -394,28 +543,66 @@ const Quran = {
   },
 
   renderText() {
-    const { size, translation, arabicOnly } = this.settings;
-    const text = el('qr-text');
-    text.className = `qr-text qr-size-${size}${arabicOnly ? ' is-flow' : ''}`;
+    const { size, arabic, translit, translation, edition } = this.settings;
+    const t = translationOf(edition);
+    const ar = this.layers[QURAN_ARABIC];
+    const tr = translit ? this.layers[QURAN_TRANSLIT] : null;
+    const tx = translation ? this.layers[edition] : null;
 
-    if (arabicOnly) {
-      text.innerHTML = `<p class="qr-flow" lang="ar" dir="rtl">${this.ayahs.map((a) =>
-        `<span class="qr-ayah" id="qr-ayah-${a.n}" data-ayah="${a.n}">${esc(a.ar)}</span>${this.marker(a.n)} `
-      ).join('')}</p>`;
-    } else {
-      text.innerHTML = `<ol class="qr-ayat">${this.ayahs.map((a) => `
-        <li class="qr-ayah" id="qr-ayah-${a.n}" data-ayah="${a.n}">
-          <p class="qr-ar" lang="ar" dir="rtl">${esc(a.ar)} ${this.marker(a.n)}</p>
-          ${translation ? `<p class="qr-en"><span class="qr-en-num">${a.n}</span>${esc(a.en)}</p>` : ''}
-        </li>`).join('')}</ol>`;
+    // Basmala: split from ayah 1 of the Uthmani text, then shown above in
+    // every layer that is on. If it isn't found, ayah 1 stays as given.
+    let first = ar[0];
+    let basmala = false;
+    if (this.basmala) {
+      const rest = splitBasmala(first, this.basmala[QURAN_ARABIC]);
+      if (rest !== null) {
+        first = rest;
+        basmala = true;
+      }
+    }
+    el('qr-basmala').hidden = !basmala;
+    if (basmala) {
+      el('qr-basmala').innerHTML = [
+        arabic ? `<p class="qr-basmala-ar" lang="ar" dir="rtl">${esc(this.basmala[QURAN_ARABIC])}</p>` : '',
+        tr ? `<p class="qr-basmala-tr">${esc(this.basmala[QURAN_TRANSLIT])}</p>` : '',
+        tx ? `<p class="qr-basmala-tx${t.rtl ? ' is-rtl' : ''}"${t.rtl ? ` lang="${t.lang}" dir="rtl"` : ''}>${esc(this.basmala[edition])}</p>` : '',
+      ].join('');
     }
 
-    for (const chip of document.querySelectorAll('.qr-seg .qr-chip')) {
+    const text = el('qr-text');
+    text.className = `qr-text qr-size-${size}`;
+    text.innerHTML = `<ol class="qr-ayat">${ar.map((arText, i) => {
+      const n = i + 1;
+      // With Arabic off, the number moves to the start of the first line shown.
+      const lead = arabic ? '' : this.marker(n);
+      return `
+        <li class="qr-ayah" id="qr-ayah-${n}" data-ayah="${n}">
+          ${arabic ? `<p class="qr-ar" lang="ar" dir="rtl">${esc(i === 0 ? first : arText)} ${this.marker(n)}</p>` : ''}
+          ${tr ? `<p class="qr-tr${lead ? ' qr-lead' : ''}">${lead}${esc(tr[i])}</p>` : ''}
+          ${tx ? `<p class="qr-en${t.rtl ? ' is-rtl' : ''}${lead && !tr ? ' qr-lead' : ''}"${t.rtl ? ` lang="${t.lang}" dir="rtl"` : ''}>${
+            lead && !tr ? lead : (arabic ? `<span class="qr-en-num">${n}</span>` : '')}${esc(tx[i])}</p>` : ''}
+        </li>`;
+    }).join('')}</ol>`;
+
+    this.renderOptions();
+  },
+
+  /** The bar's controls reflect the settings; the last layer on can't go off. */
+  renderOptions() {
+    const { size, arabic, translit, translation, edition } = this.settings;
+    for (const chip of document.querySelectorAll('.qr-size .qr-chip')) {
       chip.setAttribute('aria-pressed', String(chip.dataset.size === size));
     }
-    el('qr-opt-translation').setAttribute('aria-pressed', String(translation && !arabicOnly));
-    el('qr-opt-translation').disabled = arabicOnly;
-    el('qr-opt-arabic').setAttribute('aria-pressed', String(arabicOnly));
+    const on = { arabic, translit, translation };
+    const count = Object.values(on).filter(Boolean).length;
+    for (const chip of document.querySelectorAll('.qr-layers .qr-chip')) {
+      const isOn = on[chip.dataset.layer];
+      chip.setAttribute('aria-pressed', String(isOn));
+      const last = isOn && count === 1;
+      chip.setAttribute('aria-disabled', String(last));
+      chip.title = last ? 'At least one must stay on' : '';
+    }
+    el('qr-edition').value = edition;
   },
 
   renderPager() {
@@ -431,16 +618,48 @@ const Quran = {
     link(el('qr-next'), n < 114 ? n + 1 : null, 'Next');
   },
 
-  /** Re-render in place, keeping the ayah being read on screen. */
-  changeSettings(patch) {
+  toggleOptions(open) {
+    const bar = el('qr-bar');
+    const next = open ?? !bar.classList.contains('is-open');
+    bar.classList.toggle('is-open', next);
+    el('qr-aa').setAttribute('aria-expanded', String(next));
+  },
+
+  toggleLayer(layer) {
+    const { arabic, translit, translation } = this.settings;
+    const on = { arabic, translit, translation };
+    if (on[layer] && Object.values(on).filter(Boolean).length === 1) return; // keep at least one
+    this.changeSettings({ [layer]: !on[layer] });
+  },
+
+  /**
+   * Apply new settings in place: load any edition they newly need (only that
+   * one), re-render, and keep the ayah being read on screen. If the edition
+   * can't be loaded, the old settings stay.
+   */
+  async changeSettings(patch) {
+    const before = { ...this.settings };
     Object.assign(this.settings, patch);
-    this.saveSettings();
-    if (!this.surah) return;
+    if (!this.surah) {
+      this.saveSettings();
+      this.renderOptions();
+      return;
+    }
     const keep = this.reading?.surah === this.surah.number ? this.reading.ayah : null;
+    try {
+      await this.loadLayers(this.surah.number);
+    } catch {
+      this.settings = before;
+      this.renderOptions();
+      toast('That could not be loaded. Check your connection and try again.', { error: true });
+      return;
+    }
+    this.saveSettings();
     this.stopTracking();
     this.renderText();
     if (keep) this.scrollToAyah(keep, false);
     this.startTracking();
+    if ('edition' in patch) this.renderBookmarks();
   },
 
   scrollToAyah(n, highlight) {
@@ -465,8 +684,7 @@ const Quran = {
 
   /* -------------------------------------------------------- bookmarks --- */
 
-  async toggleBookmark(ayah) {
-    const surah = this.surah.number;
+  async toggleBookmark(surah, ayah) {
     const key = `${surah}:${ayah}`;
     const adding = !this.bookmarkSet.has(key);
     const before = [...this.bookmarks];

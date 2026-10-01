@@ -133,18 +133,25 @@ plus its markup.
 
 ### Quran
 
-- `#/quran` lists all 114 surahs, with search by name or number, a *Continue
-  reading* card, where the other person is reading, and your bookmarks.
+- `#/quran` has a *Continue reading* card (and where the other person is
+  reading), then three tabs: **Surahs** (all 114, searchable by name or
+  number, with a gold *Reading* tag on the surah you're in), **Juz** (the 30
+  juz and the ayah each starts at), and **Bookmarks** (newest first, with the
+  first line of each ayah's translation and a remove button).
 - `#/quran/18` opens Al-Kahf; `#/quran/2/255` jumps to that ayah. Back,
   forward and shared links all work.
-- All Arabic (Uthmani) and English (Sahih International) text comes from the
-  [Al-Quran Cloud API](https://alquran.cloud/api); none is written into the
-  code. Each surah is cached in IndexedDB after its first load, so it reopens
-  instantly and without a connection.
+- The reader shows any mix of three layers: Arabic (Uthmani), transliteration,
+  and a translation: Sahih International, Muhammad Asad, Pickthall, or Urdu
+  (Jalandhry, right to left in Noto Nastaliq Urdu). At least one layer stays
+  on. S / M / L sizes the text. The options sit in a sticky bar, folded
+  behind an "Aa" button on a phone, and are saved per device for every surah.
+- All text comes from the [Al-Quran Cloud API](https://alquran.cloud/api);
+  none is written into the code. Each edition of each surah is cached in
+  IndexedDB on its own, so a surah reopens instantly and without a
+  connection, and switching translation fetches only the new one.
 - The reading position (the ayah in view, saved a moment after you stop) and
   bookmarks (tap an ayah's number) are stored per person in Supabase, with the
-  position also kept on the device. Text size, translation and Arabic-only
-  mode are saved per device.
+  position also kept on the device.
 
 ### Hadith
 

@@ -219,25 +219,42 @@ from the Al-Quran Cloud API and is never written into the code.
 
 - **Surah list** — a featured *Continue reading* card ("Al-Kahf · ayah 24" in
   Playfair, linking straight there), with a quieter line beneath for where the
-  other person is reading. Then *Bookmarks* (when there are any), then
-  *Surahs*: a search box (name, meaning or number, forgiving of transliteration)
-  over all 114, each row with its number in a small gold diamond, the English
-  name in Playfair, the meaning, "MECCAN · 110 AYAT" in small caps, and the
-  Arabic name on the right in Amiri Quran. Two columns on desktop.
+  other person is reading. Then one card with three tabs in gold small caps,
+  the current one underlined in gold: *Surahs*, *Juz*, *Bookmarks*.
+  - *Surahs*: a search box (name, meaning or number, forgiving of
+    transliteration) over all 114. Each row has its number in a small gold
+    diamond, the English name in Playfair, the meaning, "MECCAN · 110 AYAT" in
+    small caps, and the Arabic name on the right in Amiri Quran. The surah
+    you're reading carries a small gold-outlined *Reading* tag. One column on
+    a phone, two on desktop.
+  - *Juz*: the 30 juz in the same row style, "Juz 2 · Starts at Al-Baqara ·
+    ayah 142", each opening the reader at that ayah.
+  - *Bookmarks*: newest first. Surah name, "AYAH 10", the first line of its
+    translation (truncated, muted), and a quiet × to remove it.
 - **Reader** — one centred page, at most 820px wide. The surah header is a
   cartouche framed in a double gold rule: "SURAH 18", the Arabic name large,
   the English name in Playfair, the meaning in italic, and "MECCAN · 110 AYAT".
-  Below it, small chips for Arabic size (S / M / L), Translation and Arabic
-  only, saved per device, and a one-line hint. The basmala is centred above
-  every surah except Al-Fatihah, where it is ayah 1, and At-Tawbah, which has
-  none. It is taken from Al-Fatihah 1:1 and split from the start of ayah 1 as
-  the API gives it, and only when it is found there. Each ayah is the Arabic
-  right-aligned in Amiri Quran (26/31px, line-height 2.15) ending in an
-  ornamental number: an eight-point gold star with the Arabic-Indic numeral
-  inside. The Sahih International translation sits beneath in the body font,
-  with a small gold ayah number, and thin rules separate the ayat. *Arabic only*
-  flows the ayat together as one right-aligned page. Previous and next surah
-  links close the page.
+  A one-line hint, then the **options bar**, sticky at the top of the reader
+  while scrolling. It runs the page's full width between hairlines, with the
+  surah's name on the left. Desktop shows the options inline: S / M / L, three
+  independent toggles (Arabic, Transliteration, Translation), and a translation
+  picker (Sahih International, Muhammad Asad, Pickthall, Urdu - Jalandhry). On a
+  phone they fold behind a small "Aa" button into a panel, the toggles stacked.
+  Any mix of layers is allowed, but the last one on can't be turned off. Sizes
+  scale the Arabic fully (22/26/31px on a phone, 26/31/37 on desktop) and the
+  other layers gently (14/15/16.5). All choices are saved per device.
+
+  The basmala is centred above every surah except Al-Fatihah, where it is ayah
+  1, and At-Tawbah, which has none, in each layer that is on. Only the Uthmani
+  text carries it inside ayah 1, so it is split from there, taken from
+  Al-Fatihah 1:1, and only when it is found. Each ayah is the Arabic
+  right-aligned in Amiri Quran (line-height 2.15) ending in an ornamental
+  number: an eight-point gold star with the Arabic-Indic numeral inside. Then
+  the transliteration in muted italic, then the translation in the body font
+  with a small gold ayah number. Urdu runs right to left in Noto Nastaliq Urdu
+  with extra line height. With Arabic off, the star number leads the first line
+  shown instead, so every ayah stays numbered. Thin rules separate the ayat;
+  previous and next surah links close the page.
 - **Bookmarks** — tap an ayah's number star. A bookmarked star fills with pale
   gold. Bookmarks and the reading position (the topmost ayah in a band across
   the upper screen, saved 1.5s after it settles) are kept per person in

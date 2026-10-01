@@ -1119,25 +1119,232 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   color: var(--muted-foreground);
 }
 
+/* The reading options bar: sticky at the top of the reader while scrolling.
+   It spans the page's full width (pulled out over the card padding), with the
+   surah's name on the left. On a phone the options fold behind "Aa". */
+.qr-bar {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  min-height: 48px;
+  margin: 14px -18px 0;
+  padding: 6px 18px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+}
+
+.qr-bar-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--serif);
+  font-size: 15px;
+  color: var(--muted-foreground);
+}
+
+.qr-aa {
+  position: relative;
+  flex: none;
+  min-width: 40px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--card);
+  color: var(--foreground);
+  font-family: var(--serif);
+  font-size: 16px;
+  cursor: pointer;
+  transition: border-color var(--ease), background var(--ease);
+}
+
+.qr-aa::after { content: ""; position: absolute; inset: -5px; }
+.qr-aa:hover,
+.qr-bar.is-open .qr-aa { border-color: var(--accent); background: var(--accent-wash); }
+
+/* Phone: a panel under the bar. */
+.qr-options {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 12px;
+  display: none;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  width: min(300px, calc(100vw - 48px));
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  box-shadow: var(--shadow-md);
+}
+
+.qr-bar.is-open .qr-options { display: flex; }
+
+.qr-options .qr-seg { display: flex; }
+.qr-options .qr-seg .qr-chip { flex: 1 1 0; }
+
+/* In the phone panel the three layers stack, one toggle per row. */
+.qr-options .qr-layers { flex-direction: column; }
+.qr-options .qr-layers .qr-chip { min-height: 38px; margin-left: 0; }
+.qr-options .qr-layers .qr-chip + .qr-chip { margin-top: -1px; }
+.qr-options .qr-layers .qr-chip:first-child { border-radius: var(--radius-btn) var(--radius-btn) 0 0; }
+.qr-options .qr-layers .qr-chip:last-child { border-radius: 0 0 var(--radius-btn) var(--radius-btn); }
+
+/* the layer chips: Arabic / Transliteration / Translation */
+.qr-layers .qr-chip[aria-disabled="true"] { cursor: not-allowed; }
+
+.qr-select-wrap { display: block; }
+
+.qr-select {
+  width: 100%;
+  min-height: 34px;
+  padding: 0 28px 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--card) no-repeat right 9px center / 10px 6px
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%236B6B6B' stroke-width='1.4'/%3E%3C/svg%3E");
+  color: var(--foreground);
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.qr-select:hover { border-color: var(--border-hover); }
+
+/* ----------------------------------------------- quran: browse tabs --- */
+
+.qr-tabs {
+  display: flex;
+  justify-content: center;
+  gap: var(--s3);
+  margin: -4px 0 var(--s2);
+  border-bottom: 1px solid var(--border);
+}
+
+.qr-tab {
+  position: relative;
+  min-height: 40px;
+  padding: 0 2px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: none;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: color var(--ease), border-color var(--ease);
+}
+
+.qr-tab:hover { color: var(--foreground); }
+.qr-tab[aria-selected="true"] { border-bottom-color: var(--accent); color: var(--accent-text); }
+
+/* the small gold tag on the surah being read */
+.qr-reading-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 7px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  font-family: var(--sans);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 1.6;
+  vertical-align: 2px;
+  color: var(--accent-text);
+}
+
+.qr-juz .qr-surah-meta { white-space: nowrap; }
+
+/* bookmarks tab: name, ayah, the first line of its translation, remove */
+.qr-bm-list { display: grid; }
+
+.qr-bm-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.qr-bm-list .qr-bm-row:last-child { border-bottom: 0; }
+
+.qr-bm-link {
+  flex: 1 1 auto;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 2px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.qr-bm-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s2); }
+.qr-bm-link:hover .qr-bookmark-name { color: var(--accent-text); }
+
+.qr-bm-line {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+
+.qr-bm-line.is-rtl { line-height: 2.2; }
+
+.qr-bm-remove {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: color var(--ease), background var(--ease);
+}
+
+.qr-bm-remove::after { content: ""; position: absolute; inset: -6px; }
+.qr-bm-remove:hover { background: var(--muted); color: var(--foreground); }
+
+/* The basmala above the surah, in each layer that is on. */
 .qr-basmala {
   margin-top: var(--s3);
   text-align: center;
-  font-family: var(--quran);
-  font-size: 26px;
-  line-height: 2;
 }
 
-/* the text: sizes are per device */
-.qr-text { --qr-ar: 26px; margin-top: var(--s2); }
-.qr-text.qr-size-s { --qr-ar: 22px; }
-.qr-text.qr-size-l { --qr-ar: 31px; }
+.qr-basmala-ar { font-family: var(--quran); font-size: 26px; line-height: 2.2; }
+.qr-basmala-tr { margin-top: 6px; font-style: italic; font-size: 14px; color: var(--muted-foreground); }
+.qr-basmala-tx { font-size: 14px; color: var(--muted-foreground); }
+
+/* The text. S / M / L scales the Arabic fully, and the transliteration and
+   translation more gently. Sizes are per device. */
+.qr-text { --qr-ar: 26px; --qr-tx: 15px; margin-top: var(--s2); }
+.qr-text.qr-size-s { --qr-ar: 22px; --qr-tx: 14px; }
+.qr-text.qr-size-l { --qr-ar: 31px; --qr-tx: 16.5px; }
 
 .qr-ayah {
   padding: 18px 0 16px;
   border-bottom: 1px solid var(--border);
-  scroll-margin-top: 16px;
+  scroll-margin-top: 64px;   /* clear of the sticky options bar */
   transition: background 600ms ease-out;
 }
+
+.qr-ayah > :first-child { margin-top: 0; }
 
 .qr-ayat > .qr-ayah:last-child { border-bottom: 0; }
 
@@ -1151,12 +1358,31 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   color: var(--foreground);
 }
 
+/* transliteration: between the Arabic and the translation, quiet italic */
+.qr-tr {
+  margin-top: 6px;
+  font-style: italic;
+  font-size: var(--qr-tx);
+  line-height: 1.6;
+  color: var(--muted-foreground);
+}
+
 .qr-en {
   margin-top: 8px;
-  font-size: 15px;
+  font-size: var(--qr-tx);
   line-height: 1.65;
   color: var(--foreground);
 }
+
+/* Urdu reads right to left in Nastaliq, which needs room above and below. */
+.qr-en.is-rtl,
+.qr-basmala-tx.is-rtl,
+.qr-bm-line.is-rtl {
+  font-family: "Noto Nastaliq Urdu", var(--quran);
+  text-align: right;
+}
+
+.qr-en.is-rtl { font-size: calc(var(--qr-tx) * 1.1); line-height: 2.3; }
 
 .qr-en-num {
   margin-right: 8px;
@@ -1166,20 +1392,16 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   color: var(--accent-text);
 }
 
-/* Arabic only: one flowing page, like a printed mushaf */
-.qr-flow {
-  font-family: var(--quran);
-  font-size: var(--qr-ar);
-  line-height: 2.3;
-  text-align: right;
+.qr-en.is-rtl .qr-en-num { margin-right: 0; margin-left: 8px; }
+
+/* With Arabic off, the ornamental number leads the first line instead. */
+.qr-lead .qr-num {
+  font-size: 26px;
+  margin: 0 10px 0 0;
+  vertical-align: -0.35em;
 }
 
-.qr-flow .qr-ayah {
-  padding: 0;
-  border: 0;
-  border-radius: 4px;
-  scroll-margin-top: 40px;
-}
+.qr-en.is-rtl.qr-lead .qr-num { margin: 0 0 0 10px; }
 
 /* the ornamental ayah number, which doubles as the bookmark toggle */
 .qr-num {
@@ -1780,13 +2002,38 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   .qr-page { padding: 36px 56px 30px; }
   .qr-name-ar { font-size: 38px; }
   .qr-name-en { font-size: 25px; }
-  .qr-basmala { font-size: 30px; }
+  .qr-basmala-ar { font-size: 30px; }
 
-  .qr-text { --qr-ar: 31px; }
-  .qr-text.qr-size-s { --qr-ar: 26px; }
-  .qr-text.qr-size-l { --qr-ar: 37px; }
+  .qr-text { --qr-ar: 31px; --qr-tx: 16px; }
+  .qr-text.qr-size-s { --qr-ar: 26px; --qr-tx: 15px; }
+  .qr-text.qr-size-l { --qr-ar: 37px; --qr-tx: 17.5px; }
 
-  .qr-en { font-size: 16px; }
+  /* the options sit in the bar itself; no "Aa" */
+  .qr-bar { margin: 18px -56px 0; padding: 6px 56px; }
+  .qr-aa { display: none; }
+
+  .qr-options {
+    position: static;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    width: auto;
+    padding: 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  .qr-select { width: auto; min-width: 190px; }
+
+  /* inline in the bar: chips size to their words, the layers side by side */
+  .qr-options .qr-seg .qr-chip { flex: none; }
+  .qr-options .qr-layers { flex-direction: row; }
+  .qr-options .qr-layers .qr-chip { min-height: 34px; margin-left: -1px; }
+  .qr-options .qr-layers .qr-chip + .qr-chip { margin-top: 0; }
+  .qr-options .qr-layers .qr-chip:first-child { margin-left: 0; border-radius: var(--radius-btn) 0 0 var(--radius-btn); }
+  .qr-options .qr-layers .qr-chip:last-child { border-radius: 0 var(--radius-btn) var(--radius-btn) 0; }
 
   /* hadith: lists in two columns, like the surahs */
 

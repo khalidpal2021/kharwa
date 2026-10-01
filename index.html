@@ -13,7 +13,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Source+Sans+3:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Noto+Nastaliq+Urdu&family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Source+Sans+3:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -162,28 +162,36 @@
           <p id="qr-other" class="qr-other" hidden></p>
         </section>
 
-        <section id="qr-bookmarks" class="card" aria-labelledby="qr-bookmarks-label" hidden>
-          <div class="cardhead">
-            <span class="rule" aria-hidden="true"></span>
-            <h2 id="qr-bookmarks-label" class="cardhead-text">Bookmarks</h2>
-            <span class="rule" aria-hidden="true"></span>
+        <!-- Surahs | Juz | Bookmarks -->
+        <section class="card qr-browse" aria-label="Browse the Quran">
+          <div class="qr-tabs" role="tablist" aria-label="Browse by">
+            <button id="qr-tab-surahs" class="qr-tab" type="button" role="tab" data-tab="surahs"
+                    aria-controls="qr-panel-surahs" aria-selected="true">Surahs</button>
+            <button id="qr-tab-juz" class="qr-tab" type="button" role="tab" data-tab="juz"
+                    aria-controls="qr-panel-juz" aria-selected="false" tabindex="-1">Juz</button>
+            <button id="qr-tab-bookmarks" class="qr-tab" type="button" role="tab" data-tab="bookmarks"
+                    aria-controls="qr-panel-bookmarks" aria-selected="false" tabindex="-1">Bookmarks</button>
           </div>
-          <ul id="qr-bookmark-list" class="qr-bookmark-list"></ul>
-        </section>
 
-        <section class="card" aria-labelledby="qr-surahs-label">
-          <div class="cardhead">
-            <span class="rule" aria-hidden="true"></span>
-            <h2 id="qr-surahs-label" class="cardhead-text">Surahs</h2>
-            <span class="rule" aria-hidden="true"></span>
+          <div id="qr-panel-surahs" role="tabpanel" aria-labelledby="qr-tab-surahs">
+            <label class="qr-search">
+              <span class="sr-only">Search surahs</span>
+              <input id="qr-search" class="input" type="search" placeholder="Search by name or number"
+                     autocomplete="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <ol id="qr-surah-list" class="qr-surah-list"></ol>
+            <p id="qr-list-status" class="qr-status" hidden></p>
           </div>
-          <label class="qr-search">
-            <span class="sr-only">Search surahs</span>
-            <input id="qr-search" class="input" type="search" placeholder="Search by name or number"
-                   autocomplete="off" autocapitalize="off" spellcheck="false" />
-          </label>
-          <ol id="qr-surah-list" class="qr-surah-list"></ol>
-          <p id="qr-list-status" class="qr-status" hidden></p>
+
+          <div id="qr-panel-juz" role="tabpanel" aria-labelledby="qr-tab-juz" hidden>
+            <ol id="qr-juz-list" class="qr-surah-list"></ol>
+            <p id="qr-juz-status" class="qr-status" hidden></p>
+          </div>
+
+          <div id="qr-panel-bookmarks" role="tabpanel" aria-labelledby="qr-tab-bookmarks" hidden>
+            <ul id="qr-bookmark-list" class="qr-bm-list"></ul>
+            <p id="qr-bookmark-empty" class="qr-status">No bookmarks yet. While reading, tap an ayah&rsquo;s number to save it.</p>
+          </div>
         </section>
       </div>
 
@@ -200,18 +208,32 @@
             <p id="qr-meta" class="qr-meta"></p>
           </header>
 
-          <div class="qr-settings" role="group" aria-label="Reading settings">
-            <div class="qr-seg" role="group" aria-label="Arabic size">
-              <button class="qr-chip" type="button" data-size="s" aria-label="Small Arabic">S</button>
-              <button class="qr-chip" type="button" data-size="m" aria-label="Medium Arabic">M</button>
-              <button class="qr-chip" type="button" data-size="l" aria-label="Large Arabic">L</button>
-            </div>
-            <button id="qr-opt-translation" class="qr-chip" type="button">Translation</button>
-            <button id="qr-opt-arabic" class="qr-chip" type="button">Arabic only</button>
-          </div>
           <p class="qr-hint">Tap an ayah number to bookmark it.</p>
 
-          <p id="qr-basmala" class="qr-basmala" lang="ar" dir="rtl" hidden></p>
+          <!-- Sticky reading options. On a phone they fold behind "Aa". -->
+          <div id="qr-bar" class="qr-bar">
+            <span id="qr-bar-title" class="qr-bar-title" aria-hidden="true"></span>
+            <button id="qr-aa" class="qr-aa" type="button" aria-expanded="false" aria-controls="qr-options"
+                    aria-label="Reading options">Aa</button>
+            <div id="qr-options" class="qr-options" role="group" aria-label="Reading options">
+              <div class="qr-seg qr-size" role="group" aria-label="Text size">
+                <button class="qr-chip" type="button" data-size="s" aria-label="Small text">S</button>
+                <button class="qr-chip" type="button" data-size="m" aria-label="Medium text">M</button>
+                <button class="qr-chip" type="button" data-size="l" aria-label="Large text">L</button>
+              </div>
+              <div class="qr-seg qr-layers" role="group" aria-label="Show">
+                <button class="qr-chip" type="button" data-layer="arabic">Arabic</button>
+                <button class="qr-chip" type="button" data-layer="translit">Transliteration</button>
+                <button class="qr-chip" type="button" data-layer="translation">Translation</button>
+              </div>
+              <label class="qr-select-wrap">
+                <span class="sr-only">Translation</span>
+                <select id="qr-edition" class="qr-select"></select>
+              </label>
+            </div>
+          </div>
+
+          <div id="qr-basmala" class="qr-basmala" hidden></div>
           <div id="qr-text" class="qr-text"></div>
           <p id="qr-status" class="qr-status" hidden></p>
 
