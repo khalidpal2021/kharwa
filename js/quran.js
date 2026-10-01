@@ -82,6 +82,17 @@ function translationOf(id) {
   return QURAN_TRANSLATIONS.find((t) => t.id === id) || QURAN_TRANSLATIONS[0];
 }
 
+/**
+ * The bookmark: a slim ribbon whose foot ends in a pointed mihrab arch rather
+ * than a V-notch, with a small eight-pointed star (two squares) near the top.
+ * Outline when not saved; gold with the star cut out when saved (CSS).
+ */
+const QURAN_BOOKMARK_ICON = `<svg class="qbm" viewBox="0 0 16 22" width="16" height="22" aria-hidden="true" focusable="false">
+  <path class="qbm-ribbon" d="M3.5 1.5H12.5A1.5 1.5 0 0 1 14 3V20.5H11.5V17.5C11.5 15.3 9.6 14.2 8 12.5C6.4 14.2 4.5 15.3 4.5 17.5V20.5H2V3A1.5 1.5 0 0 1 3.5 1.5Z"/>
+  <rect class="qbm-star" x="5.9" y="4.9" width="4.2" height="4.2"/>
+  <rect class="qbm-star" x="5.9" y="4.9" width="4.2" height="4.2" transform="rotate(45 8 7)"/>
+</svg>`;
+
 /* ---------------------------------------------------------------- state --- */
 
 const Quran = {
@@ -278,8 +289,8 @@ const Quran = {
     });
 
     el('qr-text').addEventListener('click', (event) => {
-      const num = event.target.closest('.qr-num');
-      if (num) this.toggleBookmark(this.surah.number, Number(num.dataset.ayah));
+      const btn = event.target.closest('.qr-bm-btn');
+      if (btn) this.toggleBookmark(this.surah.number, Number(btn.dataset.ayah));
     });
 
     // Reading options
@@ -427,6 +438,10 @@ const Quran = {
     const t = translationOf(this.settings.edition);
     list.innerHTML = this.bookmarks.map((b) => `
       <li class="qr-bm-row">
+        <button class="qr-bm-btn qr-bm-remove is-saved" type="button" data-surah="${b.surah}" data-ayah="${b.ayah}"
+                aria-pressed="true" aria-label="Remove bookmark: ${esc(this.surahName(b.surah))} ${b.surah}:${b.ayah}">
+          ${QURAN_BOOKMARK_ICON}
+        </button>
         <a class="qr-bm-link" href="#/quran/${b.surah}/${b.ayah}">
           <span class="qr-bm-head">
             <span class="qr-bookmark-name">${esc(this.surahName(b.surah))}</span>
@@ -435,12 +450,6 @@ const Quran = {
           <span class="qr-bm-line${t.rtl ? ' is-rtl' : ''}" data-ref="${b.surah}:${b.ayah}"
                 ${t.rtl ? `lang="${t.lang}" dir="rtl"` : ''}></span>
         </a>
-        <button class="qr-bm-remove" type="button" data-surah="${b.surah}" data-ayah="${b.ayah}"
-                aria-label="Remove bookmark: ${esc(this.surahName(b.surah))}, ayah ${b.ayah}">
-          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
-            <path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-          </svg>
-        </button>
       </li>`).join('');
     if (this.tab === 'bookmarks') this.fillBookmarkLines();
   },
@@ -528,18 +537,24 @@ const Quran = {
     el('qr-meta').textContent = s.type ? `${s.type} · ${s.ayahs} ayat` : '';
   },
 
-  /** The ornamental ayah number, which is also the bookmark toggle. */
+  /** The ornamental ayah number. Just the number: bookmarking has its own button. */
   marker(n) {
-    const on = this.bookmarkSet.has(`${this.surah.number}:${n}`);
-    return `<button class="qr-num${on ? ' is-bookmarked' : ''}${n > 99 ? ' qr-num--3' : ''}" type="button" data-ayah="${n}"
-        aria-pressed="${on}" aria-label="Ayah ${n}, ${on ? 'bookmarked' : 'bookmark'}">
+    return `<span class="qr-num${n > 99 ? ' qr-num--3' : ''}" role="img" aria-label="Ayah ${n}">
       <svg viewBox="0 0 40 40" aria-hidden="true" focusable="false">
         <rect class="qr-num-star" x="9" y="9" width="22" height="22"/>
         <rect class="qr-num-star" x="9" y="9" width="22" height="22" transform="rotate(45 20 20)"/>
         <circle class="qr-num-ring" cx="20" cy="20" r="10.5"/>
       </svg>
-      <span class="qr-num-text" lang="ar">${fmtArabicDigits.format(n)}</span>
-    </button>`;
+      <span class="qr-num-text" lang="ar" aria-hidden="true">${fmtArabicDigits.format(n)}</span>
+    </span>`;
+  },
+
+  /** The bookmark button in each ayah's top-left corner. */
+  bookmarkButton(n) {
+    const surah = this.surah.number;
+    const on = this.bookmarkSet.has(`${surah}:${n}`);
+    return `<button class="qr-bm-btn${on ? ' is-saved' : ''}" type="button" data-ayah="${n}"
+        aria-pressed="${on}" aria-label="${on ? 'Remove bookmark' : `Bookmark ayah ${surah}:${n}`}">${QURAN_BOOKMARK_ICON}</button>`;
   },
 
   renderText() {
@@ -577,6 +592,7 @@ const Quran = {
       const lead = arabic ? '' : this.marker(n);
       return `
         <li class="qr-ayah" id="qr-ayah-${n}" data-ayah="${n}">
+          ${this.bookmarkButton(n)}
           ${arabic ? `<p class="qr-ar" lang="ar" dir="rtl">${esc(i === 0 ? first : arText)} ${this.marker(n)}</p>` : ''}
           ${tr ? `<p class="qr-tr${lead ? ' qr-lead' : ''}">${lead}${esc(tr[i])}</p>` : ''}
           ${tx ? `<p class="qr-en${t.rtl ? ' is-rtl' : ''}${lead && !tr ? ' qr-lead' : ''}"${t.rtl ? ` lang="${t.lang}" dir="rtl"` : ''}>${
@@ -674,11 +690,12 @@ const Quran = {
 
   refreshMarkers() {
     if (!this.surah) return;
-    for (const btn of document.querySelectorAll('#qr-text .qr-num')) {
-      const on = this.bookmarkSet.has(`${this.surah.number}:${btn.dataset.ayah}`);
-      btn.classList.toggle('is-bookmarked', on);
+    const surah = this.surah.number;
+    for (const btn of document.querySelectorAll('#qr-text .qr-bm-btn')) {
+      const on = this.bookmarkSet.has(`${surah}:${btn.dataset.ayah}`);
+      btn.classList.toggle('is-saved', on);
       btn.setAttribute('aria-pressed', String(on));
-      btn.setAttribute('aria-label', `Ayah ${btn.dataset.ayah}, ${on ? 'bookmarked' : 'bookmark'}`);
+      btn.setAttribute('aria-label', on ? 'Remove bookmark' : `Bookmark ayah ${surah}:${btn.dataset.ayah}`);
     }
   },
 
@@ -699,6 +716,7 @@ const Quran = {
     }
     this.refreshMarkers();
     this.renderBookmarks();
+    toast(adding ? `Bookmarked ${esc(this.surahName(surah))} ${surah}:${ayah}` : 'Bookmark removed');
 
     try {
       if (adding) await Data.addBookmark(State.me, surah, ayah);

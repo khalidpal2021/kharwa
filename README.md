@@ -150,7 +150,7 @@ plus its markup.
   IndexedDB on its own, so a surah reopens instantly and without a
   connection, and switching translation fetches only the new one.
 - The reading position (the ayah in view, saved a moment after you stop) and
-  bookmarks (tap an ayah's number) are stored per person in Supabase, with the
+  bookmarks (the ribbon in each ayah's top-left corner) are stored per person in Supabase, with the
   position also kept on the device.
 
 ### Hadith

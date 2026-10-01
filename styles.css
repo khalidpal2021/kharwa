@@ -1303,23 +1303,13 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 .qr-bm-line.is-rtl { line-height: 2.2; }
 
-.qr-bm-remove {
-  position: relative;
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border: 0;
-  border-radius: 50%;
-  background: none;
-  color: var(--muted-foreground);
-  cursor: pointer;
-  transition: color var(--ease), background var(--ease);
-}
-
-.qr-bm-remove::after { content: ""; position: absolute; inset: -6px; }
-.qr-bm-remove:hover { background: var(--muted); color: var(--foreground); }
+/* In the Bookmarks tab, the same ribbon (saved) leads each row and removes it.
+   Hovering eases it towards its outline, a hint of what a tap will do. */
+.qr-bm-remove { flex: none; margin-left: -4px; }
+.qr-bm-remove.is-saved:hover .qbm-ribbon,
+.qr-bm-remove.is-saved:focus-visible .qbm-ribbon { fill: var(--accent-tint); }
+.qr-bm-remove.is-saved:hover .qbm-star,
+.qr-bm-remove.is-saved:focus-visible .qbm-star { fill: transparent; stroke: var(--accent); stroke-width: 0.9; }
 
 /* The basmala above the surah, in each layer that is on. */
 .qr-basmala {
@@ -1403,7 +1393,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 .qr-en.is-rtl.qr-lead .qr-num { margin: 0 0 0 10px; }
 
-/* the ornamental ayah number, which doubles as the bookmark toggle */
+/* the ornamental ayah number */
 .qr-num {
   position: relative;
   display: inline-grid;
@@ -1411,25 +1401,10 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   width: 1.45em;
   height: 1.45em;
   margin: 0 0.12em;
-  padding: 0;
-  border: 0;
-  background: none;
   vertical-align: middle;
-  font: inherit;
   font-size: 1em;
   line-height: 1;
   color: var(--accent-text);
-  cursor: pointer;
-}
-
-/* a 44px tap area around the ornament */
-.qr-num::after {
-  content: "";
-  position: absolute;
-  inset: 50% auto auto 50%;
-  width: 44px;
-  height: 44px;
-  transform: translate(-50%, -50%);
 }
 
 .qr-num svg {
@@ -1458,9 +1433,58 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 .qr-num--3 .qr-num-text { font-size: 0.4em; letter-spacing: -0.02em; }
 
-.qr-num:hover .qr-num-star { fill: var(--accent-wash); }
-.qr-num.is-bookmarked .qr-num-star { fill: var(--accent-tint); stroke-width: 2; }
-.qr-num.is-bookmarked .qr-num-text { font-weight: 700; color: var(--foreground); }
+/* The bookmark: a ribbon ending in a mihrab arch, in each ayah's top-left
+   corner. Floated, so a long first line of text wraps around it rather than
+   under it. The icon is 16x22; the tap area is 44px. */
+.qr-bm-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: color 150ms ease-out;
+}
+
+.qr-ayah > .qr-bm-btn {
+  float: left;
+  margin: 4px 10px 2px -6px;
+}
+
+.qr-bm-btn::after {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+}
+
+.qbm { display: block; overflow: visible; }
+
+.qbm-ribbon,
+.qbm-star {
+  fill: transparent;
+  stroke: currentColor;
+  stroke-width: 1.25;
+  stroke-linejoin: round;
+  transition: fill 150ms ease-out, stroke 150ms ease-out;
+}
+
+.qbm-star { stroke-width: 0.9; }
+
+/* not saved: a muted outline that turns full gold on hover */
+.qr-bm-btn:hover,
+.qr-bm-btn:focus-visible { color: var(--accent); }
+
+/* saved: solid gold, the star cut out in ivory */
+.qr-bm-btn.is-saved { color: var(--accent); }
+.qr-bm-btn.is-saved .qbm-ribbon { fill: var(--accent); }
+.qr-bm-btn.is-saved .qbm-star { fill: var(--card); stroke: var(--card); stroke-width: 0.6; }
 
 /* previous / next */
 
