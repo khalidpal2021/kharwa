@@ -357,6 +357,39 @@ from the hadith API and are never written into the code.
   Bukhari and Muslim, which the API leaves ungraded, show "Sahih". Thin rules
   separate the hadith; previous and next chapter links close the page.
 
+## Learn
+
+A guide to praying, Hanafi throughout since ISOT is Hanafi, with a short note
+where another school commonly differs. The section opens with one line: a
+learning guide, check with your local imam.
+
+Four cards — before you pray, wudu, the positions, each prayer — and a
+pray-along mode over the top of them.
+
+Where the words come from matters, and the split is deliberate:
+
+- **Qur'an** is fetched from the same Al-Quran Cloud API the Quran tab uses,
+  through `Quran.loadEditions`, so it shares that cache and nothing of the
+  Qur'an is written into the source. Arabic, transliteration and Sahih
+  International, with whole-surah audio from `cdn.islamic.network`; the play
+  button hides itself if the audio will not load.
+- **Everything else** — Thana, Taʿawwudh, the tasbīḥ of rukūʿ and sujūd,
+  Tashahhud, Ṣalawāt, the duʿā before salām, Qunūt — is written out in
+  `js/learn-content.js`, which carries a TO REVIEW WITH IMAM header listing
+  exactly what wants checking. It is kept in one file for that reason.
+
+Figures are inline SVG line drawings, side on, facing the qibla, no faces:
+`--foreground` for the body, `--accent` for whichever part the step is about,
+a hairline for the ground. One set, one style.
+
+Pray-along is a full-screen dialog built from the same position and prayer
+data: one step at a time with a large figure, what to say, a progress bar, and
+54px Back and Next buttons. It asks for a screen wake lock and takes it again
+when the tab comes back; every failure there is ignored. Arrow keys move
+between steps and Escape closes it.
+
+Each prayer name in the Today table links to its card here.
+
 ## Mobile (< 900px)
 
 The same style, with the cards stacked: masthead, Next prayer, Today, Ayah of

@@ -341,6 +341,29 @@
     <!-- Mobile section tabs; drawn by js/router.js -->
     <nav id="nav-bottom" class="tabbar" aria-label="Sections"></nav>
 
+    <!-- ----------------------------------------------------------- learn --- -->
+    <div id="section-learn" class="section" hidden>
+      <div id="learn-body" class="learn"></div>
+
+      <!-- pray along: one step at a time, over everything else -->
+      <div id="learn-guide" class="ln-guide" role="dialog" aria-modal="true"
+           aria-labelledby="ln-guide-where" hidden>
+        <div class="ln-guide-bar">
+          <span id="ln-guide-where" class="ln-guide-where"></span>
+          <span id="ln-guide-count" class="ln-guide-count"></span>
+          <button id="ln-close" class="btn btn--ghost ln-close" type="button">Close</button>
+        </div>
+        <div class="ln-progress-track" aria-hidden="true"><span id="ln-progress" class="ln-progress"></span></div>
+
+        <div id="ln-guide-step" class="ln-guide-step"></div>
+
+        <div class="ln-guide-nav">
+          <button id="ln-back" class="btn btn--ghost ln-nav-btn" type="button">Back</button>
+          <button id="ln-next" class="btn btn--primary ln-nav-btn" type="button">Next</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ----------------------------------------------------- settings --- -->
     <div id="settings" class="sheet" hidden>
       <div id="settings-scrim" class="sheet-scrim"></div>
@@ -388,6 +411,8 @@
   <script src="js/router.js" defer></script>
   <script src="js/quran.js" defer></script>
   <script src="js/hadith.js" defer></script>
+  <script src="js/learn-content.js" defer></script>
+  <script src="js/learn.js" defer></script>
   <script src="js/app.js" defer></script>
 </body>
 </html>

@@ -288,7 +288,8 @@ function renderTimetable() {
     const isNext = next && !next.tomorrow && next.key === p.key;
     return `
       <li class="tt-row${isNext ? ' is-next' : ''}" data-prayer="${p.key}">
-        <div class="tt-names"><span class="tt-en">${p.label}</span></div>
+        <div class="tt-names"><a class="tt-en tt-learn" href="#/learn/${p.key}"
+             title="How to pray ${p.label}">${p.label}</a></div>
         <div class="tt-time">${timeText(times[p.key])}</div>
         ${markMarkup('khalid', p.key)}
         ${markMarkup('marwa', p.key)}
