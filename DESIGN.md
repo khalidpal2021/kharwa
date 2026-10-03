@@ -110,8 +110,8 @@ shape or fill, not just hue.
 | Not logged | empty thin-bordered circle, no text            |
 
 Only *on time* and *late* are ever stored. A late prayer is a prayer prayed:
-it reads gold and counts exactly like an on-time one in streaks and the week
-bars. *Missed* is never chosen or stored. A prayer shows as missed when it is
+it reads gold and counts exactly like an on-time one in streaks and the day
+rings. *Missed* is never chosen or stored. A prayer shows as missed when it is
 still empty after its window has closed:
 
 - Fajr, Dhuhr, Asr and Maghrib when the next prayer's time arrives;
@@ -122,11 +122,35 @@ still empty after its window has closed:
 A missed prayer can still be tapped and logged as on time or late. Older rows
 stored as `missed` are read as empty, so they show as missed in the same way.
 
-In the week bars: gold for prayed (on time or late), warm gray
-(`--mark-empty`) for missed, and a light `--border-hover` outline for a prayer
+In the day rings: gold for prayed (on time or late), warm gray
+(`--mark-empty`) for missed, and a faint `--border-hover` outline for a prayer
 whose window is still open. A one-line legend under the timetable,
 "✓ on time · ◐ late · ✕ missed", is drawn with the marks themselves in small
 muted text.
+
+## Streaks
+
+A day is complete for a person when all five prayers are prayed — on time and
+late count the same. Only a missed prayer is negative, and because missed is
+derived rather than stored, the streak asks `shownStatus`, not the log.
+
+- **Personal streak** — consecutive complete days.
+- **Duo streak** — consecutive days both of them completed.
+- A today still in progress never breaks a run: it is stepped over until it is
+  complete, and breaks the run only once a prayer there has gone missed.
+- **Best** runs, for the pair and for each person, are the longest stretch
+  anywhere in the loaded history, computed in the browser from the logs — no
+  extra table — so they reach back as far as the 120-day window the app loads.
+
+### Day rings
+
+Each of the seven days is a circle cut into five arcs, one per prayer, running
+clockwise from the top with Fajr first. A complete day collapses into a solid
+gold circle with a white check, so finished days read at a glance, and today's
+ring carries a thin gold outline. The faint not-yet arc is deliberately quiet,
+with the ring's accessible name and tooltip ("Thu, Oct 1 · 4 of 5") carrying the
+count. Clicking a ring moves the Today table to that day. Rings are inline SVG,
+22px on a phone and 26px up on desktop.
 
 ## Desktop layout (≥ 900px)
 
@@ -156,7 +180,7 @@ taller than the window; at 1920x1080 it fits with room to spare.
    shows the real today, whatever day the tracker is on; after Isha it counts
    down to tomorrow's Fajr.
 3. **Two columns** at about 0.85fr / 1.15fr, each card only as tall as its
-   content. The left column holds the Ayah of the Day with This Week directly
+   content. The left column holds the Ayah of the Day with Streaks directly
    under it; the right holds Today. On a 1920x1080 screen the page fits without
    scrolling for short and median ayat. With Today's compact header, the left
    column runs about 110–220px longer, depending on the ayah's length.
@@ -180,10 +204,17 @@ taller than the window; at 1920x1080 it fits with room to spare.
      only as wide as "12:45 PM", so the spare width goes to the prayer names.
      The headings and the columns share one set of explicit widths, so they
      line up exactly. Thin rules between rows.
-   - **Left, below — This Week**. For each person: their name, their current streak as
-     a large Playfair number with a small "day streak" label, and seven small
-     5-segment bars (one segment per prayer). Clicking a day jumps Today to that
-     date.
+   - **Left, below — Streaks**. The duo streak leads: a small-caps TOGETHER
+     label, the count as a large Playfair gold numeral, and a quiet "days in a
+     row · best 9" beneath. At zero it reads "Start a streak together today"
+     rather than showing a big nought. Then a rule, and a block per person:
+     the name, their streak as a medium gold numeral with a "day streak" label
+     (and "best N" only when their best beats the current run), and their seven
+     day rings. The weekday letters appear once, under the last row of rings,
+     shared by both. When both have completed today the card adds a quiet line
+     saying so, and a new duo best is highlighted once in lighter gold. The
+     rings sit under each name rather than beside it — the card is not wide
+     enough for a name, a streak and seven rings on one line.
 4. **Ayah of the Day** — top of the left column, like an illuminated page in a
    fine mushaf. Warm paper (`--card-warm`) and a fine gold hairline rule just
    inside the card border, kept restrained. Under the AYAH OF THE DAY header, a
@@ -319,7 +350,7 @@ from the hadith API and are never written into the code.
 ## Mobile (< 900px)
 
 The same style, with the cards stacked: masthead, Next prayer, Today, Ayah of
-the Day, This Week, and the tab bar fixed at the bottom. (The markup is in this
+the Day, Streaks, and the tab bar fixed at the bottom. (The markup is in this
 order; desktop rearranges it with grid areas.) With Safari's own
 toolbars on a 390px iPhone, the next-prayer card and all five Today rows still
 end above the tab bar.

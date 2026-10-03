@@ -296,30 +296,79 @@ function renderTimetable() {
   }).join('');
 }
 
-/* ================================================================= week === */
+/* ============================================================== streaks === */
 
-function dayComplete(person, dateKeyStr) {
+function dayComplete(person, key) {
   return PRAYERS.every((p) => {
-    const s = Data.status(person, dateKeyStr, p.key);
+    const s = Data.status(person, key, p.key);
     return s === 'on_time' || s === 'late';
   });
 }
 
 /**
- * Consecutive days, counting back, where all five prayers are on time or late.
- * Today only breaks the streak once it is over — an unfinished today is skipped
- * rather than counted as a miss.
+ * A day only breaks a run once a prayer there has actually been missed. Missed
+ * is derived rather than stored, so this asks shownStatus, not the log.
  */
-function streakFor(person) {
-  let cursor = todayKey();
-  if (!dayComplete(person, cursor)) cursor = addDays(cursor, -1);
+function dayMissed(person, key) {
+  return PRAYERS.some((p) => shownStatus(person, key, p.key) === 'missed');
+}
+
+function prayedCount(person, key) {
+  return PRAYERS.filter((p) => {
+    const s = Data.status(person, key, p.key);
+    return s === 'on_time' || s === 'late';
+  }).length;
+}
+
+const personComplete = (person) => (key) => dayComplete(person, key);
+const personMissed = (person) => (key) => dayMissed(person, key);
+const duoComplete = (key) => PEOPLE_IDS.every((p) => dayComplete(p, key));
+const duoMissed = (key) => PEOPLE_IDS.some((p) => dayMissed(p, key));
+
+/**
+ * Consecutive complete days ending today. A today still in progress is stepped
+ * over rather than counted against the run — it only breaks it once a prayer
+ * there has actually been missed.
+ */
+function runEndingToday(isComplete, isMissed) {
+  const today = todayKey();
+  let cursor = today;
+
+  if (!isComplete(today)) {
+    if (isMissed(today)) return 0;
+    cursor = addDays(today, -1);
+  }
 
   let count = 0;
-  while (count < HISTORY_DAYS && dayComplete(person, cursor)) {
+  while (count < HISTORY_DAYS && isComplete(cursor)) {
     count += 1;
     cursor = addDays(cursor, -1);
   }
   return count;
+}
+
+/** The longest run anywhere in the history we have loaded. */
+function bestRun(isComplete) {
+  const today = todayKey();
+  let best = 0;
+  let run = 0;
+  for (let i = HISTORY_DAYS; i >= 0; i -= 1) {
+    if (isComplete(addDays(today, -i))) {
+      run += 1;
+      if (run > best) best = run;
+    } else {
+      run = 0;
+    }
+  }
+  return best;
+}
+
+function streakFor(person) {
+  return runEndingToday(personComplete(person), personMissed(person));
+}
+
+function duoStreak() {
+  return runEndingToday(duoComplete, duoMissed);
 }
 
 function lastSevenDays() {
@@ -329,47 +378,109 @@ function lastSevenDays() {
   return days;
 }
 
-function daySummary(person, key) {
-  return PRAYERS
-    .map((p) => `${p.label} ${STATUS_LABEL[shownStatus(person, key, p.key)].toLowerCase()}`)
-    .join(', ');
+/* ----------------------------------------------------------- day rings --- */
+
+const RING_R = 13;
+const RING_C = 2 * Math.PI * RING_R;
+const RING_SLOT = RING_C / PRAYERS.length;
+const RING_GAP = 3;
+
+/** A circle cut into five arcs, one per prayer, clockwise from the top. */
+function ringSvg(person, key, isToday) {
+  const ring = isToday
+    ? '<circle class="ring-today" cx="16" cy="16" r="15" fill="none" stroke-width="1"/>'
+    : '';
+
+  if (prayedCount(person, key) === PRAYERS.length) {
+    return `<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+      ${ring}
+      <circle class="ring-full" cx="16" cy="16" r="13"/>
+      <path class="ring-check" d="M10.6 16.4l3.1 3.1 6.8-7.2" fill="none"
+            stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+  }
+
+  const segments = PRAYERS.map((p, i) => {
+    const s = shownStatus(person, key, p.key);
+    const state = (s === 'on_time' || s === 'late') ? 'prayed'
+      : s === 'missed' ? 'missed' : 'none';
+    return `<circle class="ring-seg" data-state="${state}" cx="16" cy="16" r="${RING_R}"
+                    fill="none" stroke-width="4"
+                    stroke-dasharray="${(RING_SLOT - RING_GAP).toFixed(2)} ${RING_C.toFixed(2)}"
+                    stroke-dashoffset="${(-i * RING_SLOT).toFixed(2)}"/>`;
+  }).join('');
+
+  return `<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+    ${ring}
+    <g transform="rotate(-90 16 16)">${segments}</g>
+  </svg>`;
 }
 
-function renderWeek() {
+/* --------------------------------------------------------- the card ------ */
+
+/** Remembered so a new best can be highlighted the moment it is reached. */
+let lastDuoBest = null;
+
+function renderStreaks() {
   const today = todayKey();
   const days = lastSevenDays();
+  const duo = duoStreak();
+  const duoBest = bestRun(duoComplete);
 
-  el('week').innerHTML = PEOPLE_IDS.map((person) => {
+  const newBest = lastDuoBest !== null && duoBest > lastDuoBest && duo === duoBest;
+  lastDuoBest = duoBest;
+
+  const hero = duo === 0
+    ? '<p class="sk-prompt">Start a streak together today</p>'
+    : `<p class="sk-duo-n${newBest ? ' is-new-best' : ''}">${duo}</p>
+       <p class="sk-duo-sub">${duo === 1 ? 'day' : 'days'} in a row &middot; best ${duoBest}</p>`;
+
+  const people = PEOPLE_IDS.map((person) => {
     const n = streakFor(person);
-    const cells = days.map((key) => {
-      const segs = PRAYERS.map((p) => {
-        const status = shownStatus(person, key, p.key);
-        return `<i class="wk-seg" data-prayer="${p.key}" data-status="${status}"></i>`;
-      }).join('');
-      const classes = [
-        key === today ? 'is-today' : '',
-        key === State.viewDate ? 'is-viewed' : '',
-      ].join(' ').trim();
-      return `
-        <button class="wk-day ${classes}" type="button" data-date="${key}"
-                aria-label="${esc(name(person))} on ${friendlyDay(key)}: ${daySummary(person, key)}. Show this day.">
-          <span class="wk-bar" aria-hidden="true">${segs}</span>
-          <span class="wk-dlabel" aria-hidden="true">${fmtDayShort.format(parseKey(key)).slice(0, 2)}</span>
-        </button>`;
+    const best = bestRun(personComplete(person));
+    const who = esc(name(person));
+
+    const rings = days.map((key) => {
+      const count = prayedCount(person, key);
+      const tip = `${fmtGregorianShort.format(parseKey(key))} · ${count} of ${PRAYERS.length}`;
+      return `<button class="sk-ring" type="button" data-date="${key}" title="${tip}"
+                      aria-label="${who}, ${tip}. Show this day.">${ringSvg(person, key, key === today)}</button>`;
     }).join('');
 
     return `
-      <div class="wk-person">
-        <div class="wk-head">
-          <h3 class="wk-name">${esc(name(person))}</h3>
-          <p class="wk-streak">
-            <span class="wk-streak-n">${n}</span>
-            <span class="wk-streak-label">day streak</span>
+      <div class="sk-person">
+        <div class="sk-who">
+          <h3 class="sk-name">${who}</h3>
+          <p class="sk-streak">
+            <span class="sk-streak-n">${n}</span>
+            <span class="sk-streak-label">day streak</span>
+            ${best > n ? `<span class="sk-best">best ${best}</span>` : ''}
           </p>
         </div>
-        <div class="wk-days">${cells}</div>
+        <div class="sk-rings">${rings}</div>
       </div>`;
   }).join('');
+
+  const dayLabels = days
+    .map((key) => `<span class="sk-day">${fmtDayShort.format(parseKey(key)).slice(0, 2)}</span>`)
+    .join('');
+
+  const bothDone = PEOPLE_IDS.every((p) => dayComplete(p, today));
+
+  el('streaks').innerHTML = `
+    <div class="sk-duo">
+      <p class="sk-together">Together</p>
+      ${hero}
+    </div>
+
+    <hr class="rule rule--divider" />
+
+    <div class="sk-people">
+      ${people}
+      <div class="sk-days">${dayLabels}</div>
+    </div>
+
+    ${bothDone ? '<p class="sk-note">You both completed today.</p>' : ''}`;
 }
 
 /* ================================================================= ayah === */
@@ -406,7 +517,7 @@ function renderStatuses() {
     : null;
 
   renderTimetable();
-  renderWeek();
+  renderStreaks();
 
   // Re-rendering replaces the button the keyboard was on; put focus back.
   if (restore) {
@@ -479,9 +590,9 @@ el('day-prev').addEventListener('click', () => goToDay(addDays(State.viewDate, -
 el('day-next').addEventListener('click', () => goToDay(addDays(State.viewDate, 1)));
 el('day-today').addEventListener('click', () => goToDay(todayKey()));
 
-el('week').addEventListener('click', (event) => {
-  const day = event.target.closest('.wk-day');
-  if (day) goToDay(day.dataset.date);
+el('streaks').addEventListener('click', (event) => {
+  const ring = event.target.closest('.sk-ring');
+  if (ring) goToDay(ring.dataset.date);
 });
 
 /* keyboard: arrows change day, T jumps to today */
