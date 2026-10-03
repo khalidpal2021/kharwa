@@ -736,13 +736,6 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 @keyframes sk-flash { 50% { color: var(--accent-secondary); } }
 .st-n.is-new-best { animation: sk-flash 1.1s ease-out 2; }
 
-.st-best {
-  margin-top: var(--s1);
-  text-align: center;
-  font-size: 11.5px;
-  color: var(--muted-foreground);
-}
-
 .st-rule { width: 100%; margin: var(--s2) 0; }
 
 /* The weekday header and both people share one grid, so every column lines up

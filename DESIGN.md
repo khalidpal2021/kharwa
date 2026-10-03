@@ -144,8 +144,8 @@ derived rather than stored, the streak asks `shownStatus`, not the log.
 Three figures across the top, in equal columns divided by hairlines: Together,
 then each of us. Each is a Playfair numeral over a small-caps mono label, all
 the same size — Together's numeral and label are gold, the others are plain
-foreground over muted. One quiet line under them reads "Best together: N days",
-and only when there is a best to report.
+foreground over muted. The best duo run is still tracked, and still flashes the
+Together numeral once when it is beaten, but it is no longer printed.
 
 Below a rule, a square per prayer per day. The weekday labels appear once, above
 both people, with today's in gold; each person then gets their name and a 5x7

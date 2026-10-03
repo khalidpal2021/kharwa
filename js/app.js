@@ -400,7 +400,7 @@ function renderStreaks() {
   const today = todayKey();
   const days = lastSevenDays();
   const duo = duoStreak();
-  const duoBest = bestRun(duoComplete);
+  const duoBest = bestRun(duoComplete);   // still drives the new-best highlight
 
   const newBest = lastDuoBest !== null && duoBest > lastDuoBest && duo === duoBest;
   lastDuoBest = duoBest;
@@ -435,10 +435,6 @@ function renderStreaks() {
       ${figure('Together', duo, true)}
       ${PEOPLE_IDS.map((p) => figure(name(p), streakFor(p), false)).join('')}
     </div>
-
-    ${duoBest > 0
-      ? `<p class="st-best">Best together: ${duoBest} ${duoBest === 1 ? 'day' : 'days'}</p>`
-      : ''}
 
     <hr class="rule st-rule" />
 
