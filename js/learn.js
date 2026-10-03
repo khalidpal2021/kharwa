@@ -11,8 +11,11 @@
 
 const LEARN_AUDIO = 'https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/';
 
+const LEARN_TAB_STORE = 'kharwa.learn.tab';
+
 const Learn = {
-  ready: false,
+  panels: {},          // sub-tab id -> its element, built on first visit
+  tab: null,
   surahs: {},          // surah number -> { ar: [], tr: [], en: [], basmala }
   audio: null,         // the one <audio> element in play
   playing: null,       // surah number currently playing
@@ -143,10 +146,43 @@ const Learn = {
     }
   },
 
-  /* ------------------------------------------------------------ render --- */
+  /* -------------------------------------------------------------- tabs --- */
 
-  render() {
-    el('learn-body').innerHTML = `
+  /** The panel for a sub-tab, built the first time that tab is opened. */
+  buildPanel(tab) {
+    const panel = document.createElement('div');
+    panel.className = 'ln-panel';
+    panel.id = `learn-panel-${tab.id}`;
+    panel.innerHTML = `<p class="ln-intro">${esc(tab.intro)}</p>${tab.render()}`;
+    el('learn-panels').appendChild(panel);
+    this.panels[tab.id] = panel;
+    if (tab.id === 'positions') this.fillSurahs(panel);
+    return panel;
+  },
+
+  renderTabs(activeId) {
+    el('learn-tabs').innerHTML = LEARN_TABS.map((t) => `
+      <a class="ln-tab" href="#/learn/${t.id}" data-tab="${t.id}"
+         ${t.id === activeId ? 'aria-current="page"' : ''}>${esc(t.label)}</a>`).join('');
+  },
+
+  /** Show one sub-tab, building it if this is its first visit. */
+  activate(id) {
+    const tab = LEARN_TABS.find((t) => t.id === id) || LEARN_TABS[0];
+
+    if (!this.panels[tab.id]) this.buildPanel(tab);
+    for (const [key, node] of Object.entries(this.panels)) node.hidden = key !== tab.id;
+
+    this.renderTabs(tab.id);
+    this.tab = tab.id;
+    try { localStorage.setItem(LEARN_TAB_STORE, tab.id); } catch { /* private mode */ }
+    return tab;
+  },
+
+  /* ------------------------------------------------------- the panels --- */
+
+  renderBasics() {
+    return `
       <p class="ln-disclaimer">${esc(LEARN_DISCLAIMER)}</p>
 
       ${this.card('before', 'Before you pray', `
@@ -157,59 +193,74 @@ const Learn = {
           <li>You are facing the qibla.</li>
           <li>The time for the prayer has started.</li>
           <li>You intend the prayer. The intention is in the heart — it does not need to be said aloud.</li>
-        </ul>`)}
+        </ul>`)}`;
+  },
 
-      ${this.card('wudu', 'Wudu', `
-        <ol class="ln-steps">
-          ${LEARN_WUDU.steps.map((s, i) => `
-            <li class="ln-step">
-              <span class="ln-step-fig">${LEARN_FIGURES[s.fig] || ''}</span>
-              <span class="ln-step-text">
-                <span class="ln-step-title">
-                  <span class="ln-step-n">${i + 1}</span>${esc(s.title)}
-                  ${s.times > 1 ? `<span class="ln-times">&times;${s.times}</span>` : ''}
-                </span>
-                <span class="ln-step-body">${esc(s.body)}</span>
+  renderWudu() {
+    return this.card('wudu', 'Wudu', `
+      <ol class="ln-steps">
+        ${LEARN_WUDU.steps.map((s, i) => `
+          <li class="ln-step">
+            <span class="ln-step-fig">${LEARN_FIGURES[s.fig] || ''}</span>
+            <span class="ln-step-text">
+              <span class="ln-step-title">
+                <span class="ln-step-n">${i + 1}</span>${esc(s.title)}
+                ${s.times > 1 ? `<span class="ln-times">&times;${s.times}</span>` : ''}
               </span>
-            </li>`).join('')}
-        </ol>
-        <p class="ln-note">${esc(LEARN_WUDU.note)}</p>
-        <h4 class="ln-sub">What breaks wudu</h4>
-        <ul class="ln-bullets">${LEARN_WUDU.breaks.map((b) => `<li>${esc(b)}</li>`).join('')}</ul>`)}
+              <span class="ln-step-body">${esc(s.body)}</span>
+            </span>
+          </li>`).join('')}
+      </ol>
+      <p class="ln-note">${esc(LEARN_WUDU.note)}</p>
+      <h4 class="ln-sub">What breaks wudu</h4>
+      <ul class="ln-bullets">${LEARN_WUDU.breaks.map((b) => `<li>${esc(b)}</li>`).join('')}</ul>`);
+  },
 
-      ${this.card('positions', 'The positions', `
-        <p class="ln-lead">One rakʿah, in order. Every prayer is these positions repeated.</p>
-        <ol class="ln-positions">
-          ${LEARN_POSITIONS.map((p, i) => `
-            <li class="ln-pos" id="pos-${p.id}">
-              <div class="ln-pos-head">
-                <span class="ln-pos-n">${i + 1}</span>
-                <span class="ln-pos-names">
-                  <span class="ln-pos-name">${esc(p.name)}</span>
-                  <span class="ln-pos-sub">${esc(p.sub)}</span>
-                </span>
+  renderPositions() {
+    return this.card('positions', 'The positions', `
+      <ol class="ln-positions">
+        ${LEARN_POSITIONS.map((p, i) => `
+          <li class="ln-pos" id="pos-${p.id}">
+            <div class="ln-pos-head">
+              <span class="ln-pos-n">${i + 1}</span>
+              <span class="ln-pos-names">
+                <span class="ln-pos-name">${esc(p.name)}</span>
+                <span class="ln-pos-sub">${esc(p.sub)}</span>
+              </span>
+            </div>
+            <div class="ln-pos-body">
+              <div class="ln-pos-fig">${LEARN_FIGURES[p.fig] || ''}</div>
+              <div class="ln-pos-text">
+                <ul class="ln-bullets">${p.body.map((b) => `<li>${esc(b)}</li>`).join('')}</ul>
+                ${p.note ? `<p class="ln-note">${esc(p.note)}</p>` : ''}
               </div>
-              <div class="ln-pos-body">
-                <div class="ln-pos-fig">${LEARN_FIGURES[p.fig] || ''}</div>
-                <div class="ln-pos-text">
-                  <ul class="ln-bullets">${p.body.map((b) => `<li>${esc(b)}</li>`).join('')}</ul>
-                  ${p.note ? `<p class="ln-note">${esc(p.note)}</p>` : ''}
-                </div>
-              </div>
-              ${p.says.map((k) => this.reciteMarkup(k)).join('')}
-              ${p.surah ? `
-                <p class="ln-lead">Then Al-Fātiḥah, and in the first two rakʿahs a surah after it.</p>
-                ${LEARN_SURAHS.map((s) => this.surahMarkup(s)).join('')}` : ''}
-            </li>`).join('')}
-        </ol>`)}
+            </div>
+            ${p.says.map((k) => this.reciteMarkup(k)).join('')}
+            ${p.surah ? `
+              <p class="ln-lead">Then Al-Fātiḥah, and in the first two rakʿahs a surah after it.</p>
+              ${LEARN_SURAHS.map((s) => this.surahMarkup(s)).join('')}` : ''}
+          </li>`).join('')}
+      </ol>`);
+  },
 
-      ${this.card('prayers', 'Each prayer', `
-        <p class="ln-lead">Hanafi. Fard is obligatory; sunnah is what the Prophet
-          &#xFDFA; kept to. Each block is one rakʿah.</p>
-        ${PRAYERS.map((p) => this.prayerMarkup(p.key)).join('')}`)}
-    `;
+  renderPrayers() {
+    return this.card('prayers', 'Each prayer', `
+      <p class="ln-lead">Fard is obligatory; sunnah is what the Prophet
+        &#xFDFA; kept to. Each block is one rakʿah.</p>
+      ${PRAYERS.map((p) => this.prayerMarkup(p.key)).join('')}`);
+  },
 
-    this.fillSurahs(el('learn-body'));
+  renderAlong() {
+    return this.card('along', 'Pray along', `
+      <p class="ln-lead">Pick a prayer. It runs through every step in order, one at a
+        time, and keeps the screen awake while it does.</p>
+      <div class="ln-pick">
+        ${PRAYERS.map((p) => `
+          <button class="btn btn--ghost ln-pick-btn ln-guide-btn" type="button" data-prayer="${p.key}">
+            <span class="ln-pick-name">${esc(LEARN_PRAYERS[p.key].name)}</span>
+            <span class="ln-pick-sum">${esc(LEARN_PRAYERS[p.key].summary)}</span>
+          </button>`).join('')}
+      </div>`);
   },
 
   card(id, title, inner) {
@@ -384,20 +435,73 @@ const Learn = {
   /* -------------------------------------------------------------- show --- */
 
   show(params) {
-    if (!this.ready) {
-      this.render();
-      this.ready = true;
-    }
     this.stopAudio();
 
-    // #/learn/asr opens that prayer; #/learn/wudu opens that card.
-    const [target] = params;
-    if (!target) return;
-    const node = document.getElementById(`learn-${target}`)
-      || document.getElementById(`pos-${target}`);
-    if (node) requestAnimationFrame(() => node.scrollIntoView({ block: 'start' }));
+    let [target] = params;
+
+    // Old links pointed at a prayer or a position rather than a sub-tab.
+    let scrollTo = null;
+    if (target && !LEARN_TABS.some((t) => t.id === target)) {
+      if (LEARN_PRAYERS[target]) { scrollTo = `learn-${target}`; target = 'prayers'; }
+      else if (LEARN_POSITIONS.some((p) => p.id === target)) { scrollTo = `pos-${target}`; target = 'positions'; }
+      else target = null;
+    }
+
+    if (!target) {
+      let remembered = null;
+      try { remembered = localStorage.getItem(LEARN_TAB_STORE); } catch { /* private mode */ }
+      target = LEARN_TABS.some((t) => t.id === remembered) ? remembered : LEARN_TABS[0].id;
+      history.replaceState(null, '', `#/learn/${target}`);
+    }
+
+    this.activate(target);
+
+    if (scrollTo) {
+      const node = document.getElementById(scrollTo);
+      if (node) requestAnimationFrame(() => node.scrollIntoView({ block: 'start' }));
+    } else {
+      el('learn-tabs').scrollIntoView({ block: 'start' });
+    }
   },
 };
+
+/* ----------------------------------------------------------------- tabs --- */
+
+/* The sub-tabs, in order. Adding one means adding an entry here and a render
+   method on Learn: the bar, the routing and the remembered tab follow from it.
+   The id is the second hash segment, e.g. #/learn/wudu. */
+const LEARN_TABS = [
+  {
+    id: 'basics',
+    label: 'Basics',
+    intro: 'What needs to be in place before you begin.',
+    render: () => Learn.renderBasics(),
+  },
+  {
+    id: 'wudu',
+    label: 'Wudu',
+    intro: 'The washing before prayer, step by step, and what undoes it.',
+    render: () => Learn.renderWudu(),
+  },
+  {
+    id: 'positions',
+    label: 'Positions',
+    intro: 'One rakʿah, from the opening takbīr to the salām.',
+    render: () => Learn.renderPositions(),
+  },
+  {
+    id: 'prayers',
+    label: 'Prayers',
+    intro: 'How many rakʿahs each prayer has, and which of them are sunnah.',
+    render: () => Learn.renderPrayers(),
+  },
+  {
+    id: 'pray-along',
+    label: 'Pray along',
+    intro: 'A guided run through a whole prayer, one step at a time.',
+    render: () => Learn.renderAlong(),
+  },
+];
 
 /* --------------------------------------------------------------- events --- */
 

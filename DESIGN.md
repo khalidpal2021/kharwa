@@ -363,8 +363,22 @@ A guide to praying, Hanafi throughout since ISOT is Hanafi, with a short note
 where another school commonly differs. The section opens with one line: a
 learning guide, check with your local imam.
 
-Four cards — before you pray, wudu, the positions, each prayer — and a
-pray-along mode over the top of them.
+Five sub-tabs rather than one long page: Basics, Wudu, Positions, Prayers and
+Pray along. The bar sits at the top of the section in small-caps mono, styled
+like the main navigation, with a gold underline under the active tab and a thin
+rule beneath. It is sticky once the masthead scrolls away, and on a phone it
+scrolls sideways rather than wrapping, with no visible scrollbar.
+
+Each sub-tab is its own hash route — `#/learn/wudu`, `#/learn/positions` — so
+the back button works and a link can open one directly. The last one visited is
+remembered in `localStorage`, and a bare `#/learn` reopens it. Each starts with a
+one-line intro saying what it covers.
+
+A sub-tab is one entry in `LEARN_TABS` — id, label, intro, render — and a render
+method on `Learn`; the bar, the routing and the remembering all follow from the
+list, so Surahs or Duas would be an entry and a method. Panels are built the
+first time their tab is opened, which is also what keeps the six Qur'an requests
+on the Positions tab from firing until someone goes there.
 
 Where the words come from matters, and the split is deliberate:
 
@@ -382,13 +396,14 @@ Figures are inline SVG line drawings, side on, facing the qibla, no faces:
 `--foreground` for the body, `--accent` for whichever part the step is about,
 a hairline for the ground. One set, one style.
 
-Pray-along is a full-screen dialog built from the same position and prayer
-data: one step at a time with a large figure, what to say, a progress bar, and
-54px Back and Next buttons. It asks for a screen wake lock and takes it again
+Pray along has its own sub-tab, listing the five prayers to pick from, and each
+prayer card also carries a button straight into its own. Either way it opens the
+same full-screen dialog, built from the same position and prayer data: one step
+at a time with a large figure, what to say, a progress bar, and 54px Back and
+Next buttons. It asks for a screen wake lock and takes it again
 when the tab comes back; every failure there is ignored. Arrow keys move
 between steps and Escape closes it.
 
-Each prayer name in the Today table links to its card here.
 
 ## Mobile (< 900px)
 
