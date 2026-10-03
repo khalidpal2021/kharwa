@@ -110,7 +110,7 @@ shape or fill, not just hue.
 | Not logged | empty thin-bordered circle, no text            |
 
 Only *on time* and *late* are ever stored. A late prayer is a prayer prayed:
-it reads gold and counts exactly like an on-time one in the streaks ledger. *Missed* is never chosen or stored. A prayer shows as missed when it is
+it reads gold and counts exactly like an on-time one on the streaks card. *Missed* is never chosen or stored. A prayer shows as missed when it is
 still empty after its window has closed:
 
 - Fajr, Dhuhr, Asr and Maghrib when the next prayer's time arrives;
@@ -139,31 +139,35 @@ derived rather than stored, the streak asks `shownStatus`, not the log.
   anywhere in the loaded history, computed in the browser from the logs — no
   extra table — so they reach back as far as the 120-day window the app loads.
 
-### The ledger
+### The streaks card
 
-The seven days are a compact table: a column per day, a row for the pair and one
-for each of us. Column headers carry the weekday initial in small caps above the
-day of the month in mono, and today's header is gold. Rules between rows carry
-the structure — no boxes, no circles.
+Three figures across the top, in equal columns divided by hairlines: Together,
+then each of us. Each is a Playfair numeral over a small-caps mono label, all
+the same size — Together's numeral and label are gold, the others are plain
+foreground over muted. One quiet line under them reads "Best together: N days",
+and only when there is a best to report.
 
-The TOGETHER row is featured without being larger: a thin gold rule above it and
-a quiet `--muted` tint behind it. Its streak is gold; the personal ones are not.
-All three streak numbers are the size of the names beside them, with "best N" in
-tiny muted text only when the best beats the current run.
+Below a rule, a square per prayer per day. The weekday labels appear once, above
+both people, with today's in gold; each person then gets their name and a 5x7
+grid, prayers labelled F D A M I down the left. The header and both grids are
+one CSS grid, so every column lines up with the one above it.
 
-Marks are typographic, not shapes:
+| Square | Meaning |
+| ------ | ------- |
+| solid gold | prayed, on time or late |
+| solid warm gray (`--mark-empty`) | missed |
+| thin outline | not yet due, or today still going |
 
-| Day | Mark |
-| --- | ---- |
-| All five prayed | a gold check |
-| Part way through | the count, in mono |
-| Finished with a prayer missing | the count, struck through |
-| Nothing to show yet | a faint en dash |
+Squares are 11px with a 3px radius, 9px on a phone. The grid is capped and
+centred rather than stretched across the card: at full width the columns sat
+about 57px apart against 2px between rows, which read as stripes rather than a
+grid. Capped, the pitch is about 34px across to 22px down, close enough to read
+as even.
 
-The TOGETHER row shows a check only when both of us completed the day. Clicking
-any cell moves the Today table to that date, and each carries the whole day as
-its tooltip and accessible name: "Thu, Oct 1 · Khalid 5/5 · Marwa 4/5". Day
-columns are equal width with tabular figures, so the marks line up in a grid.
+Clicking any square moves the Today table to its date, and each carries its own
+tooltip and accessible name: "Khalid · Fajr · Thu, Oct 1 · missed". A small
+centred legend closes the card, and "You both completed today." sits under it
+when it applies.
 
 ## Desktop layout (≥ 900px)
 
@@ -217,11 +221,10 @@ taller than the window; at 1920x1080 it fits with room to spare.
      only as wide as "12:45 PM", so the spare width goes to the prayer names.
      The headings and the columns share one set of explicit widths, so they
      line up exactly. Thin rules between rows.
-   - **Left, below — Streaks**. A compact ledger of the last seven days: the
-     TOGETHER row first, tinted and ruled in gold, then a row each. Labels and
-     streak numbers sit in the first column, the seven day columns are equal
-     width, and a quiet "You both completed today." sits under the table when it
-     applies. A new duo best is highlighted once in lighter gold.
+   - **Left, below — Streaks**. Three streak figures across the top, then a
+     square per prayer per day for the last seven days, a grid each under a
+     shared row of weekday labels. A new duo best is highlighted once in
+     lighter gold.
 4. **Ayah of the Day** — top of the left column, like an illuminated page in a
    fine mushaf. Warm paper (`--card-warm`) and a fine gold hairline rule just
    inside the card border, kept restrained. Under the AYAH OF THE DAY header, a

@@ -112,7 +112,7 @@ input, select, textarea { font-size: max(16px, 1em); }
    pinch-zoom still works. */
 html, body,
 button, a, input, select, textarea, label,
-.mark, .markmenu-btn, .daynav-btn, .lg-c, .gate-btn {
+.mark, .markmenu-btn, .daynav-btn, .st-cell, .gate-btn {
   touch-action: manipulation;
 }
 
@@ -690,123 +690,152 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 /* ------------------------------------------------------------- streaks -- */
 
-/* A compact ledger: a column per day, a row for the pair and one each. Rules
-   between rows carry the structure; there are no boxes or circles. */
-.lg {
+.streaks { --dot: 9px; --dot-row: 19px; }
+
+/* three figures across the top, divided by hairlines */
+.st-tops {
   display: grid;
-  grid-template-columns: auto repeat(7, minmax(0, 1fr));
-  align-items: center;
-  font-variant-numeric: tabular-nums;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
 }
 
-.lg-h,
-.lg-c {
-  min-width: 0;
-  padding: 7px 1px;
+.st-top {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 0 4px;
+}
+
+.st-top + .st-top { border-left: 1px solid var(--border); }
+
+.st-n {
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--foreground);
+}
+
+.st-l {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: var(--muted-foreground);
   text-align: center;
 }
 
-.lg-h { display: grid; gap: 1px; justify-items: center; }
+.st-top.is-duo .st-n,
+.st-top.is-duo .st-l { color: var(--accent); }
+.st-top.is-duo .st-l { color: var(--accent-text); }
 
-.lg-wd,
-.lg-dm {
-  font-family: var(--mono);
-  font-weight: 500;
+/* a new best, highlighted once and quietly */
+@keyframes sk-flash { 50% { color: var(--accent-secondary); } }
+.st-n.is-new-best { animation: sk-flash 1.1s ease-out 2; }
+
+.st-best {
+  margin-top: var(--s1);
+  text-align: center;
+  font-size: 11.5px;
   color: var(--muted-foreground);
-  line-height: 1.2;
 }
 
-.lg-wd { font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em; }
-.lg-dm { font-size: 11px; }
+.st-rule { width: 100%; margin: var(--s2) 0; }
 
-.lg-h.is-today .lg-wd,
-.lg-h.is-today .lg-dm { color: var(--accent); }
-
-/* the label column */
-.lg-lab {
-  display: flex;
-  align-items: baseline;
-  gap: 7px;
-  padding: 7px var(--s2) 7px 0;
-  white-space: nowrap;
-  border-top: 1px solid var(--border);
+/* The weekday header and both people share one grid, so every column lines up
+   with the one above it. Capped and centred rather than stretched across the
+   whole card, so the squares sit about as far apart across as they do down. */
+.st-grid {
+  display: grid;
+  grid-template-columns: auto repeat(7, minmax(0, 1fr));
+  align-items: center;
+  justify-items: center;
+  width: 100%;
+  max-width: 215px;
+  margin: 0 auto;
 }
 
-.lg-name {
-  font-family: var(--serif);
-  font-size: 15px;
-  font-weight: 400;
-  letter-spacing: -0.01em;
-}
+.st-corner { width: 12px; }
 
-.lg-duo-label {
+.st-wd {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.15em;
-  color: var(--accent-text);
+  letter-spacing: 0.08em;
+  color: var(--muted-foreground);
+  padding-bottom: 3px;
 }
 
-.lg-streak {
+.st-wd.is-today { color: var(--accent); }
+
+.st-name {
+  grid-column: 1 / -1;
+  justify-self: start;
+  width: 100%;
   font-family: var(--serif);
-  font-size: 15px;
-  line-height: 1;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin: var(--s1) 0 3px;
 }
 
-.lg-best { font-size: 10px; color: var(--muted-foreground); }
+.st-pl {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+  justify-self: start;
+  width: 12px;
+}
 
-/* the day cells */
-.lg-c {
+.st-cell {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: var(--dot-row);
+  padding: 0;
   border: 0;
-  border-top: 1px solid var(--border);
   background: none;
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
-  transition: background var(--ease);
 }
 
-.lg-c:hover { background: var(--muted); }
+.st-cell:hover .st-dot { box-shadow: inset 0 0 0 1px var(--accent); }
+.st-cell:hover .st-dot.is-prayed,
+.st-cell:hover .st-dot.is-missed { box-shadow: 0 0 0 2px var(--muted); }
 
-/* the featured row: a thin gold rule above it and a quiet tint, not more size */
-.lg-lab.is-duo,
-.lg-c.is-duo {
-  background: var(--muted);
-  border-top-color: var(--accent);
+.st-dot {
+  width: var(--dot);
+  height: var(--dot);
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px var(--border-hover);
 }
 
-.lg-c.is-duo:hover { background: var(--border); }
-.lg-lab.is-duo .lg-streak { color: var(--accent); }
+.st-dot.is-prayed { background: var(--accent); box-shadow: none; }
+.st-dot.is-missed { background: var(--mark-empty); box-shadow: none; }
 
-/* a new best, highlighted once and quietly */
-@keyframes sk-flash { 50% { color: var(--accent-secondary); } }
-.lg-streak.is-new-best { animation: sk-flash 1.1s ease-out 2; }
-
-/* the marks themselves */
-.lg-tick {
-  font-family: var(--serif);
-  font-size: 15px;
-  line-height: 1;
-  color: var(--accent);
-}
-
-.lg-n {
-  font-family: var(--mono);
-  font-size: 12px;
+.st-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px var(--s2);
+  margin-top: var(--s2);
+  font-size: 11px;
   color: var(--muted-foreground);
 }
 
-.lg-n.is-missed {
-  text-decoration: line-through;
-  text-decoration-thickness: 1px;
-}
-
-.lg-dash { color: var(--mark-empty); font-size: 13px; line-height: 1; }
+.st-legend span { display: inline-flex; align-items: center; gap: 5px; }
 
 .sk-note {
-  margin-top: var(--s2);
+  margin-top: var(--s1);
   text-align: center;
   font-size: 12.5px;
   color: var(--muted-foreground);
@@ -2207,9 +2236,11 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
   /* week */
 
-  .lg-name, .lg-streak { font-size: 16px; }
-  .lg-dm { font-size: 11.5px; }
-  .lg-tick { font-size: 16px; }
+  .streaks { --dot: 11px; --dot-row: 22px; }
+  .st-grid { max-width: 250px; }
+  .st-n { font-size: 24px; }
+  .st-l { font-size: 10px; }
+  .st-name { font-size: 15px; }
 
   /* quran: the list in two columns, the reader as one centred page */
 

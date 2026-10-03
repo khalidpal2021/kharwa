@@ -378,14 +378,23 @@ function lastSevenDays() {
   return days;
 }
 
-/* ------------------------------------------------------------- ledger --- */
+/* ------------------------------------------------------------- streaks --- */
 
 /** Remembered so a new best can be highlighted the moment it is reached. */
 let lastDuoBest = null;
 
+const STATE_WORD = { prayed: 'prayed', missed: 'missed', none: 'not yet' };
+
+/** What a single square says: prayed, missed, or nothing to show yet. */
+function cellState(person, key, prayer) {
+  const s = shownStatus(person, key, prayer);
+  if (s === 'on_time' || s === 'late') return 'prayed';
+  return s === 'missed' ? 'missed' : 'none';
+}
+
 /**
- * The seven days as a compact table: a column per day, a row for the pair and
- * one for each of us. Marks are typographic — a check, a count, an en dash.
+ * Three streak figures over a square per prayer per day, seven days wide. The
+ * weekday header and both grids share one grid, so every column lines up.
  */
 function renderStreaks() {
   const today = todayKey();
@@ -396,71 +405,55 @@ function renderStreaks() {
   const newBest = lastDuoBest !== null && duoBest > lastDuoBest && duo === duoBest;
   lastDuoBest = duoBest;
 
-  const tipFor = (key) => {
-    const each = PEOPLE_IDS
-      .map((p) => `${name(p)} ${prayedCount(p, key)}/${PRAYERS.length}`)
-      .join(' · ');
-    return `${fmtGregorianShort.format(parseKey(key))} · ${each}`;
-  };
+  const figure = (label, n, isDuo) => `
+    <div class="st-top${isDuo ? ' is-duo' : ''}">
+      <span class="st-n${isDuo && newBest ? ' is-new-best' : ''}">${n}</span>
+      <span class="st-l">${esc(label)}</span>
+    </div>`;
 
-  const cell = (key, inner, duoRow) => {
-    const tip = esc(tipFor(key));
-    return `<button class="lg-c${duoRow ? ' is-duo' : ''}" type="button" data-date="${key}"
-                    title="${tip}" aria-label="${tip}. Show this day.">${inner}</button>`;
-  };
+  const head = days.map((key) => `
+    <span class="st-wd${key === today ? ' is-today' : ''}" aria-hidden="true">${
+      fmtDayShort.format(parseKey(key)).slice(0, 2)}</span>`).join('');
 
-  const TICK = '<span class="lg-tick">&#10003;</span>';
-  const DASH = '<span class="lg-dash">&ndash;</span>';
-
-  /** A check when the day is done, a count while it is going, a dash when
-      there is nothing to say yet, struck through once a finished day has a
-      prayer missing. */
-  function personMark(person, key) {
-    const n = prayedCount(person, key);
-    if (n === PRAYERS.length) return TICK;
-    if (key < today && dayMissed(person, key)) {
-      return `<span class="lg-n is-missed">${n}</span>`;
-    }
-    if (n > 0) return `<span class="lg-n">${n}</span>`;
-    return DASH;
-  }
-
-  const head = days.map((key) => {
-    const d = parseKey(key);
-    return `<span class="lg-h${key === today ? ' is-today' : ''}" aria-hidden="true">
-      <span class="lg-wd">${fmtDayShort.format(d).slice(0, 1)}</span>
-      <span class="lg-dm">${d.getDate()}</span>
-    </span>`;
-  }).join('');
-
-  const streakBits = (n, best, cls) =>
-    `<span class="lg-streak${cls}">${n}</span>` +
-    (best > n ? `<span class="lg-best">best ${best}</span>` : '');
-
-  const duoRow =
-    `<span class="lg-lab is-duo">
-       <span class="lg-duo-label">Together</span>
-       ${streakBits(duo, duoBest, newBest ? ' is-new-best' : '')}
-     </span>` +
-    days.map((key) => cell(key, duoComplete(key) ? TICK : DASH, true)).join('');
-
-  const personRows = PEOPLE_IDS.map((person) =>
-    `<span class="lg-lab">
-       <span class="lg-name">${esc(name(person))}</span>
-       ${streakBits(streakFor(person), bestRun(personComplete(person)), '')}
-     </span>` +
-    days.map((key) => cell(key, personMark(person, key), false)).join('')
-  ).join('');
+  const block = (person) => `
+    <h3 class="st-name">${esc(name(person))}</h3>` +
+    PRAYERS.map((p) => `
+      <span class="st-pl" aria-hidden="true">${p.label.slice(0, 1)}</span>` +
+      days.map((key) => {
+        const state = cellState(person, key, p.key);
+        const tip = `${name(person)} · ${p.label} · ${
+          fmtGregorianShort.format(parseKey(key))} · ${STATE_WORD[state]}`;
+        return `<button class="st-cell" type="button" data-date="${key}"
+                        title="${esc(tip)}" aria-label="${esc(tip)}. Show this day."
+                      ><i class="st-dot is-${state}"></i></button>`;
+      }).join('')).join('');
 
   const bothDone = PEOPLE_IDS.every((p) => dayComplete(p, today));
 
   el('streaks').innerHTML = `
-    <div class="lg">
-      <span class="lg-h lg-corner" aria-hidden="true"></span>
-      ${head}
-      ${duoRow}
-      ${personRows}
+    <div class="st-tops">
+      ${figure('Together', duo, true)}
+      ${PEOPLE_IDS.map((p) => figure(name(p), streakFor(p), false)).join('')}
     </div>
+
+    ${duoBest > 0
+      ? `<p class="st-best">Best together: ${duoBest} ${duoBest === 1 ? 'day' : 'days'}</p>`
+      : ''}
+
+    <hr class="rule st-rule" />
+
+    <div class="st-grid">
+      <span class="st-corner" aria-hidden="true"></span>
+      ${head}
+      ${PEOPLE_IDS.map(block).join('')}
+    </div>
+
+    <p class="st-legend" aria-hidden="true">
+      <span><i class="st-dot is-prayed"></i>prayed</span>
+      <span><i class="st-dot is-missed"></i>missed</span>
+      <span><i class="st-dot is-none"></i>not yet</span>
+    </p>
+
     ${bothDone ? '<p class="sk-note">You both completed today.</p>' : ''}`;
 }
 
@@ -572,7 +565,7 @@ el('day-next').addEventListener('click', () => goToDay(addDays(State.viewDate, 1
 el('day-today').addEventListener('click', () => goToDay(todayKey()));
 
 el('streaks').addEventListener('click', (event) => {
-  const cell = event.target.closest('.lg-c');
+  const cell = event.target.closest('.st-cell');
   if (cell) goToDay(cell.dataset.date);
 });
 
