@@ -363,14 +363,19 @@ A guide to praying, Hanafi throughout since ISOT is Hanafi, with a short note
 where another school commonly differs. The section opens with one line: a
 learning guide, check with your local imam.
 
-Five sub-tabs rather than one long page: Basics, Wudu, Positions, Prayers and
-Pray along. The bar sits at the top of the section in small-caps mono, styled
-like the main navigation, with a gold underline under the active tab and a thin
-rule beneath. It is sticky once the masthead scrolls away, and on a phone it
-scrolls sideways rather than wrapping, with no visible scrollbar.
+Five sub-tabs rather than one long page: Basics, Wudu, Steps, Prayers and
+Practice. The labels are kept short on purpose — all five measure 253px together
+at 10px with 0.08em tracking, so they fit a 390px phone with room to spare and
+still fit at 320px. The bar sits at the top of the section in small-caps mono,
+styled like the main navigation, with a gold underline under the active tab and
+a thin rule beneath. It is sticky once the masthead scrolls away. If the labels
+ever do outgrow the screen it scrolls sideways rather than wrapping, with the
+scrollbar hidden and a soft fade on the right edge that appears only while there
+is more to reach.
 
-Each sub-tab is its own hash route — `#/learn/wudu`, `#/learn/positions` — so
-the back button works and a link can open one directly. The last one visited is
+Each sub-tab is its own hash route — `#/learn/wudu`, `#/learn/steps` — so the
+back button works and a link can open one directly. `LEARN_ALIASES` keeps the
+older `positions` and `pray-along` routes working. The last one visited is
 remembered in `localStorage`, and a bare `#/learn` reopens it. Each starts with a
 one-line intro saying what it covers.
 
@@ -396,11 +401,21 @@ Figures are inline SVG line drawings, side on, facing the qibla, no faces:
 `--foreground` for the body, `--accent` for whichever part the step is about,
 a hairline for the ground. One set, one style.
 
-Pray along has its own sub-tab, listing the five prayers to pick from, and each
-prayer card also carries a button straight into its own. Either way it opens the
-same full-screen dialog, built from the same position and prayer data: one step
-at a time with a large figure, what to say, a progress bar, and 54px Back and
-Next buttons. It asks for a screen wake lock and takes it again
+Practice lists the five prayers as compact rows in one card: the name in
+Playfair, a row of small blocks showing the shape of the prayer — sunnah
+outlined, fard filled, Witr hatched — the same thing in words, and a chevron,
+with thin rules between. The next prayer due is lifted to the top under a small
+gold Next tag. An Include sunnah toggle above the list, on by default and
+remembered, drops the sunnah rakʿahs from both the blocks and the walk-through;
+Witr stays, since it is wājib. Each prayer card on the Prayers tab also carries
+a button straight into its own.
+
+Either route opens the same full-screen dialog, built from the same position and
+prayer data: one step at a time with a large figure, what to say, a progress bar,
+and 54px Back and Next buttons. Fajr is 32 steps with the sunnah, 16 without.
+
+Learn's tab icon is a graduation cap, so it is not mistaken for the Quran tab's
+book. It asks for a screen wake lock and takes it again
 when the tab comes back; every failure there is ignored. Arrow keys move
 between steps and Escape closes it.
 

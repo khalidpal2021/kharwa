@@ -12,10 +12,12 @@
 const LEARN_AUDIO = 'https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/';
 
 const LEARN_TAB_STORE = 'kharwa.learn.tab';
+const LEARN_SUNNAH_STORE = 'kharwa.learn.sunnah';
 
 const Learn = {
   panels: {},          // sub-tab id -> its element, built on first visit
   tab: null,
+  includeSunnah: true, // Practice walks the sunnah rakʿahs too
   surahs: {},          // surah number -> { ar: [], tr: [], en: [], basmala }
   audio: null,         // the one <audio> element in play
   playing: null,       // surah number currently playing
@@ -164,6 +166,14 @@ const Learn = {
     el('learn-tabs').innerHTML = LEARN_TABS.map((t) => `
       <a class="ln-tab" href="#/learn/${t.id}" data-tab="${t.id}"
          ${t.id === activeId ? 'aria-current="page"' : ''}>${esc(t.label)}</a>`).join('');
+    this.updateTabFade();
+  },
+
+  /** The labels should fit at 390px; the fade is the fallback if they ever do not. */
+  updateTabFade() {
+    const bar = el('learn-tabs');
+    const more = bar.scrollWidth - bar.scrollLeft - bar.clientWidth > 2;
+    el('learn-tabs-wrap').classList.toggle('is-scrollable', more);
   },
 
   /** Show one sub-tab, building it if this is its first visit. */
@@ -171,6 +181,9 @@ const Learn = {
     const tab = LEARN_TABS.find((t) => t.id === id) || LEARN_TABS[0];
 
     if (!this.panels[tab.id]) this.buildPanel(tab);
+    else if (tab.dynamic) {
+      this.panels[tab.id].innerHTML = `<p class="ln-intro">${esc(tab.intro)}</p>${tab.render()}`;
+    }
     for (const [key, node] of Object.entries(this.panels)) node.hidden = key !== tab.id;
 
     this.renderTabs(tab.id);
@@ -245,22 +258,66 @@ const Learn = {
 
   renderPrayers() {
     return this.card('prayers', 'Each prayer', `
-      <p class="ln-lead">Fard is obligatory; sunnah is what the Prophet
-        &#xFDFA; kept to. Each block is one rakʿah.</p>
       ${PRAYERS.map((p) => this.prayerMarkup(p.key)).join('')}`);
   },
 
-  renderAlong() {
-    return this.card('along', 'Pray along', `
-      <p class="ln-lead">Pick a prayer. It runs through every step in order, one at a
-        time, and keeps the screen awake while it does.</p>
-      <div class="ln-pick">
-        ${PRAYERS.map((p) => `
-          <button class="btn btn--ghost ln-pick-btn ln-guide-btn" type="button" data-prayer="${p.key}">
-            <span class="ln-pick-name">${esc(LEARN_PRAYERS[p.key].name)}</span>
-            <span class="ln-pick-sum">${esc(LEARN_PRAYERS[p.key].summary)}</span>
-          </button>`).join('')}
-      </div>`);
+  /* ---------------------------------------------------------- practice --- */
+
+  /** The units Practice will walk: fard always, Witr always, sunnah by choice. */
+  unitsFor(key) {
+    const units = LEARN_PRAYERS[key].units;
+    return this.includeSunnah ? units : units.filter((u) => u.kind !== 'sunnah');
+  },
+
+  /** Small blocks showing the shape of a prayer, and the same thing in words. */
+  shapeMarkup(key) {
+    const units = this.unitsFor(key);
+    const blocks = units.map((u) =>
+      u.rakahs.map(() => `<i class="ln-blk ln-blk--${u.kind}"></i>`).join('')
+    ).join('<i class="ln-blk-gap"></i>');
+    const words = units.map((u) => esc(u.label)).join(' · ');
+    return { blocks, words };
+  },
+
+  renderPractice() {
+    const next = nextPrayerFrom(new Date()).key;
+    const order = [next, ...PRAYERS.map((p) => p.key).filter((k) => k !== next)];
+
+    const row = (key) => {
+      const { blocks, words } = this.shapeMarkup(key);
+      return `
+        <button class="ln-row ln-guide-btn" type="button" data-prayer="${key}">
+          <span class="ln-row-main">
+            <span class="ln-row-top">
+              <span class="ln-row-name">${esc(LEARN_PRAYERS[key].name)}</span>
+              ${key === next ? '<span class="ln-next-tag">Next</span>' : ''}
+            </span>
+            <span class="ln-shape" aria-hidden="true">${blocks}</span>
+            <span class="ln-row-sum">${words}</span>
+          </span>
+          <span class="ln-row-chev" aria-hidden="true">&rsaquo;</span>
+        </button>`;
+    };
+
+    return `
+      <section class="card ln-card">
+        <label class="ln-toggle">
+          <input id="ln-sunnah" type="checkbox" ${this.includeSunnah ? 'checked' : ''} />
+          <span class="ln-toggle-box" aria-hidden="true"></span>
+          <span class="ln-toggle-text">Include sunnah</span>
+        </label>
+        <div class="ln-rows">${order.map(row).join('')}</div>
+      </section>`;
+  },
+
+  setSunnah(on) {
+    this.includeSunnah = on;
+    try { localStorage.setItem(LEARN_SUNNAH_STORE, on ? '1' : '0'); } catch { /* private mode */ }
+    const panel = this.panels.practice;
+    if (panel) {
+      const tab = LEARN_TABS.find((t) => t.id === 'practice');
+      panel.innerHTML = `<p class="ln-intro">${esc(tab.intro)}</p>${tab.render()}`;
+    }
   },
 
   card(id, title, inner) {
@@ -330,7 +387,7 @@ const Learn = {
     const steps = [];
     const pos = Object.fromEntries(LEARN_POSITIONS.map((x) => [x.id, x]));
 
-    for (const u of p.units) {
+    for (const u of this.unitsFor(key)) {
       steps.push({ kind: 'unit', title: u.label, sub: `${p.name} · ${u.kind}` });
 
       u.rakahs.forEach((r, i) => {
@@ -438,6 +495,7 @@ const Learn = {
     this.stopAudio();
 
     let [target] = params;
+    if (LEARN_ALIASES[target]) target = LEARN_ALIASES[target];
 
     // Old links pointed at a prayer or a position rather than a sub-tab.
     let scrollTo = null;
@@ -484,24 +542,29 @@ const LEARN_TABS = [
     render: () => Learn.renderWudu(),
   },
   {
-    id: 'positions',
-    label: 'Positions',
+    id: 'steps',
+    label: 'Steps',
     intro: 'One rakʿah, from the opening takbīr to the salām.',
     render: () => Learn.renderPositions(),
   },
   {
     id: 'prayers',
     label: 'Prayers',
-    intro: 'How many rakʿahs each prayer has, and which of them are sunnah.',
+    intro: 'How many rakʿahs each prayer has. Fard is obligatory; sunnah is what '
+      + 'the Prophet ﷺ kept to. Each block is one rakʿah.',
     render: () => Learn.renderPrayers(),
   },
   {
-    id: 'pray-along',
-    label: 'Pray along',
-    intro: 'A guided run through a whole prayer, one step at a time.',
-    render: () => Learn.renderAlong(),
+    id: 'practice',
+    label: 'Practice',
+    intro: 'Pick a prayer and follow along step by step.',
+    render: () => Learn.renderPractice(),
+    dynamic: true,            // the next prayer and the toggle change it
   },
 ];
+
+/* Routes from before the tabs were renamed. */
+const LEARN_ALIASES = { positions: 'steps', 'pray-along': 'practice' };
 
 /* --------------------------------------------------------------- events --- */
 
@@ -511,6 +574,13 @@ document.getElementById('section-learn').addEventListener('click', (event) => {
 
   const guide = event.target.closest('.ln-guide-btn');
   if (guide) Learn.openGuide(guide.dataset.prayer);
+});
+
+document.getElementById('learn-tabs').addEventListener('scroll', () => Learn.updateTabFade());
+window.addEventListener('resize', () => Learn.updateTabFade());
+
+document.getElementById('section-learn').addEventListener('change', (event) => {
+  if (event.target.id === 'ln-sunnah') Learn.setSunnah(event.target.checked);
 });
 
 document.getElementById('ln-next').addEventListener('click', () => Learn.moveGuide(1));
@@ -529,14 +599,21 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && Learn.guide) Learn.requestWake();
 });
 
+try {
+  Learn.includeSunnah = localStorage.getItem(LEARN_SUNNAH_STORE) !== '0';
+} catch { /* private mode: leave it on */ }
+
 Sections.register({
   id: 'learn',
   label: 'Learn',
   order: 4,
   icon: `<svg viewBox="0 0 24 24" width="22" height="22" focusable="false">
-    <path d="M12 7.5c-2-1.6-4.2-2-7-2v12c2.8 0 5 .4 7 2 2-1.6 4.2-2 7-2v-12c-2.8 0-5 .4-7 2z"
-          fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-    <path d="M12 7.5v12" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    <path d="M12 4.2 2.6 9 12 13.8 21.4 9 12 4.2z" fill="none" stroke="currentColor"
+          stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M6.8 11.3v4.4c0 1.3 2.3 2.4 5.2 2.4s5.2-1.1 5.2-2.4v-4.4"
+          fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M21.4 9v4.6" fill="none" stroke="currentColor" stroke-width="1.6"
+          stroke-linecap="round"/>
   </svg>`,
   root: document.getElementById('section-learn'),
   show: (params) => Learn.show(params),

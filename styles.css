@@ -2759,23 +2759,39 @@ body.is-guiding { overflow: hidden; }
   .ln-g-fig { max-width: 230px; }
 }
 
-/* --------------------------------------------------------- learn sub-tabs --- */
+/* ------------------------------------------------- learn sub-tabs, revised --- */
 
-/* Styled like the main navigation, and sticky once the masthead scrolls away.
-   It scrolls sideways rather than wrapping when the labels do not fit. */
-.ln-tabs {
+/* Sized so all five labels fit a 390px phone without scrolling. The fade is
+   the fallback for anything narrower. */
+.ln-tabs-wrap {
   position: sticky;
   top: 0;
   z-index: 6;
-  display: flex;
-  gap: var(--s3);
   margin-bottom: var(--s3);
+  background: var(--background);
+  border-bottom: 1px solid var(--border);
+}
+
+.ln-tabs-wrap::after {
+  content: "";
+  position: absolute;
+  top: 0; right: 0; bottom: 1px;
+  width: 36px;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(90deg, transparent, var(--background));
+  transition: opacity var(--ease);
+}
+
+.ln-tabs-wrap.is-scrollable::after { opacity: 1; }
+
+.ln-tabs {
+  display: flex;
+  gap: 12px;
   padding-top: 2px;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   white-space: nowrap;
-  background: var(--background);
-  border-bottom: 1px solid var(--border);
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -2787,10 +2803,10 @@ body.is-guiding { overflow: hidden; }
   padding: 10px 0;
   border-bottom: 2px solid transparent;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.08em;
   color: var(--muted-foreground);
   text-decoration: none;
   transition: color var(--ease), border-color var(--ease);
@@ -2803,36 +2819,93 @@ body.is-guiding { overflow: hidden; }
   border-bottom-color: var(--accent);
 }
 
-.ln-intro {
-  margin-bottom: var(--s2);
-  font-size: 13.5px;
-  line-height: 1.6;
+/* ------------------------------------------------------------- practice --- */
+
+.ln-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  min-height: var(--tap);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.ln-toggle input {
+  position: absolute;
+  width: 1px; height: 1px;
+  opacity: 0;
+}
+
+.ln-toggle-box {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 17px; height: 17px;
+  border: 1px solid var(--border-hover);
+  border-radius: 3px;
+  background: var(--card);
+  transition: background var(--ease), border-color var(--ease);
+}
+
+.ln-toggle input:checked + .ln-toggle-box {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* the tick, drawn with borders so its colour stays a token */
+.ln-toggle input:checked + .ln-toggle-box::after {
+  content: "";
+  width: 4px;
+  height: 8px;
+  margin-top: -2px;
+  border: solid var(--accent-foreground);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.ln-toggle input:focus-visible + .ln-toggle-box {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.ln-toggle-text {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
   color: var(--muted-foreground);
 }
 
-/* ------------------------------------------------------ pray along picker --- */
+/* the list of prayers */
 
-.ln-pick { display: grid; gap: var(--s1); }
+.ln-rows { display: grid; }
 
-.ln-pick-btn {
-  display: grid;
-  gap: 2px;
-  justify-items: start;
+.ln-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  width: 100%;
+  min-height: var(--tap);
+  padding: 11px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  background: none;
   text-align: left;
-  min-height: 58px;
-  padding: 10px 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-btn);
-  background: var(--card);
+  cursor: pointer;
+  transition: background var(--ease);
 }
 
-.ln-pick-btn:hover {
-  border-color: var(--accent);
-  color: var(--foreground);
-  text-decoration: none;
-}
+.ln-row:hover { background: var(--muted); }
+.ln-row:active { background: var(--border); }
 
-.ln-pick-name {
+.ln-row-main { display: grid; gap: 4px; min-width: 0; flex: 1 1 auto; }
+
+.ln-row-top { display: flex; align-items: baseline; gap: var(--s1); }
+
+.ln-row-name {
   font-family: var(--serif);
   font-size: 18px;
   font-weight: 400;
@@ -2840,10 +2913,53 @@ body.is-guiding { overflow: hidden; }
   color: var(--foreground);
 }
 
-.ln-pick-sum {
+.ln-next-tag {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent-text);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 1px 6px;
+}
+
+/* the shape of the prayer, one block per rakʿah */
+
+.ln-shape { display: flex; align-items: center; gap: 3px; }
+
+.ln-blk {
+  width: 13px;
+  height: 7px;
+  border-radius: 2px;
+  border: 1px solid var(--accent);
+  background: none;
+}
+
+.ln-blk--fard { background: var(--accent); }
+
+.ln-blk--witr {
+  background: repeating-linear-gradient(-45deg,
+    var(--accent) 0 2px, transparent 2px 4px);
+}
+
+.ln-blk-gap { width: 6px; }
+
+.ln-row-sum {
   font-family: var(--sans);
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 400;
   letter-spacing: 0.01em;
   color: var(--muted-foreground);
 }
+
+.ln-row-chev {
+  flex: none;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--border-hover);
+  transition: color var(--ease);
+}
+
+.ln-row:hover .ln-row-chev { color: var(--accent); }
