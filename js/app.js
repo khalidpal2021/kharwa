@@ -378,49 +378,15 @@ function lastSevenDays() {
   return days;
 }
 
-/* ----------------------------------------------------------- day rings --- */
-
-const RING_R = 13;
-const RING_C = 2 * Math.PI * RING_R;
-const RING_SLOT = RING_C / PRAYERS.length;
-const RING_GAP = 3;
-
-/** A circle cut into five arcs, one per prayer, clockwise from the top. */
-function ringSvg(person, key, isToday) {
-  const ring = isToday
-    ? '<circle class="ring-today" cx="16" cy="16" r="15" fill="none" stroke-width="1"/>'
-    : '';
-
-  if (prayedCount(person, key) === PRAYERS.length) {
-    return `<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-      ${ring}
-      <circle class="ring-full" cx="16" cy="16" r="13"/>
-      <path class="ring-check" d="M10.6 16.4l3.1 3.1 6.8-7.2" fill="none"
-            stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>`;
-  }
-
-  const segments = PRAYERS.map((p, i) => {
-    const s = shownStatus(person, key, p.key);
-    const state = (s === 'on_time' || s === 'late') ? 'prayed'
-      : s === 'missed' ? 'missed' : 'none';
-    return `<circle class="ring-seg" data-state="${state}" cx="16" cy="16" r="${RING_R}"
-                    fill="none" stroke-width="4"
-                    stroke-dasharray="${(RING_SLOT - RING_GAP).toFixed(2)} ${RING_C.toFixed(2)}"
-                    stroke-dashoffset="${(-i * RING_SLOT).toFixed(2)}"/>`;
-  }).join('');
-
-  return `<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-    ${ring}
-    <g transform="rotate(-90 16 16)">${segments}</g>
-  </svg>`;
-}
-
-/* --------------------------------------------------------- the card ------ */
+/* ------------------------------------------------------------- ledger --- */
 
 /** Remembered so a new best can be highlighted the moment it is reached. */
 let lastDuoBest = null;
 
+/**
+ * The seven days as a compact table: a column per day, a row for the pair and
+ * one for each of us. Marks are typographic — a check, a count, an en dash.
+ */
 function renderStreaks() {
   const today = todayKey();
   const days = lastSevenDays();
@@ -430,56 +396,71 @@ function renderStreaks() {
   const newBest = lastDuoBest !== null && duoBest > lastDuoBest && duo === duoBest;
   lastDuoBest = duoBest;
 
-  const hero = duo === 0
-    ? '<p class="sk-prompt">Start a streak together today</p>'
-    : `<p class="sk-duo-n${newBest ? ' is-new-best' : ''}">${duo}</p>
-       <p class="sk-duo-sub">${duo === 1 ? 'day' : 'days'} in a row &middot; best ${duoBest}</p>`;
+  const tipFor = (key) => {
+    const each = PEOPLE_IDS
+      .map((p) => `${name(p)} ${prayedCount(p, key)}/${PRAYERS.length}`)
+      .join(' · ');
+    return `${fmtGregorianShort.format(parseKey(key))} · ${each}`;
+  };
 
-  const people = PEOPLE_IDS.map((person) => {
-    const n = streakFor(person);
-    const best = bestRun(personComplete(person));
-    const who = esc(name(person));
+  const cell = (key, inner, duoRow) => {
+    const tip = esc(tipFor(key));
+    return `<button class="lg-c${duoRow ? ' is-duo' : ''}" type="button" data-date="${key}"
+                    title="${tip}" aria-label="${tip}. Show this day.">${inner}</button>`;
+  };
 
-    const rings = days.map((key) => {
-      const count = prayedCount(person, key);
-      const tip = `${fmtGregorianShort.format(parseKey(key))} · ${count} of ${PRAYERS.length}`;
-      return `<button class="sk-ring" type="button" data-date="${key}" title="${tip}"
-                      aria-label="${who}, ${tip}. Show this day.">${ringSvg(person, key, key === today)}</button>`;
-    }).join('');
+  const TICK = '<span class="lg-tick">&#10003;</span>';
+  const DASH = '<span class="lg-dash">&ndash;</span>';
 
-    return `
-      <div class="sk-person">
-        <div class="sk-who">
-          <h3 class="sk-name">${who}</h3>
-          <p class="sk-streak">
-            <span class="sk-streak-n">${n}</span>
-            <span class="sk-streak-label">day streak</span>
-            ${best > n ? `<span class="sk-best">best ${best}</span>` : ''}
-          </p>
-        </div>
-        <div class="sk-rings">${rings}</div>
-      </div>`;
+  /** A check when the day is done, a count while it is going, a dash when
+      there is nothing to say yet, struck through once a finished day has a
+      prayer missing. */
+  function personMark(person, key) {
+    const n = prayedCount(person, key);
+    if (n === PRAYERS.length) return TICK;
+    if (key < today && dayMissed(person, key)) {
+      return `<span class="lg-n is-missed">${n}</span>`;
+    }
+    if (n > 0) return `<span class="lg-n">${n}</span>`;
+    return DASH;
+  }
+
+  const head = days.map((key) => {
+    const d = parseKey(key);
+    return `<span class="lg-h${key === today ? ' is-today' : ''}" aria-hidden="true">
+      <span class="lg-wd">${fmtDayShort.format(d).slice(0, 1)}</span>
+      <span class="lg-dm">${d.getDate()}</span>
+    </span>`;
   }).join('');
 
-  const dayLabels = days
-    .map((key) => `<span class="sk-day">${fmtDayShort.format(parseKey(key)).slice(0, 2)}</span>`)
-    .join('');
+  const streakBits = (n, best, cls) =>
+    `<span class="lg-streak${cls}">${n}</span>` +
+    (best > n ? `<span class="lg-best">best ${best}</span>` : '');
+
+  const duoRow =
+    `<span class="lg-lab is-duo">
+       <span class="lg-duo-label">Together</span>
+       ${streakBits(duo, duoBest, newBest ? ' is-new-best' : '')}
+     </span>` +
+    days.map((key) => cell(key, duoComplete(key) ? TICK : DASH, true)).join('');
+
+  const personRows = PEOPLE_IDS.map((person) =>
+    `<span class="lg-lab">
+       <span class="lg-name">${esc(name(person))}</span>
+       ${streakBits(streakFor(person), bestRun(personComplete(person)), '')}
+     </span>` +
+    days.map((key) => cell(key, personMark(person, key), false)).join('')
+  ).join('');
 
   const bothDone = PEOPLE_IDS.every((p) => dayComplete(p, today));
 
   el('streaks').innerHTML = `
-    <div class="sk-duo">
-      <p class="sk-together">Together</p>
-      ${hero}
+    <div class="lg">
+      <span class="lg-h lg-corner" aria-hidden="true"></span>
+      ${head}
+      ${duoRow}
+      ${personRows}
     </div>
-
-    <hr class="rule rule--divider" />
-
-    <div class="sk-people">
-      ${people}
-      <div class="sk-days">${dayLabels}</div>
-    </div>
-
     ${bothDone ? '<p class="sk-note">You both completed today.</p>' : ''}`;
 }
 
@@ -591,8 +572,8 @@ el('day-next').addEventListener('click', () => goToDay(addDays(State.viewDate, 1
 el('day-today').addEventListener('click', () => goToDay(todayKey()));
 
 el('streaks').addEventListener('click', (event) => {
-  const ring = event.target.closest('.sk-ring');
-  if (ring) goToDay(ring.dataset.date);
+  const cell = event.target.closest('.lg-c');
+  if (cell) goToDay(cell.dataset.date);
 });
 
 /* keyboard: arrows change day, T jumps to today */

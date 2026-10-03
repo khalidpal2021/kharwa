@@ -112,7 +112,7 @@ input, select, textarea { font-size: max(16px, 1em); }
    pinch-zoom still works. */
 html, body,
 button, a, input, select, textarea, label,
-.mark, .markmenu-btn, .daynav-btn, .sk-ring, .gate-btn {
+.mark, .markmenu-btn, .daynav-btn, .lg-c, .gate-btn {
   touch-action: manipulation;
 }
 
@@ -150,8 +150,7 @@ button, a, input, select, textarea, label,
   line-height: 1.1;
 }
 
-.field-label,
-.sk-streak-label {
+.field-label {
   font-family: var(--mono);
   font-size: 11px;
   font-weight: 500;
@@ -691,95 +690,76 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 /* ------------------------------------------------------------- streaks -- */
 
-.streaks { --ring-size: 22px; }
+/* A compact ledger: a column per day, a row for the pair and one each. Rules
+   between rows carry the structure; there are no boxes or circles. */
+.lg {
+  display: grid;
+  grid-template-columns: auto repeat(7, minmax(0, 1fr));
+  align-items: center;
+  font-variant-numeric: tabular-nums;
+}
 
-.sk-duo { text-align: center; }
+.lg-h,
+.lg-c {
+  min-width: 0;
+  padding: 7px 1px;
+  text-align: center;
+}
 
-.sk-together {
+.lg-h { display: grid; gap: 1px; justify-items: center; }
+
+.lg-wd,
+.lg-dm {
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  line-height: 1.2;
+}
+
+.lg-wd { font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em; }
+.lg-dm { font-size: 11px; }
+
+.lg-h.is-today .lg-wd,
+.lg-h.is-today .lg-dm { color: var(--accent); }
+
+/* the label column */
+.lg-lab {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 7px var(--s2) 7px 0;
+  white-space: nowrap;
+  border-top: 1px solid var(--border);
+}
+
+.lg-name {
+  font-family: var(--serif);
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+.lg-duo-label {
+  font-family: var(--mono);
+  font-size: 10px;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.15em;
   color: var(--accent-text);
 }
 
-.sk-duo-n {
+.lg-streak {
   font-family: var(--serif);
-  font-size: 44px;
-  font-weight: 400;
-  letter-spacing: -0.03em;
-  line-height: 1.05;
-  color: var(--accent);
-}
-
-.sk-duo-sub { font-size: 12.5px; color: var(--muted-foreground); }
-
-.sk-prompt {
-  font-family: var(--serif);
-  font-size: 17px;
-  line-height: 1.3;
-  margin-top: 2px;
-  color: var(--foreground);
-}
-
-/* a new best, highlighted once and quietly */
-@keyframes sk-flash { 50% { color: var(--accent-secondary); } }
-.sk-duo-n.is-new-best { animation: sk-flash 1.1s ease-out 2; }
-
-.rule--divider { width: 100%; margin: var(--s2) 0; }
-
-.sk-people { display: grid; gap: var(--s2); }
-
-.sk-person { display: grid; gap: 6px; }
-
-.sk-who {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--s2);
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--border);
-}
-
-.sk-name {
-  font-family: var(--serif);
-  font-size: 16px;
-  font-weight: 400;
-  letter-spacing: -0.01em;
-  line-height: 1.2;
-}
-
-.sk-streak { display: flex; align-items: baseline; gap: var(--s1); }
-
-.sk-streak-n {
-  font-family: var(--serif);
-  font-size: 23px;
-  font-weight: 400;
-  letter-spacing: -0.02em;
+  font-size: 15px;
   line-height: 1;
-  color: var(--accent);
 }
 
-.sk-best { font-size: 11px; color: var(--muted-foreground); }
+.lg-best { font-size: 10px; color: var(--muted-foreground); }
 
-/* the seven rings, and the day letters shared beneath them */
-
-.sk-rings,
-.sk-days {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 5px;
-  align-items: center;
-}
-
-.sk-ring {
-  display: grid;
-  place-items: center;
-  width: 100%;
-  padding: 3px 0;
+/* the day cells */
+.lg-c {
   border: 0;
-  border-radius: var(--radius-btn);
+  border-top: 1px solid var(--border);
   background: none;
   cursor: pointer;
   user-select: none;
@@ -788,25 +768,42 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   transition: background var(--ease);
 }
 
-.sk-ring:hover { background: var(--muted); }
+.lg-c:hover { background: var(--muted); }
 
-.sk-ring svg { display: block; width: var(--ring-size); height: var(--ring-size); }
-
-/* On time and made up are the same thing in a summary: both gold. */
-.ring-seg { stroke: var(--border-hover); }
-.ring-seg[data-state="prayed"] { stroke: var(--accent); }
-.ring-seg[data-state="missed"] { stroke: var(--mark-empty); }
-.ring-full { fill: var(--accent); }
-.ring-check { stroke: var(--accent-foreground); }
-.ring-today { stroke: var(--accent); }
-
-.sk-day {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  color: var(--muted-foreground);
-  text-align: center;
+/* the featured row: a thin gold rule above it and a quiet tint, not more size */
+.lg-lab.is-duo,
+.lg-c.is-duo {
+  background: var(--muted);
+  border-top-color: var(--accent);
 }
+
+.lg-c.is-duo:hover { background: var(--border); }
+.lg-lab.is-duo .lg-streak { color: var(--accent); }
+
+/* a new best, highlighted once and quietly */
+@keyframes sk-flash { 50% { color: var(--accent-secondary); } }
+.lg-streak.is-new-best { animation: sk-flash 1.1s ease-out 2; }
+
+/* the marks themselves */
+.lg-tick {
+  font-family: var(--serif);
+  font-size: 15px;
+  line-height: 1;
+  color: var(--accent);
+}
+
+.lg-n {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.lg-n.is-missed {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.lg-dash { color: var(--mark-empty); font-size: 13px; line-height: 1; }
 
 .sk-note {
   margin-top: var(--s2);
@@ -2101,8 +2098,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   .hero-until { font-size: clamp(20px, 1.6vw, 24px); }
   .hero-time { font-size: 14px; }
 
-  .cardhead-text,
-  .sk-streak-label { font-size: 11px; }
+  .cardhead-text { font-size: 11px; }
 
   /* the timeline gets a full-width row of its own, with clear space beneath,
      so its labels never meet the section headings below */
@@ -2211,12 +2207,9 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
   /* week */
 
-  .sk-people { gap: 16px; }
-  .streaks { --ring-size: 26px; }
-  .sk-person { gap: 6px; }
-  .sk-name { font-size: 17px; }
-  .sk-duo-n { font-size: 52px; }
-  .sk-streak-n { font-size: 26px; }
+  .lg-name, .lg-streak { font-size: 16px; }
+  .lg-dm { font-size: 11.5px; }
+  .lg-tick { font-size: 16px; }
 
   /* quran: the list in two columns, the reader as one centred page */
 
