@@ -432,8 +432,6 @@ button, a, input, select, textarea, label,
   margin-left: -8px;
 }
 
-.daynav-info { flex: none; display: inline-flex; margin: 0 6px 0 2px; }
-
 /* 30px wide, with the tap area widened to 44px by ::after. */
 .daynav-btn {
   position: relative;
@@ -992,17 +990,19 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 /* ------------------------------------------------------------------ info -- */
 
-/* The small circled "i" beside a header label; its tap area is 44px. */
+/* The small circled "i": 12px to see, 32px to tap. The padding makes the tap
+   area and the negative margin takes it back out of the layout, so the
+   button sits in a line as if it were only the icon. */
 .info-btn {
-  position: relative;
+  box-sizing: content-box;
   flex: none;
   display: inline-grid;
   place-items: center;
-  width: 16px;
-  height: 16px;
-  padding: 0;
+  width: 12px;
+  height: 12px;
+  padding: 10px;
+  margin: -10px;
   border: 0;
-  border-radius: 50%;
   background: none;
   color: var(--muted-foreground);
   vertical-align: middle;
@@ -1011,12 +1011,30 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   transition: color var(--ease);
 }
 
-.info-btn::after { content: ""; position: absolute; inset: -14px; }
-.info-btn svg { display: block; }
+/* muted, and quieter still than muted text until it is wanted */
+.info-btn svg { display: block; opacity: 0.7; transition: opacity var(--ease); }
 
 .info-btn:hover,
 .info-btn:focus-visible,
 .info-btn[aria-expanded="true"] { color: var(--accent); }
+
+.info-btn:hover svg,
+.info-btn:focus-visible svg,
+.info-btn[aria-expanded="true"] svg { opacity: 1; }
+
+/* The ring goes round the icon, not the whole tap area. */
+.info-btn:focus-visible { outline: none; }
+.info-btn:focus-visible svg { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 50%; }
+
+/* Beside a small-caps label: centred on the capitals, which sit a little above
+   the middle of the label's line. The 4px gap reads as about 5.5px, since the
+   label's letter-spacing trails its last letter. */
+.cardhead-label .info-btn,
+.field-head .info-btn { transform: translateY(-1px); }
+
+/* In a card's top-right corner, in the gutter its padding leaves. */
+.has-info { position: relative; }
+.card-info { position: absolute; top: 8px; right: 8px; display: flex; }
 
 .info-pop {
   position: fixed;
@@ -1056,12 +1074,12 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 .info-legend svg { display: block; width: 14px; height: 14px; }
 
 /* Beside a card label, with the label still centred between its rules:
-   padding on the left matches the button and its gap on the right. */
+   padding on the left matches the icon and its gap on the right. */
 .cardhead-label {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding-left: 22px;
+  gap: 4px;
+  padding-left: 16px;
 }
 
 /* ------------------------------------------------------------ qada popup -- */
@@ -1569,7 +1587,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   margin-top: var(--s3);
 }
 
-.qr-settings-info { display: inline-flex; align-items: center; padding: 0 6px; }
+.qr-settings-info { display: inline-flex; align-items: center; padding: 0 4px; }
 
 .qr-seg { display: inline-flex; }
 
@@ -2322,9 +2340,9 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 .field { display: block; margin-bottom: var(--s2); }
 .field-label { display: block; margin-bottom: var(--s1); }
 
-.sheet-title-row { display: flex; align-items: center; gap: 10px; }
+.sheet-title-row { display: flex; align-items: center; gap: 8px; }
 
-.field-head { display: flex; align-items: center; gap: 8px; margin-bottom: var(--s1); }
+.field-head { display: flex; align-items: center; gap: 4px; margin-bottom: var(--s1); }
 .field-head .field-label { margin-bottom: 0; }
 
 .input {
@@ -2417,6 +2435,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   .toasts { bottom: calc(var(--s3) + env(safe-area-inset-bottom, 0px)); }
 
   .card { padding: 22px 26px; }
+  .card-info { top: 10px; right: 12px; }
 
   /* the feature card spans the top; the two below share the rest */
   .app > .card { flex: none; }
@@ -3146,7 +3165,7 @@ body.is-guiding { overflow: hidden; }
 .ln-tabs-wrap::after {
   content: "";
   position: absolute;
-  top: 0; right: 30px; bottom: 1px; /* stops short of the ⓘ */
+  top: 0; right: 26px; bottom: 1px; /* stops short of the ⓘ */
   width: 36px;
   pointer-events: none;
   opacity: 0;
@@ -3156,7 +3175,7 @@ body.is-guiding { overflow: hidden; }
 
 .ln-tabs-wrap.is-scrollable::after { opacity: 1; }
 
-.ln-info { flex: none; display: inline-flex; padding-right: 2px; }
+.ln-info { flex: none; display: inline-flex; padding-right: 4px; }
 
 .ln-tabs {
   flex: 1;

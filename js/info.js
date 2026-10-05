@@ -11,14 +11,15 @@
    Closes on a second tap of the button, a tap anywhere else, or Esc.
    =========================================================================== */
 
-/** The small circled "i". `key` names the content registered with Info.add. */
+/** The small circled "i", 12px with a 1px line. `key` names the content
+    registered with Info.add. */
 function infoButton(key) {
   return `<button class="info-btn" type="button" data-info="${key}" aria-label="More info"
                   aria-expanded="false" aria-controls="info-pop">
-    <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
-      <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.2"/>
-      <path d="M8 7.2v4.3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-      <circle cx="8" cy="4.8" r="0.9" fill="currentColor"/>
+    <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false">
+      <circle cx="6" cy="6" r="5.5" fill="none" stroke="currentColor" stroke-width="1"/>
+      <path d="M6 5.2v3.6" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+      <circle cx="6" cy="3.5" r="0.7" fill="currentColor"/>
     </svg>
   </button>`;
 }

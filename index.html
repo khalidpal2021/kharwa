@@ -83,7 +83,9 @@
       <div class="col--today">
 
         <!-- -------------------------------------------------- today card --- -->
-        <section class="card" aria-labelledby="day-label">
+        <section class="card has-info" aria-labelledby="day-label">
+          <!-- In the corner, so the day selector stays clean. -->
+          <span class="card-info" data-info-slot="today"></span>
           <!-- The header is one row on the timetable's own grid: the day selector
                over the name and time columns, the two names over their marks. -->
           <div class="tt-head">
@@ -94,7 +96,6 @@
                 <span id="day-sizer" class="daynav-sizer" aria-hidden="true"></span>
               </h2>
               <button id="day-next" class="daynav-btn" type="button" aria-label="Next day">&rsaquo;</button>
-              <span class="daynav-info" data-info-slot="today"></span>
               <button id="day-today" class="daynav-today is-invisible" type="button" aria-label="Back to today">Back to today</button>
             </nav>
             <span id="head-khalid" class="tt-col" aria-hidden="true"></span>

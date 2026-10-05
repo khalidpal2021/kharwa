@@ -122,7 +122,8 @@ A missed prayer can still be tapped and logged as on time or late. Older rows
 stored as `missed` are read as empty, so they show as missed in the same way.
 
 The legend, "✓ on time · ◐ late · ✕ missed" drawn with the marks
-themselves, is in the ⓘ beside the day selector, with how missed is decided.
+themselves, is in the ⓘ in the card's top-right corner, with how missed is
+decided.
 
 ## Streaks
 
@@ -202,10 +203,17 @@ A card under Today, with the same header: QADA between two rules.
 
 ## Info (ⓘ)
 
-Explanations stay out of the page and sit behind a small circled "i": 16px,
-muted, gold on hover, on focus and while open, with a 44px tap area. It goes
-beside a header label; on a card label the label stays centred between its
-rules. Tapping it opens one shared popover anchored under it (above when there
+Explanations stay out of the page and sit behind a small circled "i": a 12px
+icon with a 1px line, in muted grey at 70% so it is quieter than muted text,
+turning gold on hover, on focus and while open. Padding gives it a 32px tap
+area and a matching negative margin takes that back out of the layout, so it
+sits in a line like the icon alone; the focus ring hugs the icon. Beside a
+small-caps label it is centred on the capitals (nudged up 1px from the line's
+middle) with a 4px gap, which reads as about 5.5px once the label's trailing
+letter-spacing is counted; on a card label the label stays centred between its
+rules. On Today it sits in the card's top-right corner, in the padding gutter
+(8px in on a phone, 10px and 12px on desktop), so the ‹ date › row stays
+clean. Tapping it opens one shared popover anchored under it (above when there
 is no room): white, a thin border, `--shadow-sm`, 8px radius, 13px text, at
 most 260px wide, kept on screen and following its button as the page or a
 sheet scrolls. Only one is open at a time; it closes on a second tap, a tap
@@ -213,7 +221,8 @@ elsewhere, or Esc (which then leaves the sheet beneath alone). `js/info.js`
 holds it: `infoButton('key')` in markup, or `<span data-info-slot="key">` in
 `index.html`, and `Info.add('key', () => html)` for what it says.
 
-Where they are: Today (the legend and how missed is decided), Streaks, Qada,
+Where they are: Today (top-right corner: the legend and how missed is
+decided), Streaks, Qada,
 Settings (the timetable note, the qada start date, the backlog), the Hadith
 reader (how to bookmark), and the end of the Learn sub-tab bar (that tab's
 intro and the imam note). What stays visible is what you act on or need at a
