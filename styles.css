@@ -865,85 +865,54 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 .qd-btn:focus-visible { outline: none; }
 .qd-btn:focus-visible::before { outline: 2px solid var(--ring); outline-offset: 2px; }
 
-/* Your owed prayers, as rows like the Today table's: the name, the date
-   beside it, and an empty mark on the right in a 44px tap area. */
-.qd-rows { margin: -4px 0 0; padding: 0; list-style: none; }
-
-.qd-r {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--tap);
-  align-items: center;
-  column-gap: 10px;
-  border-bottom: 1px solid var(--border);
-  transition: opacity 200ms ease-out;
-}
-
-.qd-r.is-leaving { opacity: 0; }
-
-/* the date sits on the name's line */
-.qd-r-what { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
-
-.qd-r-name {
-  font-family: var(--serif);
-  font-size: 17px;
-  font-weight: 400;
-  letter-spacing: -0.01em;
-  line-height: 1.3;
-}
-
-.qd-r-when {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 12.5px;
-  color: var(--muted-foreground);
-  font-variant-numeric: tabular-nums;
-}
-
 .qd-mark:disabled { cursor: default; }
 
-.qd-ok {
+/* ----------------------------------------------------------- qada banner -- */
+
+/* One line at the top of Today: never wraps, and the date is short enough
+   ("Sat Oct 3") that it never needs to be cut. */
+.qd-banner {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 5px;
-  font-size: 13px;
-  letter-spacing: 0.02em;
-  color: var(--accent-text);
-}
-
-.qd-check { flex: none; display: block; }
-
-/* the other person, one quiet line */
-.qd-other {
-  margin-top: 10px;
-  text-align: center;
-  font-size: 12.5px;
-  color: var(--muted-foreground);
-}
-
-/* +2 more */
-.qd-all {
+  justify-content: space-between;
+  gap: 10px;
   min-height: 36px;
-  padding: 0;
-  border: 0;
-  width: 100%;
-  background: none;
-  text-align: left;
-  font-family: var(--sans);
-  font-size: 13px;
-  color: var(--muted-foreground);
-  cursor: pointer;
-  transition: color var(--ease);
+  margin: 6px 0 8px; /* clear of the ⓘ in the card's corner */
+  padding-left: 12px;
+  border-radius: 6px;
+  background: var(--muted);
+  white-space: nowrap;
+  transition: opacity 200ms ease-out, background var(--ease);
 }
 
-.qd-all:hover {
-  color: var(--foreground);
-  text-decoration: underline;
-  text-decoration-color: var(--accent);
-  text-underline-offset: 4px;
+.qd-banner.is-leaving { opacity: 0; }
+
+.qd-b-text { font-size: 14px; color: var(--muted-foreground); }
+.qd-b-name { color: var(--foreground); font-weight: 500; }
+
+/* the Today mark, its 44px tap area overhanging the slim line */
+.qd-banner .qd-mark { flex: none; margin: -4px 0; }
+
+/* several owed: the whole line opens the list */
+.qd-b-open {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 12px 0 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
+
+.qd-b-open .qd-b-text { color: var(--foreground); }
+.qd-b-chev { font-size: 18px; line-height: 1; color: var(--muted-foreground); }
+.qd-banner:has(.qd-b-open:hover) { background: var(--border); }
 
 .qd-note {
   margin-top: var(--s2);
@@ -999,7 +968,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 /* In a card's top-right corner, in the gutter its padding leaves. */
 .has-info { position: relative; }
-.card-info { position: absolute; top: 8px; right: 8px; display: flex; }
+.card-info { position: absolute; top: 5px; right: 5px; display: flex; }
 
 .info-pop {
   position: fixed;
@@ -2400,8 +2369,8 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   .toasts { bottom: calc(var(--s3) + env(safe-area-inset-bottom, 0px)); }
 
   .card { padding: 22px 26px; }
-  .card-info { top: 10px; right: 12px; }
-  .qd-r { padding: 4px 0; }
+  .card-info { top: 6px; right: 8px; }
+  .qd-banner { margin-top: 0; } /* the wider padding already clears the ⓘ */
 
   /* the feature card spans the top; the two below share the rest */
   .app > .card { flex: none; }

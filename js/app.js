@@ -33,7 +33,6 @@ const State = {
   tick: null,
   ayahFor: null,       // date key of the ayah on screen
   ayahLoading: null,   // date key being fetched
-  qadaAll: new Set(),  // people whose full qada list is open on the card
 };
 
 /* ============================================================== helpers === */
@@ -542,9 +541,6 @@ function qadaOwed(person) {
   return { missed, backlog, counts, total };
 }
 
-/** Rows on the card before "+2 more". */
-const QADA_LIST = 3;
-
 /** + person id: the date the qada popup was last closed on this device. */
 const QADA_POP_STORE = 'kharwa.qadaPopup.';
 
@@ -596,78 +592,51 @@ function qadaRow(item) {
     </li>`;
 }
 
-/**
- * One owed prayer on the card, like a Today row: the prayer in Playfair, the
- * date small and muted beside it, and an empty mark to tap once it is made up.
- */
-function qadaCardRow(item) {
-  const label = QADA_LABEL[item.prayer];
-  let when;
-  let data;
-  let aria;
+/* ------------------------------------------------------------- banner --- */
 
-  if (item.backlog) {
-    when = `${item.backlog} from before`;
-    data = `data-backlog="${item.prayer}"`;
-    aria = `Made up one ${label} from before Kharwa`;
-  } else {
-    when = esc(fmtDayNav.format(parseKey(item.date)));
-    data = `data-date="${item.date}" data-prayer="${item.prayer}"`;
-    aria = `Mark ${label}, ${when}, as made up`;
-  }
-
-  return `
-    <li class="qd-r">
-      <span class="qd-r-what">
-        <span class="qd-r-name">${label}</span>
-        <span class="qd-r-when">${when}</span>
-      </span>
-      <button class="mark qd-mark" type="button" ${data} aria-label="${aria}">${markSvg('none')}</button>
-    </li>`;
-}
-
-/* --------------------------------------------------------------- card --- */
+/** "Sat Oct 3": short enough that the banner never wraps. */
+const shortDay = (key) => fmtDayNav.format(parseKey(key)).replace(/,/g, '');
 
 /**
- * Only your own owed prayers, as rows, then one quiet line for the other
- * person. The card is hidden while both of you are caught up.
+ * One line at the top of Today, only while you owe something. One prayer:
+ * "Make up Isha · Sat Oct 3" with an empty mark to tap. More: "3 prayers to
+ * make up", and the whole line opens the popup with the list.
  */
-function renderQada() {
-  const me = State.me;
-  const mine = qadaOwed(me);
-  const others = PEOPLE_IDS.filter((p) => p !== me).map((p) => ({ p, n: qadaOwed(p).total }));
-
-  el('qada-card').hidden = !mine.total && others.every((o) => !o.n);
-  if (el('qada-card').hidden) return;
-
-  const items = qadaItems(mine);
-  const all = State.qadaAll.has(me);
-  const shown = all ? items : items.slice(0, QADA_LIST);
-  const more = items.length - QADA_LIST;
-
-  const otherLines = others.map(({ p, n }) => `
-    <p class="qd-other">${esc(name(p))} · ${n ? `${n} to make up` : 'caught up'}</p>`).join('');
-
-  el('qada').innerHTML = `
-    ${items.length ? `
-      <ul class="qd-rows">${shown.map(qadaCardRow).join('')}</ul>
-      ${more > 0 ? `<button class="qd-all" type="button" data-person="${me}" aria-expanded="${all}">${
-        all ? 'Show fewer' : `+${more} more`}</button>` : ''}`
-      : `<p class="qd-ok"><svg class="qd-check" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false"><path d="M3.2 8.4l3 3 6.6-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>All caught up</p>`}
-    ${otherLines}`;
-}
-
-el('qada').addEventListener('click', (event) => {
-  const more = event.target.closest('.qd-all');
-  if (more) {
-    const { person } = more.dataset;
-    if (State.qadaAll.has(person)) State.qadaAll.delete(person);
-    else State.qadaAll.add(person);
-    renderQada();
+function renderQadaBanner() {
+  const banner = el('qada-banner');
+  const owed = qadaOwed(State.me);
+  banner.classList.remove('is-leaving');
+  banner.hidden = !owed.total;
+  if (!owed.total) {
+    banner.innerHTML = '';
     return;
   }
-  const btn = event.target.closest('[data-date], [data-backlog]');
-  if (btn) makeUp(btn);
+
+  if (owed.total > 1) {
+    banner.innerHTML = `
+      <button class="qd-b-open" type="button" aria-haspopup="dialog">
+        <span class="qd-b-text">${owed.total} prayers to make up</span>
+        <span class="qd-b-chev" aria-hidden="true">&rsaquo;</span>
+      </button>`;
+    return;
+  }
+
+  const [item] = qadaItems(owed);
+  const label = QADA_LABEL[item.prayer];
+  const when = item.backlog ? 'from before Kharwa' : shortDay(item.date);
+  const data = item.backlog
+    ? `data-backlog="${item.prayer}"`
+    : `data-date="${item.date}" data-prayer="${item.prayer}"`;
+  banner.innerHTML = `
+    <span class="qd-b-text">Make up <span class="qd-b-name">${label}</span> · ${esc(when)}</span>
+    <button class="mark qd-mark" type="button" ${data}
+            aria-label="Mark ${label}, ${esc(when)}, as made up">${markSvg('none')}</button>`;
+}
+
+el('qada-banner').addEventListener('click', (event) => {
+  const mark = event.target.closest('.qd-mark');
+  if (mark) makeUp(mark);
+  else if (event.target.closest('.qd-b-open')) openQadaPop();
 });
 
 /* ---------------------------------------------------------- making up --- */
@@ -677,11 +646,11 @@ el('qada').addEventListener('click', (event) => {
  * backlog), with an Undo toast. Shared by the card and the popup.
  */
 async function makeUp(btn) {
-  const row = btn.closest('.qd-row, .qd-r');
+  const row = btn.closest('.qd-row, .qd-banner');
   const { date, prayer, backlog } = btn.dataset;
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   btn.disabled = true;
-  // On the card the circle fills with the late mark, and holds a moment.
+  // In the banner the circle fills with the late mark, and holds a moment.
   if (btn.classList.contains('qd-mark')) {
     btn.innerHTML = markSvg('late');
     await wait(reducedMotion.matches ? 250 : 600);
@@ -726,7 +695,7 @@ async function makeUp(btn) {
 }
 
 function renderQadaViews() {
-  renderQada();
+  renderQadaBanner();
   renderQadaPop();
 }
 
@@ -748,7 +717,12 @@ function qadaPopSeenToday() {
 
 /** On opening the app: at most once a day per person, and only when something is owed. */
 function maybeShowQadaPop() {
-  if (QadaPop.open || qadaPopSeenToday() || !qadaOwed(State.me).total) return;
+  if (!qadaPopSeenToday()) openQadaPop();
+}
+
+/** Also from the banner, any time. */
+function openQadaPop() {
+  if (QadaPop.open || !qadaOwed(State.me).total) return;
   QadaPop.open = true;
   QadaPop.returnFocus = document.activeElement;
   renderQadaPop();
