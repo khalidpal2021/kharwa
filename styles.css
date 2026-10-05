@@ -834,6 +834,156 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   color: var(--muted-foreground);
 }
 
+/* ---------------------------------------------------------------- qada -- */
+
+/* Today and Qada share the right-hand column on desktop; on a phone they are
+   simply the next two cards. */
+.col--today { display: grid; gap: var(--s2); align-content: start; min-width: 0; }
+
+/* the total, as a streak figure */
+.qd-top {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+
+.qd-n {
+  font-family: var(--serif);
+  font-size: 30px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--foreground);
+}
+
+.qd-l {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: var(--muted-foreground);
+}
+
+/* F 1 · D 0 · A 2 · M 0 · I 1 */
+.qd-counts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px 7px;
+  margin-top: 10px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  color: var(--foreground);
+}
+
+.qd-count.is-zero { color: var(--muted-foreground); }
+.qd-sep { color: var(--border-hover); }
+
+.qd-list { margin-top: var(--s2); }
+
+/* The backlog follows the missed list as one list; the line under it closes both. */
+.qd-list + .qd-list { margin-top: 0; }
+.qd-list + .qd-other { margin-top: 0; }
+
+.qd-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  padding-right: 6px; /* room for the button's overhanging outline */
+  border-top: 1px solid var(--border);
+}
+
+.qd-what {
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A quiet outlined button, kept small inside its 44px tap height. */
+.qd-btn {
+  position: relative;
+  flex: none;
+  min-height: var(--tap);
+  padding: 0 4px;
+  font-size: 12.5px;
+  letter-spacing: 0.04em;
+  color: var(--accent-text);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.qd-btn::before {
+  content: "";
+  position: absolute;
+  inset: 8px -6px;
+  border: 1px solid var(--accent-hairline);
+  border-radius: var(--radius-btn);
+  transition: background var(--ease), border-color var(--ease);
+}
+
+.qd-btn:hover::before { border-color: var(--accent); background: var(--accent-wash); }
+.qd-btn:focus-visible { outline: none; }
+.qd-btn:focus-visible::before { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+.qd-more {
+  margin-top: var(--s2);
+  margin-bottom: -6px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+.qd-clear {
+  text-align: center;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 16px;
+  color: var(--muted-foreground);
+}
+
+.qd-other {
+  margin-top: var(--s2);
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+.qd-note {
+  margin-top: 10px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+/* settings: the backlog, three across */
+
+.set-backlog { margin: 0 0 var(--s2); padding: 0; border: 0; min-width: 0; }
+.set-backlog legend { padding: 0; }
+
+.set-backlog-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px var(--s1);
+}
+
+.set-backlog-item { display: grid; gap: 4px; min-width: 0; }
+
+.set-backlog-label { font-size: 13px; color: var(--muted-foreground); }
+
+.set-backlog-item .input { font-size: 16px; font-variant-numeric: tabular-nums; }
+.set-backlog-item .input:disabled { background: var(--muted); color: var(--muted-foreground); }
+
+.set-backlog-note { margin: var(--s1) 0 0; }
+
 /* ------------------------------------------------------ ayah of the day -- */
 
 /* Like an illuminated page: warm paper, a fine gold rule just inside the
@@ -2196,7 +2346,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
   .ayah        { grid-area: ayah; }
   .col--streaks { grid-area: week; }
-  .col--today  { grid-area: today; }
+  .col--today  { grid-area: today; gap: var(--s3); }
 
   .tt-row { padding: 12px 0; }
 

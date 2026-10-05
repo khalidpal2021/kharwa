@@ -12,7 +12,11 @@ const DEFAULT_PERSON = {
   display_name: '',
   calc_method: 'NorthAmerica',
   asr_madhab: 'standard',
+  qada_start: null,
 };
+
+/** PostgREST caps a response (1000 rows on Supabase), so reads page through. */
+const PAGE_ROWS = 1000;
 
 const Data = {
   db: null,
@@ -26,6 +30,15 @@ const Data = {
 
   /** "person|date|prayer" -> status */
   logs: new Map(),
+
+  /** person id -> date key of their first ever log, or null */
+  firstLog: {},
+
+  /** person id -> { fajr: 3, witr: 1, ... }, prayers owed from before Kharwa */
+  backlog: {},
+
+  /** False until the qada_backlog table exists (schema.sql has been re-run). */
+  backlogReady: false,
 
   /** The date-key window we have fetched. */
   loadedFrom: null,
@@ -77,9 +90,10 @@ const Data = {
 
   async loadPeople() {
     if (!this.configured) return;
+    // * rather than a column list, so a database without qada_start yet still loads.
     const { data, error } = await this.db
       .from('people')
-      .select('id, display_name, calc_method, asr_madhab');
+      .select('*');
     if (error) throw error;
     for (const row of data || []) {
       if (!PEOPLE_IDS.includes(row.id)) continue;
@@ -94,26 +108,38 @@ const Data = {
   /** Load logs between two date keys inclusive, merging into the cache. */
   async loadLogs(fromKey, toKey) {
     if (!this.configured) return;
-    const { data, error } = await this.db
-      .from('prayer_logs')
-      .select('person, log_date, prayer, status')
-      .gte('log_date', fromKey)
-      .lte('log_date', toKey);
-    if (error) throw error;
+    const data = [];
+    for (let at = 0; ; at += PAGE_ROWS) {
+      const { data: page, error } = await this.db
+        .from('prayer_logs')
+        .select('person, log_date, prayer, status')
+        .gte('log_date', fromKey)
+        .lte('log_date', toKey)
+        .order('id', { ascending: true })
+        .range(at, at + PAGE_ROWS - 1);
+      if (error) throw error;
+      data.push(...(page || []));
+      if (!page || page.length < PAGE_ROWS) break;
+    }
 
     // Clear the window first so rows deleted elsewhere do not linger.
     for (const k of [...this.logs.keys()]) {
       const date = k.split('|')[1];
       if (date >= fromKey && date <= toKey) this.logs.delete(k);
     }
-    for (const row of data || []) {
+    for (const row of data) {
       this.setLocal(row.person, row.log_date, row.prayer, row.status);
     }
   },
 
-  /** The default window: HISTORY_DAYS back through tomorrow. */
+  /** The default window: HISTORY_DAYS back through tomorrow, or further back
+      to the earliest qada start, so every owed prayer is in the cache. */
   async loadRecent() {
-    const from = addDays(todayKey(), -HISTORY_DAYS);
+    let from = addDays(todayKey(), -HISTORY_DAYS);
+    for (const p of PEOPLE_IDS) {
+      const start = this.qadaStart(p);
+      if (start && start < from) from = start;
+    }
     const to = addDays(todayKey(), 1);
     await this.loadLogs(from, to);
     this.loadedFrom = from;
@@ -125,6 +151,54 @@ const Data = {
     if (!this.configured) return;
     if (this.loadedFrom && dateKeyStr >= this.loadedFrom && dateKeyStr <= this.loadedTo) return;
     await this.loadLogs(dateKeyStr, dateKeyStr);
+  },
+
+  /* --------------------------------------------------------------- qada -- */
+
+  /** Where a person's qada count starts: their own setting, else their first log. */
+  qadaStart(person) {
+    return this.people[person]?.qada_start || this.firstLog[person] || null;
+  },
+
+  /** Each person's first log date, and the backlog. Call before loadRecent,
+      which reaches back to the qada start. */
+  async loadQada() {
+    if (!this.configured) return;
+
+    const firsts = await Promise.all(PEOPLE_IDS.map((p) => this.db
+      .from('prayer_logs')
+      .select('log_date')
+      .eq('person', p)
+      .order('log_date', { ascending: true })
+      .limit(1)));
+    PEOPLE_IDS.forEach((p, i) => {
+      if (firsts[i].error) throw firsts[i].error;
+      this.firstLog[p] = firsts[i].data?.[0]?.log_date || null;
+    });
+
+    // Missing until schema.sql is re-run: then there is simply no backlog.
+    const { data, error } = await this.db
+      .from('qada_backlog')
+      .select('person, prayer, count');
+    this.backlogReady = !error;
+    this.backlog = {};
+    for (const row of data || []) {
+      (this.backlog[row.person] ||= {})[row.prayer] = row.count;
+    }
+  },
+
+  /** Upsert some of one person's backlog counts: { fajr: 3, witr: 0 }. */
+  async saveBacklog(person, counts) {
+    if (!this.configured) throw new Error('Supabase is not configured yet.');
+    const rows = Object.entries(counts).map(([prayer, count]) => (
+      { person, prayer, count, updated_at: new Date().toISOString() }
+    ));
+    if (!rows.length) return;
+    const { error } = await this.db
+      .from('qada_backlog')
+      .upsert(rows, { onConflict: 'person,prayer' });
+    if (error) throw error;
+    this.backlog[person] = { ...this.backlog[person], ...counts };
   },
 
   /* ----------------------------------------------------------- writes ---- */

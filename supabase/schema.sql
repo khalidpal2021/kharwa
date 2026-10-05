@@ -23,6 +23,10 @@ insert into public.people (id, display_name) values
   ('marwa',  'Marwa')
 on conflict (id) do nothing;
 
+-- Where each person's qada count starts. Null means the date of their first
+-- prayer log.
+alter table public.people add column if not exists qada_start date;
+
 -- ----------------------------------------------------------- prayer_logs -----
 
 create table if not exists public.prayer_logs (
@@ -164,6 +168,24 @@ end $$;
 create index if not exists hadith_bookmarks_person_created_idx
   on public.hadith_bookmarks (person, created_at desc);
 
+-- ---------------------------------------------------------- qada_backlog -----
+
+-- Prayers owed from before using Kharwa, entered by hand: one row per person
+-- per prayer, upserted on (person, prayer). Witr is included since it is
+-- wajib in the Hanafi school, though it is not tracked day to day.
+create table if not exists public.qada_backlog (
+  person     text        not null references public.people (id) on delete cascade,
+  prayer     text        not null check (prayer in ('fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'witr')),
+  count      integer     not null default 0 check (count >= 0),
+  updated_at timestamptz not null default now(),
+  primary key (person, prayer)
+);
+
+drop trigger if exists qada_backlog_touch_updated_at on public.qada_backlog;
+create trigger qada_backlog_touch_updated_at
+  before update on public.qada_backlog
+  for each row execute function public.touch_updated_at();
+
 -- -------------------------------------------------------------------- RLS ----
 
 alter table public.people          enable row level security;
@@ -172,6 +194,7 @@ alter table public.quran_progress  enable row level security;
 alter table public.quran_bookmarks enable row level security;
 alter table public.hadith_progress  enable row level security;
 alter table public.hadith_bookmarks enable row level security;
+alter table public.qada_backlog     enable row level security;
 
 -- Open policies for the anon role on every table, created only when missing.
 do $$
@@ -179,7 +202,7 @@ declare
   tbl text;
 begin
   foreach tbl in array array['people', 'prayer_logs', 'quran_progress', 'quran_bookmarks',
-                             'hadith_progress', 'hadith_bookmarks']
+                             'hadith_progress', 'hadith_bookmarks', 'qada_backlog']
   loop
     if not exists (
       select 1 from pg_policies
@@ -232,6 +255,7 @@ grant select, insert, update, delete on public.quran_progress  to anon;
 grant select, insert, update, delete on public.quran_bookmarks to anon;
 grant select, insert, update, delete on public.hadith_progress  to anon;
 grant select, insert, update, delete on public.hadith_bookmarks to anon;
+grant select, insert, update, delete on public.qada_backlog     to anon;
 grant usage, select on all sequences in schema public to anon;
 
 -- --------------------------------------------------------------- realtime ----

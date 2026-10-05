@@ -453,6 +453,115 @@ function renderStreaks() {
     ${bothDone ? '<p class="sk-note">You both completed today.</p>' : ''}`;
 }
 
+/* ================================================================= qada === */
+
+/** The five, plus Witr, which is only ever owed from the backlog. */
+const QADA_PRAYERS = [...PRAYERS, { key: 'witr', label: 'Witr' }];
+
+/** How many of the most recent owed prayers the card lists. */
+const QADA_LIST = 5;
+
+/**
+ * What a person owes: every prayer shown as missed from their qada start
+ * through today, oldest first, plus the backlog. Making one up is logging it
+ * as late, which takes it off the list.
+ */
+function qadaOwed(person) {
+  const missed = [];
+  const start = Data.qadaStart(person);
+  const today = todayKey();
+  const yesterday = addDays(today, -1);
+  const now = new Date();
+
+  for (let key = start; key && key <= today; key = addDays(key, 1)) {
+    for (const p of PRAYERS) {
+      // Before yesterday every window has closed, so skip the prayer times.
+      const isMissed = key < yesterday
+        ? Data.status(person, key, p.key) === 'none'
+        : shownStatus(person, key, p.key, now) === 'missed';
+      if (isMissed) missed.push({ date: key, prayer: p.key });
+    }
+  }
+
+  const backlog = Data.backlog[person] || {};
+  const counts = Object.fromEntries(QADA_PRAYERS.map((p) => [p.key, backlog[p.key] || 0]));
+  for (const m of missed) counts[m.prayer] += 1;
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+
+  return { missed, backlog, counts, total };
+}
+
+function renderQada() {
+  const me = State.me;
+  const owed = qadaOwed(me);
+
+  const otherLine = PEOPLE_IDS.filter((p) => p !== me).map((p) => {
+    const n = qadaOwed(p).total;
+    return `<p class="qd-other">${esc(name(p))}: ${n ? `${n} to make up` : 'all caught up'}</p>`;
+  }).join('');
+
+  if (!owed.total) {
+    el('qada').innerHTML = `<p class="qd-clear">All caught up.</p>${otherLine}`;
+    return;
+  }
+
+  const showWitr = (owed.backlog.witr || 0) > 0;
+  const counts = QADA_PRAYERS
+    .filter((p) => p.key !== 'witr' || showWitr)
+    .map((p) => `<span class="qd-count${owed.counts[p.key] ? '' : ' is-zero'}"
+                       title="${p.label}: ${owed.counts[p.key]}">${p.label.slice(0, 1)}&nbsp;${owed.counts[p.key]}</span>`)
+    .join('<span class="qd-sep" aria-hidden="true">·</span>');
+
+  const recent = owed.missed.slice(-QADA_LIST);
+  const earlier = owed.missed.length - recent.length;
+  const missedRows = recent.map((m) => `
+    <li class="qd-row">
+      <span class="qd-what">${PRAYER_LABEL[m.prayer]} · ${esc(fmtDayNav.format(parseKey(m.date)))}</span>
+      <button class="btn qd-btn" type="button" data-date="${m.date}" data-prayer="${m.prayer}"
+              aria-label="Mark ${PRAYER_LABEL[m.prayer]}, ${esc(fmtGregorianShort.format(parseKey(m.date)))}, as made up">Made up</button>
+    </li>`).join('');
+
+  const backlogRows = QADA_PRAYERS
+    .filter((p) => (owed.backlog[p.key] || 0) > 0)
+    .map((p) => `
+      <li class="qd-row">
+        <span class="qd-what">${p.label} · ${owed.backlog[p.key]} from before</span>
+        <button class="btn qd-btn" type="button" data-backlog="${p.key}"
+                aria-label="Made up one ${p.label} from before">&minus;1 Made up</button>
+      </li>`).join('');
+
+  el('qada').innerHTML = `
+    <div class="qd-top">
+      <span class="qd-n">${owed.total}</span>
+      <span class="qd-l">to make up</span>
+    </div>
+    <p class="qd-counts">${counts}</p>
+    ${earlier ? `<p class="qd-more">${earlier} earlier not shown</p>` : ''}
+    ${missedRows ? `<ul class="qd-list" aria-label="Recent missed prayers">${missedRows}</ul>` : ''}
+    ${backlogRows ? `<ul class="qd-list" aria-label="Owed from before Kharwa">${backlogRows}</ul>` : ''}
+    ${otherLine}`;
+}
+
+el('qada').addEventListener('click', async (event) => {
+  const btn = event.target.closest('.qd-btn');
+  if (!btn) return;
+
+  if (btn.dataset.date) {
+    setStatus(State.me, btn.dataset.prayer, 'late', btn.dataset.date);
+    return;
+  }
+
+  const prayer = btn.dataset.backlog;
+  const before = Data.backlog[State.me]?.[prayer] || 0;
+  if (before < 1) return;
+  try {
+    await Data.saveBacklog(State.me, { [prayer]: before - 1 });
+  } catch (err) {
+    toast(`Could not save: ${esc(err.message || err)}`, { error: true });
+  }
+  renderQada();
+});
+
 /* ================================================================= ayah === */
 
 /** Once per date; a failure with nothing cached just leaves the card hidden. */
@@ -488,6 +597,7 @@ function renderStatuses() {
 
   renderTimetable();
   renderStreaks();
+  renderQada();
 
   // Re-rendering replaces the button the keyboard was on; put focus back.
   if (restore) {
@@ -510,11 +620,10 @@ function render() {
 
 /* ========================================================= interaction === */
 
-/** The one place a status is written. */
-async function setStatus(person, prayer, next) {
+/** The one place a status is written. The Qada card passes its own date. */
+async function setStatus(person, prayer, next, date = State.viewDate) {
   if (person !== State.me) return;
 
-  const date = State.viewDate;
   const before = Data.status(person, date, prayer);
   if (before === next) return;
 
@@ -594,6 +703,25 @@ function openSettings() {
   el('settings-who').textContent = `Signed in on this device as ${name(State.me)}.`;
   el('set-name').value = me.display_name || '';
   el('set-status').textContent = '';
+
+  const first = Data.firstLog[State.me];
+  el('set-qada-start').value = Data.qadaStart(State.me) || '';
+  el('set-qada-start').max = todayKey();
+  el('set-qada-start-note').textContent = first
+    ? `Missed prayers count as owed from this date. Clear it to go back to your first log, ${
+      fmtGregorianShort.format(parseKey(first))}.`
+    : 'Missed prayers count as owed from this date. Left empty, it is your first log.';
+
+  const backlog = Data.backlog[State.me] || {};
+  el('set-backlog').innerHTML = QADA_PRAYERS.map((p) => `
+    <label class="set-backlog-item">
+      <span class="set-backlog-label">${p.label}</span>
+      <input class="input" type="number" inputmode="numeric" min="0" max="99999" step="1"
+             data-prayer="${p.key}" value="${backlog[p.key] || 0}"${Data.backlogReady ? '' : ' disabled'} />
+    </label>`).join('');
+  el('set-backlog-note').textContent = Data.backlogReady
+    ? 'Prayers you owe from before you started using Kharwa.'
+    : 'Run supabase/schema.sql again to turn this on.';
   el('settings').hidden = false;
   el('set-name').focus();
 }
@@ -612,11 +740,34 @@ document.addEventListener('keydown', (event) => {
 });
 
 el('set-save').addEventListener('click', async () => {
+  const me = Data.people[State.me] || {};
   const patch = { display_name: el('set-name').value.trim() || name(State.me) };
+
+  // Stored only when it differs from the first log, so an untouched date keeps
+  // following it. qada_start is absent until schema.sql is re-run.
+  const start = el('set-qada-start').value || null;
+  const qadaStart = start && start !== Data.firstLog[State.me] ? start : null;
+  if (qadaStart !== (me.qada_start || null)) {
+    if (!('qada_start' in me)) {
+      el('set-status').textContent = 'Run supabase/schema.sql again to change the qada start date.';
+      return;
+    }
+    patch.qada_start = qadaStart;
+  }
+
+  const backlog = Data.backlog[State.me] || {};
+  const counts = {};
+  for (const input of el('set-backlog').querySelectorAll('input')) {
+    const n = Math.max(0, Math.floor(Number(input.value) || 0));
+    if (n !== (backlog[input.dataset.prayer] || 0)) counts[input.dataset.prayer] = n;
+  }
 
   el('set-status').textContent = 'Saving…';
   try {
     await Data.saveSettings(State.me, patch);
+    if (Data.backlogReady) await Data.saveBacklog(State.me, counts);
+    // An earlier start reaches back past the logs in the cache.
+    if ('qada_start' in patch) await Data.loadRecent();
     el('set-status').textContent = 'Saved.';
     render();
     setTimeout(closeSettings, 550);
@@ -690,6 +841,7 @@ async function start() {
 
   try {
     await Data.loadPeople();
+    await Data.loadQada();
     await Data.loadRecent();
     render();
   } catch (err) {
@@ -704,6 +856,7 @@ async function start() {
     if (document.visibilityState !== 'visible') return;
     try {
       await Data.loadPeople();
+      await Data.loadQada();
       await Data.loadRecent();
       render();
     } catch { /* stay with what we have */ }

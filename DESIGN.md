@@ -169,6 +169,25 @@ tooltip and accessible name: "Khalid · Fajr · Thu, Oct 1 · missed". A small
 centred legend closes the card, and "You both completed today." sits under it
 when it applies.
 
+## Qada
+
+A card under Today, with the same header: QADA between two rules.
+
+- **What is owed** — every prayer that shows as missed (the same `shownStatus`
+  rule), counted from the person's qada start: the date of their first log
+  unless they set another in Settings. Making one up is logging it as late,
+  which takes it off and also counts for streaks. On top of that, a hand-entered
+  backlog from before Kharwa (`qada_backlog`), per prayer, Witr included.
+- **The card** — the total as a Playfair numeral over a small-caps "TO MAKE UP",
+  then a mono row of counts per prayer, "F 1 · D 0 · A 2 · M 0 · I 1", zeros
+  muted, W added when there is a Witr backlog. Then the five most recent
+  missed prayers, oldest first ("Dhuhr · Thu, Oct 1"), each with a small
+  gold-outlined *Made up* button, and one row per backlog prayer with
+  *−1 Made up*. The other person's total sits in a quiet line beneath, read
+  only. With nothing owed it says "All caught up." A small muted Hanafi note
+  closes the card.
+- On desktop it sits under Today in the right-hand column.
+
 ## Desktop layout (≥ 900px)
 
 Content is capped at 1200px wide and centred. The page is only as tall as its

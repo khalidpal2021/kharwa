@@ -77,31 +77,48 @@
 
     <!-- -------------------------------------------------------- columns --- -->
     <!-- In phone order. On desktop, grid areas put the Ayah and This week on
-         the left and Today on the right. -->
+         the left and Today, with Qada under it, on the right. -->
     <div class="columns">
 
-      <!-- -------------------------------------------------- today card --- -->
-      <section class="card col--today" aria-labelledby="day-label">
-        <!-- The header is one row on the timetable's own grid: the day selector
-             over the name and time columns, the two names over their marks. -->
-        <div class="tt-head">
-          <nav class="daynav" aria-label="Day navigation">
-            <button id="day-prev" class="daynav-btn" type="button" aria-label="Previous day">&lsaquo;</button>
-            <h2 class="daynav-label">
-              <span id="day-label" class="daynav-label-text"></span>
-              <span id="day-sizer" class="daynav-sizer" aria-hidden="true"></span>
-            </h2>
-            <button id="day-next" class="daynav-btn" type="button" aria-label="Next day">&rsaquo;</button>
-            <button id="day-today" class="daynav-today is-invisible" type="button" aria-label="Back to today">Back to today</button>
-          </nav>
-          <span id="head-khalid" class="tt-col" aria-hidden="true"></span>
-          <span id="head-marwa" class="tt-col" aria-hidden="true"></span>
-        </div>
+      <div class="col--today">
 
-        <ol id="timetable" class="timetable"></ol>
+        <!-- -------------------------------------------------- today card --- -->
+        <section class="card" aria-labelledby="day-label">
+          <!-- The header is one row on the timetable's own grid: the day selector
+               over the name and time columns, the two names over their marks. -->
+          <div class="tt-head">
+            <nav class="daynav" aria-label="Day navigation">
+              <button id="day-prev" class="daynav-btn" type="button" aria-label="Previous day">&lsaquo;</button>
+              <h2 class="daynav-label">
+                <span id="day-label" class="daynav-label-text"></span>
+                <span id="day-sizer" class="daynav-sizer" aria-hidden="true"></span>
+              </h2>
+              <button id="day-next" class="daynav-btn" type="button" aria-label="Next day">&rsaquo;</button>
+              <button id="day-today" class="daynav-today is-invisible" type="button" aria-label="Back to today">Back to today</button>
+            </nav>
+            <span id="head-khalid" class="tt-col" aria-hidden="true"></span>
+            <span id="head-marwa" class="tt-col" aria-hidden="true"></span>
+          </div>
 
-        <p id="tt-legend" class="tt-legend"></p>
-      </section>
+          <ol id="timetable" class="timetable"></ol>
+
+          <p id="tt-legend" class="tt-legend"></p>
+        </section>
+
+        <!-- --------------------------------------------------- qada card --- -->
+        <section class="card" aria-labelledby="qada-label">
+          <div class="cardhead">
+            <span class="rule" aria-hidden="true"></span>
+            <h2 id="qada-label" class="cardhead-text">Qada</h2>
+            <span class="rule" aria-hidden="true"></span>
+          </div>
+
+          <div id="qada" class="qada"></div>
+
+          <p class="qd-note">Hanafi: if you owe fewer than six, make them up before the current prayer when there&rsquo;s time.</p>
+        </section>
+
+      </div>
 
       <!-- --------------------------------------------- ayah of the day --- -->
       <!-- Text comes from the Al-Quran Cloud API (js/ayat.js); hidden until it does. -->
@@ -387,6 +404,20 @@
           Prayer times follow the Islamic Society of Tracy&rsquo;s published
           timetable, so there is nothing to configure here.
         </p>
+
+        <hr class="rule rule--full" />
+
+        <label class="field">
+          <span class="field-label">Count qada from</span>
+          <input id="set-qada-start" class="input" type="date" />
+        </label>
+        <p id="set-qada-start-note" class="sheet-note"></p>
+
+        <fieldset class="field set-backlog">
+          <legend class="field-label">Owed from before Kharwa</legend>
+          <div id="set-backlog" class="set-backlog-grid"></div>
+          <p id="set-backlog-note" class="sheet-note set-backlog-note"></p>
+        </fieldset>
 
         <button id="set-save" class="btn btn--primary" type="button">Save settings</button>
         <p id="set-status" class="sheet-status" role="status"></p>

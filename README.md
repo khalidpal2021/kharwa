@@ -14,8 +14,8 @@ prayer times, both from the jsDelivr CDN.
 
 In your Supabase project, open the **SQL Editor**, paste in the whole of
 [`supabase/schema.sql`](supabase/schema.sql), and run it. It creates the
-`people`, `prayer_logs`, `quran_progress`, `quran_bookmarks`, `hadith_progress`
-and `hadith_bookmarks` tables, seeds both people, turns on RLS with open policies for the `anon` role, and adds
+`people`, `prayer_logs`, `quran_progress`, `quran_bookmarks`, `hadith_progress`,
+`hadith_bookmarks` and `qada_backlog` tables, seeds both people, turns on RLS with open policies for the `anon` role, and adds
 `prayer_logs` to the realtime publication.
 
 The file is idempotent — running it again is safe and will not drop any data.
