@@ -30,6 +30,7 @@
 
   /* Translucent golds and inks, for the glow and the shadows */
   --accent-glow:       rgba(184, 134, 11, 0.02);
+  --accent-faint:      rgba(184, 134, 11, 0.08);
   --accent-wash:       rgba(184, 134, 11, 0.10);
   --accent-tint:       rgba(184, 134, 11, 0.18);
   --accent-hairline:   rgba(184, 134, 11, 0.30);
@@ -112,7 +113,7 @@ input, select, textarea { font-size: max(16px, 1em); }
    pinch-zoom still works. */
 html, body,
 button, a, input, select, textarea, label,
-.mark, .markmenu-btn, .daynav-btn, .st-cell, .gate-btn {
+.mark, .markmenu-btn, .daynav-btn, .st-day, .gate-btn {
   touch-action: manipulation;
 }
 
@@ -673,7 +674,11 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 /* ------------------------------------------------------------- streaks -- */
 
-.streaks { --dot: 9px; --dot-row: 19px; }
+.streaks { --bar: 5px; }
+
+@media (max-width: 359px) {
+  .streaks { --bar: 4px; }
+}
 
 /* three figures across the top, divided by hairlines */
 .st-tops {
@@ -693,7 +698,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 .st-n {
   font-family: var(--serif);
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 400;
   letter-spacing: -0.02em;
   line-height: 1;
@@ -721,82 +726,73 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 .st-rule { width: 100%; margin: var(--s2) 0; }
 
-/* The weekday header and both people share one grid, so every column lines up
-   with the one above it. Capped and centred rather than stretched across the
-   whole card, so the squares sit about as far apart across as they do down. */
-.st-grid {
-  display: grid;
-  grid-template-columns: auto repeat(7, minmax(0, 1fr));
-  align-items: center;
-  justify-items: center;
-  width: 100%;
-  max-width: 215px;
-  margin: 0 auto;
+.st-name {
+  font-family: var(--serif);
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin-bottom: 6px;
 }
 
-.st-corner { width: 12px; }
+.st-week + .st-name { margin-top: var(--s2); }
+
+/* Seven day columns across the whole card, 8px apart. Every column has the
+   same padding, so today's tint can sit behind its bars without moving them. */
+.st-week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.st-day {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background var(--ease);
+}
+
+.st-day.is-today { background: var(--accent-faint); }
+.st-day:hover { background: var(--muted); }
+.st-day.is-today:hover { background: var(--accent-wash); }
+
+/* a pill per prayer, Fajr at the top */
+.st-bar {
+  display: block;
+  height: var(--bar);
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--border-hover);
+}
+
+.st-bar.is-prayed { background: var(--accent); box-shadow: none; }
+.st-bar.is-missed { background: var(--mark-empty); box-shadow: none; }
+
+/* the weekday labels, once, under the last person's columns */
+.st-wds { margin-top: 2px; }
 
 .st-wd {
+  padding: 0 4px;
+  text-align: center;
   font-family: var(--mono);
   font-size: 9px;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--muted-foreground);
-  padding-bottom: 3px;
 }
 
-.st-wd.is-today { color: var(--accent); }
+.st-wd.is-today { color: var(--accent-text); }
 
-.st-name {
-  grid-column: 1 / -1;
-  justify-self: start;
-  width: 100%;
-  font-family: var(--serif);
-  font-size: 14px;
-  font-weight: 400;
-  letter-spacing: -0.01em;
-  line-height: 1.2;
-  margin: var(--s1) 0 3px;
-}
-
-.st-pl {
-  font-family: var(--mono);
-  font-size: 8.5px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  color: var(--muted-foreground);
-  justify-self: start;
-  width: 12px;
-}
-
-.st-cell {
-  display: grid;
-  place-items: center;
-  width: 100%;
-  height: var(--dot-row);
-  padding: 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.st-cell:hover .st-dot { box-shadow: inset 0 0 0 1px var(--accent); }
-.st-cell:hover .st-dot.is-prayed,
-.st-cell:hover .st-dot.is-missed { box-shadow: 0 0 0 2px var(--muted); }
-
-.st-dot {
-  width: var(--dot);
-  height: var(--dot);
-  border-radius: 3px;
-  box-shadow: inset 0 0 0 1px var(--border-hover);
-}
-
-.st-dot.is-prayed { background: var(--accent); box-shadow: none; }
-.st-dot.is-missed { background: var(--mark-empty); box-shadow: none; }
+/* the bars in the ⓘ key */
+.info-legend .st-bar { width: 16px; }
 
 .sk-note {
   margin-top: var(--s1);
@@ -1062,7 +1058,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 /* the keys, drawn with the marks and squares themselves */
 .info-legend {
-  --dot: 10px; /* the Streaks squares, outside their card */
+  --bar: 5px; /* the Streaks bars, outside their card */
   display: flex;
   flex-wrap: wrap;
   gap: 4px 12px;
@@ -2626,11 +2622,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
   /* week */
 
-  .streaks { --dot: 11px; --dot-row: 22px; }
-  .st-grid { max-width: 250px; }
-  .st-n { font-size: 24px; }
   .st-l { font-size: 10px; }
-  .st-name { font-size: 15px; }
 
   /* quran: the list in two columns, the reader as one centred page */
 

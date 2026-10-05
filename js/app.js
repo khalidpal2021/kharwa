@@ -298,14 +298,16 @@ Info.add('today', () => `
      begins, or for Isha at the next Fajr.</p>`);
 
 Info.add('streaks', () => `
-  <p>A day is complete when all five prayers are prayed. Late counts the same as on time.</p>
-  <p>Your streak is your run of complete days; Together is the run of days you both
-     completed. Today never breaks a run until a prayer there is missed.</p>
+  <p>Each column is a day, today on the right. Its bars run from Fajr at the top
+     to Isha at the bottom. Tap a day to open it in Today.</p>
   <p class="info-legend">
-    <span><i class="st-dot is-prayed"></i>prayed</span>
-    <span><i class="st-dot is-missed"></i>missed</span>
-    <span><i class="st-dot is-none"></i>not yet</span>
-  </p>`);
+    <span><i class="st-bar is-prayed"></i>prayed</span>
+    <span><i class="st-bar is-missed"></i>missed</span>
+    <span><i class="st-bar is-none"></i>not yet</span>
+  </p>
+  <p>A day counts toward a streak when all five are prayed; late counts the same
+     as on time. Your streak is your run of complete days, Together the run of
+     days you both completed. Today never breaks a run until a prayer there is missed.</p>`);
 
 Info.add('qada', () => `
   <p>Qada is making up a prayer you missed. Every missed prayer since you started
@@ -437,18 +439,28 @@ function lastSevenDays() {
 /** Remembered so a new best can be highlighted the moment it is reached. */
 let lastDuoBest = null;
 
-const STATE_WORD = { prayed: 'prayed', missed: 'missed', none: 'not yet' };
-
-/** What a single square says: prayed, missed, or nothing to show yet. */
+/** What a single bar says: prayed, missed, or nothing to show yet. */
 function cellState(person, key, prayer) {
   const s = shownStatus(person, key, prayer);
   if (s === 'on_time' || s === 'late') return 'prayed';
   return s === 'missed' ? 'missed' : 'none';
 }
 
+/** "Khalid · Thu, Oct 1 · Fajr missed, 4 of 5" */
+function dayTip(person, key) {
+  const states = PRAYERS.map((p) => cellState(person, key, p.key));
+  const missed = PRAYERS.filter((p, i) => states[i] === 'missed').map((p) => p.label);
+  const prayed = states.filter((st) => st === 'prayed').length;
+  let lead = '';
+  if (missed.length === PRAYERS.length) lead = 'All missed, ';
+  else if (missed.length) lead = `${missed.join(', ')} missed, `;
+  return `${name(person)} · ${fmtDayNav.format(parseKey(key))} · ${lead}${prayed} of ${PRAYERS.length}`;
+}
+
 /**
- * Three streak figures over a square per prayer per day, seven days wide. The
- * weekday header and both grids share one grid, so every column lines up.
+ * Three streak figures, then for each person a week of day columns, each a
+ * stack of five bars from Fajr at the top to Isha at the bottom. The weekday
+ * labels come once, under the last person, on the same columns.
  */
 function renderStreaks() {
   const today = todayKey();
@@ -465,22 +477,19 @@ function renderStreaks() {
       <span class="st-l">${esc(label)}</span>
     </div>`;
 
-  const head = days.map((key) => `
-    <span class="st-wd${key === today ? ' is-today' : ''}" aria-hidden="true">${
-      fmtDayShort.format(parseKey(key)).slice(0, 2)}</span>`).join('');
+  const week = (person) => `
+    <h3 class="st-name">${esc(name(person))}</h3>
+    <div class="st-week">${days.map((key) => {
+      const tip = dayTip(person, key);
+      return `<button class="st-day${key === today ? ' is-today' : ''}" type="button" data-date="${key}"
+                      title="${esc(tip)}" aria-label="${esc(tip)}. Show this day.">${
+        PRAYERS.map((p) => `<i class="st-bar is-${cellState(person, key, p.key)}"></i>`).join('')}</button>`;
+    }).join('')}</div>`;
 
-  const block = (person) => `
-    <h3 class="st-name">${esc(name(person))}</h3>` +
-    PRAYERS.map((p) => `
-      <span class="st-pl" aria-hidden="true">${p.label.slice(0, 1)}</span>` +
-      days.map((key) => {
-        const state = cellState(person, key, p.key);
-        const tip = `${name(person)} · ${p.label} · ${
-          fmtGregorianShort.format(parseKey(key))} · ${STATE_WORD[state]}`;
-        return `<button class="st-cell" type="button" data-date="${key}"
-                        title="${esc(tip)}" aria-label="${esc(tip)}. Show this day."
-                      ><i class="st-dot is-${state}"></i></button>`;
-      }).join('')).join('');
+  const labels = `
+    <div class="st-week st-wds" aria-hidden="true">${days.map((key) => `
+      <span class="st-wd${key === today ? ' is-today' : ''}">${
+        fmtDayShort.format(parseKey(key)).slice(0, 2)}</span>`).join('')}</div>`;
 
   const bothDone = PEOPLE_IDS.every((p) => dayComplete(p, today));
 
@@ -492,11 +501,8 @@ function renderStreaks() {
 
     <hr class="rule st-rule" />
 
-    <div class="st-grid">
-      <span class="st-corner" aria-hidden="true"></span>
-      ${head}
-      ${PEOPLE_IDS.map(block).join('')}
-    </div>
+    ${PEOPLE_IDS.map(week).join('')}
+    ${labels}
 
     ${bothDone ? '<p class="sk-note">You both completed today.</p>' : ''}`;
 }
@@ -931,8 +937,8 @@ el('day-next').addEventListener('click', () => goToDay(addDays(State.viewDate, 1
 el('day-today').addEventListener('click', () => goToDay(todayKey()));
 
 el('streaks').addEventListener('click', (event) => {
-  const cell = event.target.closest('.st-cell');
-  if (cell) goToDay(cell.dataset.date);
+  const day = event.target.closest('.st-day');
+  if (day) goToDay(day.dataset.date);
 });
 
 /* keyboard: arrows change day, T jumps to today */

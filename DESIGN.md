@@ -142,32 +142,30 @@ derived rather than stored, the streak asks `shownStatus`, not the log.
 ### The streaks card
 
 Three figures across the top, in equal columns divided by hairlines: Together,
-then each of us. Each is a Playfair numeral over a small-caps mono label, all
-the same size — Together's numeral and label are gold, the others are plain
-foreground over muted. The best duo run is still tracked, and still flashes the
-Together numeral once when it is beaten, but it is no longer printed.
+then each of us. Each is a 24px Playfair numeral over a small-caps mono label —
+Together's numeral and label are gold, the others are plain foreground over
+muted. The best duo run is still tracked, and still flashes the Together
+numeral once when it is beaten, but it is not printed.
 
-Below a rule, a square per prayer per day. The weekday labels appear once, above
-both people, with today's in gold; each person then gets their name and a 5x7
-grid, prayers labelled F D A M I down the left. The header and both grids are
-one CSS grid, so every column lines up with the one above it.
+Below a rule, a "barcode" for each person: their name in Playfair, then the
+last seven days as columns across the full card width, 8px apart, today on the
+right. Each column is a stack of five pill-shaped bars, Fajr at the top to Isha
+at the bottom: 5px tall (4px under 360px), fully rounded, 3px apart.
 
-| Square | Meaning |
-| ------ | ------- |
+| Bar | Meaning |
+| --- | ------- |
 | solid gold | prayed, on time or late |
 | solid warm gray (`--mark-empty`) | missed |
-| thin outline | not yet due, or today still going |
+| transparent, 1px inset outline | not yet due, or today still going |
 
-Squares are 11px with a 3px radius, 9px on a phone. The grid is capped and
-centred rather than stretched across the card: at full width the columns sat
-about 57px apart against 2px between rows, which read as stripes rather than a
-grid. Capped, the pitch is about 34px across to 22px down, close enough to read
-as even.
-
-Clicking any square moves the Today table to its date, and each carries its own
-tooltip and accessible name: "Khalid · Fajr · Thu, Oct 1 · missed". The legend
-and what counts as a complete day are in the ⓘ beside the STREAKS label.
-"You both completed today." closes the card when it applies.
+Today's column sits on a soft gold tint (`--accent-faint`, 8% gold) with a 6px
+radius; every column has the same 4px padding, so the tint never moves the
+bars. The weekday labels (MO TU WE…) appear once, under the last person, on
+the same columns, in small muted mono, today's in gold. Clicking a column moves
+the Today table to that date; each has a tooltip and accessible name such as
+"Khalid · Thu, Oct 1 · Fajr missed, 4 of 5". The bar order, the colours and
+what counts toward a streak are in the ⓘ beside the label. "You both completed
+today." closes the card when it applies.
 
 ## Qada
 
