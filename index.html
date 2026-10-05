@@ -94,6 +94,7 @@
                 <span id="day-sizer" class="daynav-sizer" aria-hidden="true"></span>
               </h2>
               <button id="day-next" class="daynav-btn" type="button" aria-label="Next day">&rsaquo;</button>
+              <span class="daynav-info" data-info-slot="today"></span>
               <button id="day-today" class="daynav-today is-invisible" type="button" aria-label="Back to today">Back to today</button>
             </nav>
             <span id="head-khalid" class="tt-col" aria-hidden="true"></span>
@@ -102,20 +103,20 @@
 
           <ol id="timetable" class="timetable"></ol>
 
-          <p id="tt-legend" class="tt-legend"></p>
         </section>
 
         <!-- --------------------------------------------------- qada card --- -->
         <section class="card" aria-labelledby="qada-label">
           <div class="cardhead">
             <span class="rule" aria-hidden="true"></span>
-            <h2 id="qada-label" class="cardhead-text">Qada</h2>
+            <div class="cardhead-label">
+              <h2 id="qada-label" class="cardhead-text">Qada</h2>
+              <span data-info-slot="qada"></span>
+            </div>
             <span class="rule" aria-hidden="true"></span>
           </div>
 
           <div id="qada" class="qada"></div>
-
-          <p class="qd-note">Hanafi: if you owe fewer than six, make them up before the current prayer when there&rsquo;s time.</p>
         </section>
 
       </div>
@@ -149,7 +150,10 @@
       <section class="card col--streaks" aria-labelledby="streaks-label">
         <div class="cardhead">
           <span class="rule" aria-hidden="true"></span>
-          <h2 id="streaks-label" class="cardhead-text">Streaks</h2>
+          <div class="cardhead-label">
+            <h2 id="streaks-label" class="cardhead-text">Streaks</h2>
+            <span data-info-slot="streaks"></span>
+          </div>
           <span class="rule" aria-hidden="true"></span>
         </div>
 
@@ -341,8 +345,8 @@
 
           <div class="qr-settings" role="group" aria-label="Reading settings">
             <button id="hd-opt-arabic" class="qr-chip" type="button">Arabic</button>
+            <span class="qr-settings-info" data-info-slot="hadith"></span>
           </div>
-          <p class="qr-hint">Tap the bookmark beside a hadith to save it.</p>
 
           <div id="hd-text" class="hd-text"></div>
           <p id="hd-status" class="qr-status" hidden></p>
@@ -362,6 +366,7 @@
     <div id="section-learn" class="section" hidden>
       <div id="learn-tabs-wrap" class="ln-tabs-wrap">
         <nav id="learn-tabs" class="ln-tabs" aria-label="Learn sections"></nav>
+        <span class="ln-info" data-info-slot="learn"></span>
       </div>
       <div id="learn-panels" class="learn"></div>
 
@@ -389,7 +394,10 @@
       <div id="settings-scrim" class="sheet-scrim"></div>
       <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
         <div class="sheet-head">
-          <h2 id="settings-title" class="sheet-title">Settings</h2>
+          <div class="sheet-title-row">
+            <h2 id="settings-title" class="sheet-title">Settings</h2>
+            <span data-info-slot="settings"></span>
+          </div>
           <button id="settings-close" class="btn btn--ghost" type="button">Close</button>
         </div>
 
@@ -406,23 +414,23 @@
           <span class="ln-toggle-text">Show Learn tab</span>
         </label>
 
-        <p class="sheet-note">
-          Prayer times follow the Islamic Society of Tracy&rsquo;s published
-          timetable, so there is nothing to configure here.
-        </p>
-
         <hr class="rule rule--full" />
 
-        <label class="field">
-          <span class="field-label">Count qada from</span>
+        <div class="field">
+          <div class="field-head">
+            <label class="field-label" for="set-qada-start">Count qada from</label>
+            <span data-info-slot="qada-start"></span>
+          </div>
           <input id="set-qada-start" class="input" type="date" />
-        </label>
-        <p id="set-qada-start-note" class="sheet-note"></p>
+        </div>
 
         <fieldset class="field set-backlog">
-          <legend class="field-label">Owed from before Kharwa</legend>
+          <legend class="field-head">
+            <span class="field-label">Owed from before Kharwa</span>
+            <span data-info-slot="backlog"></span>
+          </legend>
           <div id="set-backlog" class="set-backlog-grid"></div>
-          <p id="set-backlog-note" class="sheet-note set-backlog-note"></p>
+          <p id="set-backlog-note" class="sheet-note set-backlog-note">Run supabase/schema.sql again to turn this on.</p>
         </fieldset>
 
         <button id="set-save" class="btn btn--primary" type="button">Save settings</button>
@@ -468,6 +476,7 @@
   <script src="js/data.js" defer></script>
   <script src="js/ayat.js" defer></script>
   <script src="js/store.js" defer></script>
+  <script src="js/info.js" defer></script>
   <script src="js/router.js" defer></script>
   <script src="js/quran.js" defer></script>
   <script src="js/hadith.js" defer></script>

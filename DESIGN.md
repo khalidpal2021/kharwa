@@ -121,9 +121,8 @@ still empty after its window has closed:
 A missed prayer can still be tapped and logged as on time or late. Older rows
 stored as `missed` are read as empty, so they show as missed in the same way.
 
-A one-line legend under the timetable,
-"✓ on time · ◐ late · ✕ missed", is drawn with the marks themselves in small
-muted text.
+The legend, "✓ on time · ◐ late · ✕ missed" drawn with the marks
+themselves, is in the ⓘ beside the day selector, with how missed is decided.
 
 ## Streaks
 
@@ -165,9 +164,9 @@ grid. Capped, the pitch is about 34px across to 22px down, close enough to read
 as even.
 
 Clicking any square moves the Today table to its date, and each carries its own
-tooltip and accessible name: "Khalid · Fajr · Thu, Oct 1 · missed". A small
-centred legend closes the card, and "You both completed today." sits under it
-when it applies.
+tooltip and accessible name: "Khalid · Fajr · Thu, Oct 1 · missed". The legend
+and what counts as a complete day are in the ⓘ beside the STREAKS label.
+"You both completed today." closes the card when it applies.
 
 ## Qada
 
@@ -178,14 +177,16 @@ A card under Today, with the same header: QADA between two rules.
   unless they set another in Settings. Making one up is logging it as late,
   which takes it off and also counts for streaks. On top of that, a hand-entered
   backlog from before Kharwa (`qada_backlog`), per prayer, Witr included.
-- **The card** — a section per person, the current one first: the name in
-  Playfair with the total as a small gold count ("Khalid · 1 to make up"),
-  then a row per owed prayer, oldest first, with thin rules between: the
-  prayer in Playfair, "Thu, Oct 1 · 3 days ago" muted beneath, and for your
-  own rows a ghost *Made up* button. Backlog rows read "Fajr · 4 from before
-  Kharwa" with a *−1*. The other person's rows have no buttons. At most five
-  rows each, then "Show all (8)". Owing nothing reads "All caught up." in
-  quiet italic. The Hanafi note closes the card.
+- **The card** — the QADA label with an ⓘ that explains qada, Made up and
+  the Hanafi note. Then a line per person, the current one first: the name in
+  Playfair on the left, and on the right their count as a gold Playfair
+  numeral, or a small gold "✓ Caught up". Under anyone who owes, a tile per
+  prayer, oldest first, on `--muted` with a 6px radius: the prayer in Playfair,
+  "Sat, Oct 3 · yesterday" small and muted beneath, and on your own tiles a
+  gold-outlined white button with a check, *Made up* (34px tall, 44px to tap).
+  Backlog tiles read "4 from before Kharwa" and take one off. The other
+  person's tiles have no button. At most five each, then "Show all (8)". When
+  neither owes anything the card is one centred line, "✓ Both caught up".
 - **The popup** — on opening the app, once a day per person (the date it was
   closed is kept in `localStorage`) and only when something is owed. A white
   card on the soft scrim, fading in: the QADA label with a × beside it,
@@ -198,6 +199,25 @@ A card under Today, with the same header: QADA between two rules.
   late (or the backlog drops by one), and a toast offers *Undo* for about five
   seconds.
 - On desktop it sits under Today in the right-hand column.
+
+## Info (ⓘ)
+
+Explanations stay out of the page and sit behind a small circled "i": 16px,
+muted, gold on hover, on focus and while open, with a 44px tap area. It goes
+beside a header label; on a card label the label stays centred between its
+rules. Tapping it opens one shared popover anchored under it (above when there
+is no room): white, a thin border, `--shadow-sm`, 8px radius, 13px text, at
+most 260px wide, kept on screen and following its button as the page or a
+sheet scrolls. Only one is open at a time; it closes on a second tap, a tap
+elsewhere, or Esc (which then leaves the sheet beneath alone). `js/info.js`
+holds it: `infoButton('key')` in markup, or `<span data-info-slot="key">` in
+`index.html`, and `Info.add('key', () => html)` for what it says.
+
+Where they are: Today (the legend and how missed is decided), Streaks, Qada,
+Settings (the timetable note, the qada start date, the backlog), the Hadith
+reader (how to bookmark), and the end of the Learn sub-tab bar (that tab's
+intro and the imam note). What stays visible is what you act on or need at a
+glance.
 
 ## Desktop layout (≥ 900px)
 
@@ -390,8 +410,8 @@ from the hadith API and are never written into the code.
 ## Learn
 
 A guide to praying, Hanafi throughout since ISOT is Hanafi, with a short note
-where another school commonly differs. The section opens with one line: a
-learning guide, check with your local imam.
+where another school commonly differs. The note that it is a learning guide,
+to check with your local imam, is in the ⓘ at the end of the sub-tab bar.
 
 Five sub-tabs rather than one long page: Basics, Wudu, Steps, Prayers and
 Practice. The labels are kept short on purpose — all five measure 253px together
@@ -406,8 +426,8 @@ is more to reach.
 Each sub-tab is its own hash route — `#/learn/wudu`, `#/learn/steps` — so the
 back button works and a link can open one directly. `LEARN_ALIASES` keeps the
 older `positions` and `pray-along` routes working. The last one visited is
-remembered in `localStorage`, and a bare `#/learn` reopens it. Each starts with a
-one-line intro saying what it covers.
+remembered in `localStorage`, and a bare `#/learn` reopens it. What each covers is
+in the same ⓘ, which follows the open tab.
 
 A sub-tab is one entry in `LEARN_TABS` — id, label, intro, render — and a render
 method on `Learn`; the bar, the routing and the remembering all follow from the

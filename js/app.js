@@ -286,12 +286,47 @@ function markMarkup(person, prayer) {
   </div>`;
 }
 
-/** ✓ on time · ◐ late · ✕ missed, drawn with the marks themselves. */
-function renderLegend() {
-  el('tt-legend').innerHTML = ['on_time', 'late', 'missed']
-    .map((s) => `<span class="tt-legend-item">${markSvg(s)}${STATUS_LABEL[s].toLowerCase()}</span>`)
-    .join('<span class="tt-legend-sep" aria-hidden="true">·</span>');
-}
+/* ================================================================ info === */
+
+/* What the ⓘ buttons on the Prayer tab say. */
+
+Info.add('today', () => `
+  <p class="info-legend">${['on_time', 'late', 'missed']
+    .map((st) => `<span>${markSvg(st)}${STATUS_LABEL[st].toLowerCase()}</span>`).join('')}</p>
+  <p>Tap your own circle to log a prayer on time or late. One left empty is
+     marked missed by itself once its time has passed: when the next prayer
+     begins, or for Isha at the next Fajr.</p>`);
+
+Info.add('streaks', () => `
+  <p>A day is complete when all five prayers are prayed. Late counts the same as on time.</p>
+  <p>Your streak is your run of complete days; Together is the run of days you both
+     completed. Today never breaks a run until a prayer there is missed.</p>
+  <p class="info-legend">
+    <span><i class="st-dot is-prayed"></i>prayed</span>
+    <span><i class="st-dot is-missed"></i>missed</span>
+    <span><i class="st-dot is-none"></i>not yet</span>
+  </p>`);
+
+Info.add('qada', () => `
+  <p>Qada is making up a prayer you missed. Every missed prayer since you started
+     tracking is listed, plus any you owed from before Kharwa (set in Settings).</p>
+  <p>Mark one Made up once you have prayed it: it is logged late, and counts as prayed.</p>
+  <p>Hanafi: if you owe fewer than six, make them up before the current prayer when there&rsquo;s time.</p>`);
+
+Info.add('settings', () => `
+  <p>Prayer times follow the Islamic Society of Tracy&rsquo;s published timetable,
+     so there is nothing to configure for them.</p>`);
+
+Info.add('qada-start', () => {
+  const first = Data.firstLog[State.me];
+  return `<p>Missed prayers count as owed from this date. ${first
+    ? `Clear it to go back to your first log, ${esc(fmtGregorianShort.format(parseKey(first)))}.`
+    : 'Left empty, it is the date of your first log.'}</p>`;
+});
+
+Info.add('backlog', () => `
+  <p>Prayers you owe from before you started using Kharwa. They are added to your
+     qada, and each Made up takes one off.</p>`);
 
 /* ============================================================ timetable === */
 
@@ -463,12 +498,6 @@ function renderStreaks() {
       ${PEOPLE_IDS.map(block).join('')}
     </div>
 
-    <p class="st-legend" aria-hidden="true">
-      <span><i class="st-dot is-prayed"></i>prayed</span>
-      <span><i class="st-dot is-missed"></i>missed</span>
-      <span><i class="st-dot is-none"></i>not yet</span>
-    </p>
-
     ${bothDone ? '<p class="sk-note">You both completed today.</p>' : ''}`;
 }
 
@@ -534,30 +563,21 @@ function qadaItems(owed) {
   ];
 }
 
-/**
- * One owed prayer: the name in Playfair, when beneath it, and for your own a
- * button. The card uses quiet ghost buttons, the popup outlined ones.
- */
-function qadaRow(item, { mine, popup }) {
+/** One owed prayer in the popup: the name in Playfair, when beneath it, and a button. */
+function qadaRow(item) {
   const label = QADA_LABEL[item.prayer];
   let when;
-  let button = '';
+  let button;
 
   if (item.backlog) {
     when = `${item.backlog} from before Kharwa`;
-    if (mine) {
-      button = `<button class="btn ${popup ? 'qd-btn' : 'btn--ghost qd-ghost'}" type="button"
-                        data-backlog="${item.prayer}"
-                        aria-label="Made up one ${label} from before Kharwa">&minus;1${popup ? ' Made up' : ''}</button>`;
-    }
+    button = `<button class="btn qd-btn" type="button" data-backlog="${item.prayer}"
+                      aria-label="Made up one ${label} from before Kharwa">&minus;1 Made up</button>`;
   } else {
     const day = fmtDayNav.format(parseKey(item.date));
     when = `${esc(day)} · ${daysAgo(item.date)}`;
-    if (mine) {
-      button = `<button class="btn ${popup ? 'qd-btn' : 'btn--ghost qd-ghost'}" type="button"
-                        data-date="${item.date}" data-prayer="${item.prayer}"
-                        aria-label="Mark ${label}, ${esc(day)}, as made up">Made up</button>`;
-    }
+    button = `<button class="btn qd-btn" type="button" data-date="${item.date}" data-prayer="${item.prayer}"
+                      aria-label="Mark ${label}, ${esc(day)}, as made up">Made up</button>`;
   }
 
   return `
@@ -570,28 +590,66 @@ function qadaRow(item, { mine, popup }) {
     </li>`;
 }
 
+/** The same on the card, as a tile. Only your own tiles get the button. */
+function qadaTile(item, mine) {
+  const label = QADA_LABEL[item.prayer];
+  let when;
+  let data;
+  let aria;
+
+  if (item.backlog) {
+    when = `${item.backlog} from before Kharwa`;
+    data = `data-backlog="${item.prayer}"`;
+    aria = `Made up one ${label} from before Kharwa`;
+  } else {
+    const day = esc(fmtDayNav.format(parseKey(item.date)));
+    when = `${day} · ${daysAgo(item.date)}`;
+    data = `data-date="${item.date}" data-prayer="${item.prayer}"`;
+    aria = `Mark ${label}, ${day}, as made up`;
+  }
+
+  return `
+    <li class="qd-tile">
+      <div class="qd-what">
+        <span class="qd-name">${label}</span>
+        <span class="qd-when">${when}</span>
+      </div>
+      ${mine ? `<button class="qd-made" type="button" ${data} aria-label="${aria}"><svg class="qd-check" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false"><path d="M3.2 8.4l3 3 6.6-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Made up</span></button>` : ''}
+    </li>`;
+}
+
 /* --------------------------------------------------------------- card --- */
 
-/** A section per person, the current one first. The other's rows are read only. */
+/**
+ * A line per person, the current one first: the name, then their count in
+ * gold or "Caught up". Under anyone who owes, a tile per prayer. When neither
+ * owes anything the whole card is one line.
+ */
 function renderQada() {
   const order = [State.me, ...PEOPLE_IDS.filter((p) => p !== State.me)];
+  const owed = Object.fromEntries(order.map((p) => [p, qadaOwed(p)]));
+
+  if (order.every((p) => !owed[p].total)) {
+    el('qada').innerHTML = `<p class="qd-both"><svg class="qd-check" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false"><path d="M3.2 8.4l3 3 6.6-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Both caught up</p>`;
+    return;
+  }
 
   el('qada').innerHTML = order.map((person) => {
-    const owed = qadaOwed(person);
-    const items = qadaItems(owed);
-    const mine = person === State.me;
+    const { total } = owed[person];
+    const items = qadaItems(owed[person]);
     const all = State.qadaAll.has(person);
     const shown = all ? items : items.slice(0, QADA_LIST);
 
     return `
-      <section class="qd-person">
-        <h3 class="qd-head">
+      <section class="qd-person" aria-label="${esc(name(person))}">
+        <h3 class="qd-line">
           <span class="qd-who">${esc(name(person))}</span>
-          ${owed.total ? `<span class="qd-total">· ${owed.total} to make up</span>` : ''}
+          ${total
+            ? `<span class="qd-count" aria-label="${total} to make up" title="${total} to make up">${total}</span>`
+            : '<span class="qd-ok"><svg class="qd-check" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false"><path d="M3.2 8.4l3 3 6.6-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Caught up</span>'}
         </h3>
-        ${items.length
-          ? `<ul class="qd-list">${shown.map((i) => qadaRow(i, { mine })).join('')}</ul>`
-          : '<p class="qd-clear">All caught up.</p>'}
+        ${items.length ? `
+          <ul class="qd-tiles">${shown.map((i) => qadaTile(i, person === State.me)).join('')}</ul>` : ''}
         ${items.length > QADA_LIST ? `
           <button class="qd-all" type="button" data-person="${person}" aria-expanded="${all}">${
             all ? 'Show fewer' : `Show all (${items.length})`}</button>` : ''}
@@ -619,7 +677,7 @@ el('qada').addEventListener('click', (event) => {
  * backlog), with an Undo toast. Shared by the card and the popup.
  */
 async function makeUp(btn) {
-  const row = btn.closest('.qd-row');
+  const row = btn.closest('.qd-row, .qd-tile');
   const { date, prayer, backlog } = btn.dataset;
   btn.disabled = true;
   row.classList.add('is-leaving');
@@ -727,7 +785,7 @@ function renderQadaPop() {
 
   const n = owed.total;
   el('qd-pop-title').textContent = `You have ${n} prayer${n === 1 ? '' : 's'} to make up`;
-  list.innerHTML = qadaItems(owed).map((i) => qadaRow(i, { mine: true, popup: true })).join('');
+  list.innerHTML = qadaItems(owed).map((i) => qadaRow(i)).join('');
 
   // The button that was pressed has gone; carry on with the next one.
   if (hadFocus) (list.querySelector('button:not(:disabled)') || el('qd-pop-close')).focus();
@@ -815,7 +873,6 @@ function render() {
   renderDayNav();
   renderTimeline();
   renderStatuses();
-  renderLegend();
   renderAyah();
 }
 
@@ -909,13 +966,8 @@ function openSettings() {
   el('set-learn').checked = Data.showsLearn(State.me);
   el('set-status').textContent = '';
 
-  const first = Data.firstLog[State.me];
   el('set-qada-start').value = Data.qadaStart(State.me) || '';
   el('set-qada-start').max = todayKey();
-  el('set-qada-start-note').textContent = first
-    ? `Missed prayers count as owed from this date. Clear it to go back to your first log, ${
-      fmtGregorianShort.format(parseKey(first))}.`
-    : 'Missed prayers count as owed from this date. Left empty, it is your first log.';
 
   const backlog = Data.backlog[State.me] || {};
   el('set-backlog').innerHTML = QADA_PRAYERS.map((p) => `
@@ -924,9 +976,7 @@ function openSettings() {
       <input class="input" type="number" inputmode="numeric" min="0" max="99999" step="1"
              data-prayer="${p.key}" value="${backlog[p.key] || 0}"${Data.backlogReady ? '' : ' disabled'} />
     </label>`).join('');
-  el('set-backlog-note').textContent = Data.backlogReady
-    ? 'Prayers you owe from before you started using Kharwa.'
-    : 'Run supabase/schema.sql again to turn this on.';
+  el('set-backlog-note').hidden = Data.backlogReady;
   el('settings').hidden = false;
   el('set-name').focus();
 }

@@ -155,7 +155,7 @@ const Learn = {
     const panel = document.createElement('div');
     panel.className = 'ln-panel';
     panel.id = `learn-panel-${tab.id}`;
-    panel.innerHTML = `<p class="ln-intro">${esc(tab.intro)}</p>${tab.render()}`;
+    panel.innerHTML = tab.render();
     el('learn-panels').appendChild(panel);
     this.panels[tab.id] = panel;
     if (tab.id === 'positions') this.fillSurahs(panel);
@@ -182,7 +182,7 @@ const Learn = {
 
     if (!this.panels[tab.id]) this.buildPanel(tab);
     else if (tab.dynamic) {
-      this.panels[tab.id].innerHTML = `<p class="ln-intro">${esc(tab.intro)}</p>${tab.render()}`;
+      this.panels[tab.id].innerHTML = tab.render();
     }
     for (const [key, node] of Object.entries(this.panels)) node.hidden = key !== tab.id;
 
@@ -196,7 +196,6 @@ const Learn = {
 
   renderBasics() {
     return `
-      <p class="ln-disclaimer">${esc(LEARN_DISCLAIMER)}</p>
 
       ${this.card('before', 'Before you pray', `
         <ul class="ln-check">
@@ -316,7 +315,7 @@ const Learn = {
     const panel = this.panels.practice;
     if (panel) {
       const tab = LEARN_TABS.find((t) => t.id === 'practice');
-      panel.innerHTML = `<p class="ln-intro">${esc(tab.intro)}</p>${tab.render()}`;
+      panel.innerHTML = tab.render();
     }
   },
 
@@ -562,6 +561,12 @@ const LEARN_TABS = [
     dynamic: true,            // the next prayer and the toggle change it
   },
 ];
+
+/* The ⓘ on the sub-tab bar: what this tab covers, and the imam note. */
+Info.add('learn', () => {
+  const tab = LEARN_TABS.find((t) => t.id === Learn.tab) || LEARN_TABS[0];
+  return `<p>${esc(tab.intro)}</p><p>${esc(LEARN_DISCLAIMER)}</p>`;
+});
 
 /* Routes from before the tabs were renamed. */
 const LEARN_ALIASES = { positions: 'steps', 'pray-along': 'practice' };

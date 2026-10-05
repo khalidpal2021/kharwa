@@ -619,6 +619,8 @@ const Hadith = {
   },
 };
 
+Info.add('hadith', () => '<p>Tap the bookmark beside a hadith to save it.</p>');
+
 Sections.register({
   id: 'hadith',
   label: 'Hadith',

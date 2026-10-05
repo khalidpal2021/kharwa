@@ -432,6 +432,8 @@ button, a, input, select, textarea, label,
   margin-left: -8px;
 }
 
+.daynav-info { flex: none; display: inline-flex; margin: 0 6px 0 2px; }
+
 /* 30px wide, with the tap area widened to 44px by ::after. */
 .daynav-btn {
   position: relative;
@@ -625,23 +627,6 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 .mark-ring--missed { stroke: var(--mark-empty); }
 .mark-ring--empty  { stroke: var(--mark-empty); }
 
-/* the key under the timetable */
-.tt-legend {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  gap: 4px 8px;
-  margin-top: 12px;
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--muted-foreground);
-}
-
-.tt-legend-item { display: inline-flex; align-items: center; gap: 5px; }
-.tt-legend svg { display: block; width: 12px; height: 12px; }
-.tt-legend-sep { color: var(--border-hover); }
-
 /* the menu that appears on hover or focus, desktop only */
 
 .markmenu {
@@ -815,18 +800,6 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 .st-dot.is-prayed { background: var(--accent); box-shadow: none; }
 .st-dot.is-missed { background: var(--mark-empty); box-shadow: none; }
 
-.st-legend {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 4px var(--s2);
-  margin-top: var(--s2);
-  font-size: 11px;
-  color: var(--muted-foreground);
-}
-
-.st-legend span { display: inline-flex; align-items: center; gap: 5px; }
-
 .sk-note {
   margin-top: var(--s1);
   text-align: center;
@@ -839,29 +812,6 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 /* Today and Qada share the right-hand column on desktop; on a phone they are
    simply the next two cards. */
 .col--today { display: grid; gap: var(--s2); align-content: start; min-width: 0; }
-
-/* a section per person, the current one first */
-.qd-person + .qd-person { margin-top: var(--s3); }
-
-.qd-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0 6px;
-  margin-bottom: 6px;
-  font-family: var(--serif);
-  font-size: 17px;
-  font-weight: 400;
-  letter-spacing: -0.01em;
-  line-height: 1.25;
-}
-
-.qd-total {
-  font-family: var(--sans);
-  font-size: 13px;
-  letter-spacing: 0.01em;
-  color: var(--accent-text);
-}
 
 .qd-list { margin: 0; padding: 0; list-style: none; }
 
@@ -895,9 +845,6 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   font-variant-numeric: tabular-nums;
 }
 
-/* the card's quiet ghost button, its text flush with the card's edge */
-.qd-ghost { flex: none; margin-right: -10px; font-size: 13px; }
-
 /* the popup's outlined button, kept small inside its 44px tap height */
 .qd-btn {
   position: relative;
@@ -924,21 +871,100 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 .qd-btn:focus-visible { outline: none; }
 .qd-btn:focus-visible::before { outline: 2px solid var(--ring); outline-offset: 2px; }
 
-.qd-clear {
-  padding: 10px 0 4px;
-  border-top: 1px solid var(--border);
+/* a line per person: the name, then the count in gold or "Caught up" */
+.qd-person + .qd-person { margin-top: var(--s2); }
+
+.qd-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s2);
+  min-height: 28px;
   font-family: var(--serif);
-  font-style: italic;
-  font-size: 15px;
-  color: var(--muted-foreground);
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
 }
+
+.qd-count {
+  font-family: var(--serif);
+  font-size: 24px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.qd-ok,
+.qd-both {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--sans);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: var(--accent-text);
+}
+
+.qd-both { display: flex; justify-content: center; padding: 2px 0; }
+
+.qd-check { flex: none; display: block; }
+
+/* a tile per owed prayer */
+.qd-tiles {
+  display: grid;
+  gap: 6px;
+  margin: var(--s1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.qd-tile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 54px;
+  padding: 7px 9px 7px 12px;
+  border-radius: var(--radius-btn);
+  background: var(--muted);
+  transition: opacity 200ms ease-out;
+}
+
+.qd-tile.is-leaving { opacity: 0; }
+
+/* Clearly a button: a gold outline on white, a check and the word. 34px
+   tall, with the tap area widened to 44px. */
+.qd-made {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 34px;
+  padding: 0 11px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-btn);
+  background: var(--card);
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  color: var(--accent-text);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background var(--ease), color var(--ease);
+}
+
+.qd-made::after { content: ""; position: absolute; inset: -5px -3px; }
+.qd-made:hover { background: var(--accent-wash); color: var(--foreground); }
+.qd-made:disabled { cursor: default; opacity: 0.6; }
 
 /* Show all (8) */
 .qd-all {
-  min-height: var(--tap);
+  min-height: 36px;
   padding: 0;
   border: 0;
-  border-top: 1px solid var(--border);
   width: 100%;
   background: none;
   text-align: left;
@@ -962,6 +988,80 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   line-height: 1.5;
   color: var(--muted-foreground);
   text-align: center;
+}
+
+/* ------------------------------------------------------------------ info -- */
+
+/* The small circled "i" beside a header label; its tap area is 44px. */
+.info-btn {
+  position: relative;
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--muted-foreground);
+  vertical-align: middle;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--ease);
+}
+
+.info-btn::after { content: ""; position: absolute; inset: -14px; }
+.info-btn svg { display: block; }
+
+.info-btn:hover,
+.info-btn:focus-visible,
+.info-btn[aria-expanded="true"] { color: var(--accent); }
+
+.info-pop {
+  position: fixed;
+  z-index: 65; /* over the sheet, the popup and the toasts */
+  width: max-content;
+  max-width: min(260px, calc(100vw - 24px));
+  padding: 10px 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+  text-align: left;
+  text-transform: none;
+  white-space: normal;
+  color: var(--foreground);
+  animation: modal-in 150ms ease-out;
+}
+
+.info-pop p + p { margin-top: 6px; }
+
+/* the keys, drawn with the marks and squares themselves */
+.info-legend {
+  --dot: 10px; /* the Streaks squares, outside their card */
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.info-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.info-legend svg { display: block; width: 14px; height: 14px; }
+
+/* Beside a card label, with the label still centred between its rules:
+   padding on the left matches the button and its gap on the right. */
+.cardhead-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 22px;
 }
 
 /* ------------------------------------------------------------ qada popup -- */
@@ -1468,6 +1568,8 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   gap: 8px;
   margin-top: var(--s3);
 }
+
+.qr-settings-info { display: inline-flex; align-items: center; padding: 0 6px; }
 
 .qr-seg { display: inline-flex; }
 
@@ -2220,6 +2322,11 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 .field { display: block; margin-bottom: var(--s2); }
 .field-label { display: block; margin-bottom: var(--s1); }
 
+.sheet-title-row { display: flex; align-items: center; gap: 10px; }
+
+.field-head { display: flex; align-items: center; gap: 8px; margin-bottom: var(--s1); }
+.field-head .field-label { margin-bottom: 0; }
+
 .input {
   width: 100%;
   min-height: var(--tap);
@@ -2593,16 +2700,6 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
    =========================================================================== */
 
 .learn { display: flex; flex-direction: column; gap: var(--s3); }
-
-.ln-disclaimer {
-  padding: 10px 14px;
-  border: 1px solid var(--border);
-  border-left: 2px solid var(--accent);
-  border-radius: var(--radius-btn);
-  background: var(--muted);
-  font-size: 13px;
-  color: var(--muted-foreground);
-}
 
 .ln-lead { font-size: 13.5px; color: var(--muted-foreground); margin-bottom: var(--s2); }
 
@@ -3038,6 +3135,9 @@ body.is-guiding { overflow: hidden; }
   position: sticky;
   top: 0;
   z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
   margin-bottom: var(--s3);
   background: var(--background);
   border-bottom: 1px solid var(--border);
@@ -3046,7 +3146,7 @@ body.is-guiding { overflow: hidden; }
 .ln-tabs-wrap::after {
   content: "";
   position: absolute;
-  top: 0; right: 0; bottom: 1px;
+  top: 0; right: 30px; bottom: 1px; /* stops short of the ⓘ */
   width: 36px;
   pointer-events: none;
   opacity: 0;
@@ -3056,7 +3156,11 @@ body.is-guiding { overflow: hidden; }
 
 .ln-tabs-wrap.is-scrollable::after { opacity: 1; }
 
+.ln-info { flex: none; display: inline-flex; padding-right: 2px; }
+
 .ln-tabs {
+  flex: 1;
+  min-width: 0;
   display: flex;
   gap: 12px;
   padding-top: 2px;
