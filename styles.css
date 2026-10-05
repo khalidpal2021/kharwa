@@ -867,52 +867,89 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 .qd-mark:disabled { cursor: default; }
 
-/* ----------------------------------------------------------- qada banner -- */
+/* ------------------------------------------------------------- qada card -- */
 
-/* One line at the top of Today: never wraps, and the date is short enough
-   ("Sat Oct 3") that it never needs to be cut. */
-.qd-banner {
+/* Your owed prayers, as rows like the Today table's above, so the two cards
+   read as a set. Each row is one line that never wraps: the name and date as
+   a group that takes the free space, and the Today mark, fixed, on the right. */
+.qd-rows { margin: -4px 0 0; padding: 0; list-style: none; }
+
+.qd-r {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
-  min-height: 36px;
-  margin: 6px 0 8px; /* clear of the ⓘ in the card's corner */
-  padding-left: 12px;
-  border-radius: 6px;
-  background: var(--muted);
-  white-space: nowrap;
-  transition: opacity 200ms ease-out, background var(--ease);
+  border-bottom: 1px solid var(--border);
+  transition: opacity 200ms ease-out;
 }
 
-.qd-banner.is-leaving { opacity: 0; }
+.qd-r.is-leaving { opacity: 0; }
 
-.qd-b-text { font-size: 14px; color: var(--muted-foreground); }
-.qd-b-name { color: var(--foreground); font-weight: 500; }
-
-/* the Today mark, its 44px tap area overhanging the slim line */
-.qd-banner .qd-mark { flex: none; margin: -4px 0; }
-
-/* several owed: the whole line opens the list */
-.qd-b-open {
+.qd-r-what {
+  flex: 1;
+  min-width: 0;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: baseline;
   gap: 10px;
-  width: 100%;
+  white-space: nowrap;
+}
+
+.qd-r-name {
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.qd-r-when {
+  font-size: 12.5px;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+.qd-r .qd-mark { flex: none; }
+
+/* +2 more */
+.qd-all {
   min-height: 36px;
-  padding: 0 12px 0 0;
+  padding: 0;
   border: 0;
   background: none;
-  font: inherit;
-  text-align: left;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--muted-foreground);
   cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
+  transition: color var(--ease);
 }
 
-.qd-b-open .qd-b-text { color: var(--foreground); }
-.qd-b-chev { font-size: 18px; line-height: 1; color: var(--muted-foreground); }
-.qd-banner:has(.qd-b-open:hover) { background: var(--border); }
+.qd-all:hover {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 4px;
+}
+
+.qd-ok {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: var(--accent-text);
+}
+
+.qd-check { flex: none; display: block; }
+
+/* The other person, one quiet line, as far from the rule above as from the
+   card's edge below: the card's own padding, with no extra leading. */
+.qd-other {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 12.5px;
+  line-height: 1;
+  color: var(--muted-foreground);
+}
 
 .qd-note {
   margin-top: var(--s2);
@@ -968,7 +1005,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 /* In a card's top-right corner, in the gutter its padding leaves. */
 .has-info { position: relative; }
-.card-info { position: absolute; top: 5px; right: 5px; display: flex; }
+.card-info { position: absolute; top: 8px; right: 8px; display: flex; }
 
 .info-pop {
   position: fixed;
@@ -2369,8 +2406,12 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   .toasts { bottom: calc(var(--s3) + env(safe-area-inset-bottom, 0px)); }
 
   .card { padding: 22px 26px; }
-  .card-info { top: 6px; right: 8px; }
-  .qd-banner { margin-top: 0; } /* the wider padding already clears the ⓘ */
+  .card-info { top: 10px; right: 12px; }
+
+  /* the qada rows, sized like the Today rows on desktop */
+  .qd-r { padding: 12px 0; }
+  .qd-r-name { font-size: clamp(17px, 1.3vw, 19px); }
+  .qd-other { margin-top: 22px; }
 
   /* the feature card spans the top; the two below share the rest */
   .app > .card { flex: none; }

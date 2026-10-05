@@ -169,34 +169,38 @@ today." closes the card when it applies.
 
 ## Qada
 
-No card of its own: a slim banner at the top of Today, and a popup.
+A card under Today, and a popup.
 
 - **What is owed** — every prayer that shows as missed (the same `shownStatus`
   rule), counted from the person's qada start: the date of their first log
   unless they set another in Settings. Making one up is logging it as late,
   which takes it off and also counts for streaks. On top of that, a hand-entered
   backlog from before Kharwa (`qada_backlog`), per prayer, Witr included.
-- **The banner** — one line at the top of the Today card, above the day
-  selector, only while you owe something; otherwise nothing at all. `--muted`
-  background, 6px radius, 36px tall. One prayer owed: "Make up **Isha** ·
-  Sat Oct 3" on the left and an empty mark on the right, the Today mark at
-  the same size, its 44px tap area overhanging the slim line. Tapping it fills
-  it with the late mark; a moment later the banner fades out and a toast
-  offers Undo. Several owed: "3 prayers to make up ›", and the whole line opens
-  the popup. It never wraps: the date is the short "Sat Oct 3", and the text
-  takes only the room it needs, down to 320px. The other person's status is
-  not shown here. On a phone it starts 6px lower than the card's padding, so
-  it stays clear of Today's ⓘ in the corner.
-- **The popup** — on opening the app, once a day per person (the date it was
-  closed is kept in `localStorage`) and only when something is owed; and any
-  time from the banner. A white card on the soft scrim, fading in: the QADA
+- **The card** — under Today, and only there while one of you owes something:
+  it is hidden when both are caught up. The QADA label with its ⓘ (what qada
+  is, Made up, the Hanafi note), then only your own owed prayers, as rows that
+  match the Today table above, so the two cards read as a set: the same row
+  height (45px on a phone, 69px on desktop), thin rules between. Each row is
+  one line that never wraps: a flex row with the prayer in Playfair and the
+  date small and muted after it ("Sat, Oct 3") as one group that takes the
+  free space (`flex: 1; min-width: 0`), and the Today mark, the same size,
+  fixed on the right and vertically centred. Tapping it fills it with the late
+  mark; a moment later the row fades out and a toast offers Undo. Backlog
+  prayers are a row each ("Fajr  4 from before"), and each tap takes one off.
+  At most three rows, then "+2 more". Owing nothing yourself shows "✓ All
+  caught up" in small gold. Last, one muted line for the other person, "Marwa
+  · caught up" or "Marwa · 2 to make up", with as much space above it as the
+  card's padding leaves below.
+- **The popup** — every time the app is opened or reloaded while you owe
+  something (not on coming back to a tab that was already open). Closing it
+  holds until the next open. A white card on the soft scrim, fading in: the QADA
   label with its ⓘ (what qada is, Made up, the Hanafi note) and a × beside it,
   "You have 2 prayers to make up" in Playfair, every owed row with an outlined
   *Made up* (or *−1 Made up*), and "Pray them when you can, before the current
   prayer if there's time." It closes on ×, a tap outside or Esc, keeps focus
   inside (and on the Undo toasts above it), and says "All caught up" for a
   moment before closing itself once everything is made up.
-- **Making up** — from either place (in the banner, after the mark fills),
+- **Making up** — from either place (on the card, after the mark fills),
   the row fades out, the prayer is logged late (or the backlog drops by one),
   and a toast offers *Undo* for about five seconds.
 
@@ -221,7 +225,7 @@ holds it: `infoButton('key')` in markup, or `<span data-info-slot="key">` in
 `index.html`, and `Info.add('key', () => html)` for what it says.
 
 Where they are: Today (top-right corner: the legend and how missed is
-decided), Streaks, the qada popup,
+decided), Streaks, Qada (on the card and in the popup),
 Settings (the timetable note, the qada start date, the backlog), the Hadith
 reader (how to bookmark), and the end of the Learn sub-tab bar (that tab's
 intro and the imam note). What stays visible is what you act on or need at a
