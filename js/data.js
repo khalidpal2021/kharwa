@@ -13,6 +13,7 @@ const DEFAULT_PERSON = {
   calc_method: 'NorthAmerica',
   asr_madhab: 'standard',
   qada_start: null,
+  show_learn: null, // null: the person's default, see showsLearn()
 };
 
 /** PostgREST caps a response (1000 rows on Supabase), so reads page through. */
@@ -151,6 +152,13 @@ const Data = {
     if (!this.configured) return;
     if (this.loadedFrom && dateKeyStr >= this.loadedFrom && dateKeyStr <= this.loadedTo) return;
     await this.loadLogs(dateKeyStr, dateKeyStr);
+  },
+
+  /** The Learn tab: the person's own choice, else on for Khalid and off for
+      Marwa, which also covers a database without the show_learn column. */
+  showsLearn(person) {
+    const v = this.people[person]?.show_learn;
+    return typeof v === 'boolean' ? v : person !== 'marwa';
   },
 
   /* --------------------------------------------------------------- qada -- */

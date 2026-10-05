@@ -27,6 +27,11 @@ on conflict (id) do nothing;
 -- prayer log.
 alter table public.people add column if not exists qada_start date;
 
+-- Whether the Learn tab shows. On for Khalid, off for Marwa; only fills rows
+-- that have no choice yet, so re-running keeps whatever was set in Settings.
+alter table public.people add column if not exists show_learn boolean;
+update public.people set show_learn = (id <> 'marwa') where show_learn is null;
+
 -- ----------------------------------------------------------- prayer_logs -----
 
 create table if not exists public.prayer_logs (

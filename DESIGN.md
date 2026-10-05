@@ -433,6 +433,12 @@ Either route opens the same full-screen dialog, built from the same position and
 prayer data: one step at a time with a large figure, what to say, a progress bar,
 and 54px Back and Next buttons. Fajr is 32 steps with the sunnah, 16 without.
 
+Learn is shown per person: a *Show Learn tab* checkbox in Settings, stored as
+`people.show_learn`, on for Khalid and off for Marwa by default (and when the
+column is missing). Off, it leaves both navs, so the other tabs spread across
+the bar, and a `#/learn` link lands on Prayer. A section opts into this with an
+`enabled()` function in its registration. Learn's own progress is untouched.
+
 Learn's tab icon is a graduation cap, so it is not mistaken for the Quran tab's
 book. It asks for a screen wake lock and takes it again
 when the tab comes back; every failure there is ignored. Arrow keys move

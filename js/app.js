@@ -702,6 +702,7 @@ function openSettings() {
   const me = Data.people[State.me] || {};
   el('settings-who').textContent = `Signed in on this device as ${name(State.me)}.`;
   el('set-name').value = me.display_name || '';
+  el('set-learn').checked = Data.showsLearn(State.me);
   el('set-status').textContent = '';
 
   const first = Data.firstLog[State.me];
@@ -755,6 +756,16 @@ el('set-save').addEventListener('click', async () => {
     patch.qada_start = qadaStart;
   }
 
+  // Absent until schema.sql is re-run, when the default still applies.
+  const showLearn = el('set-learn').checked;
+  if (showLearn !== Data.showsLearn(State.me)) {
+    if (!('show_learn' in me)) {
+      el('set-status').textContent = 'Run supabase/schema.sql again to change the Learn tab.';
+      return;
+    }
+    patch.show_learn = showLearn;
+  }
+
   const backlog = Data.backlog[State.me] || {};
   const counts = {};
   for (const input of el('set-backlog').querySelectorAll('input')) {
@@ -768,6 +779,7 @@ el('set-save').addEventListener('click', async () => {
     if (Data.backlogReady) await Data.saveBacklog(State.me, counts);
     // An earlier start reaches back past the logs in the cache.
     if ('qada_start' in patch) await Data.loadRecent();
+    if ('show_learn' in patch) Sections.refresh();
     el('set-status').textContent = 'Saved.';
     render();
     setTimeout(closeSettings, 550);
@@ -841,6 +853,7 @@ async function start() {
 
   try {
     await Data.loadPeople();
+    Sections.refresh(); // show_learn may differ from the default
     await Data.loadQada();
     await Data.loadRecent();
     render();
@@ -856,6 +869,7 @@ async function start() {
     if (document.visibilityState !== 'visible') return;
     try {
       await Data.loadPeople();
+      Sections.refresh(); // show_learn may differ from the default
       await Data.loadQada();
       await Data.loadRecent();
       render();

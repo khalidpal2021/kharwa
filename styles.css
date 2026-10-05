@@ -966,6 +966,8 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 /* settings: the backlog, three across */
 
+.set-toggle { margin: -4px 0 var(--s1); }
+
 .set-backlog { margin: 0 0 var(--s2); padding: 0; border: 0; min-width: 0; }
 .set-backlog legend { padding: 0; }
 

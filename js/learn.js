@@ -616,5 +616,6 @@ Sections.register({
           stroke-linecap="round"/>
   </svg>`,
   root: document.getElementById('section-learn'),
+  enabled: () => Data.showsLearn(State.me),
   show: (params) => Learn.show(params),
 });

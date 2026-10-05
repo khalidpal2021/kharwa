@@ -9,6 +9,8 @@
      root   — the section's element, shown only while it is active
      show(params) — called on every visit; params are the remaining hash
                     segments, e.g. #/quran/2/255 -> ['2', '255']
+     enabled()    — optional; when it returns false the section leaves both
+                    navs, and its URLs fall back to the default section
    Both navs (masthead tabs on desktop, the bottom tab bar on a phone) are
    drawn from this list, so a new section needs no other wiring.
    =========================================================================== */
@@ -20,6 +22,20 @@ const Sections = {
   register(section) {
     this.list.push(section);
     this.list.sort((a, b) => a.order - b.order);
+  },
+
+  /** The sections this person can see, in nav order. */
+  visible() {
+    return this.list.filter((s) => !s.enabled || s.enabled());
+  },
+
+  /** Redraw the navs and re-route, only if an enabled() answer has changed. */
+  refresh() {
+    if (!this.started) return;
+    const ids = this.visible().map((s) => s.id).join(',');
+    if (ids === this.navIds) return;
+    this.renderNav();
+    this.route();
   },
 
   /** "#/quran/2/255" -> ['quran', '2', '255'] */
@@ -37,9 +53,10 @@ const Sections = {
 
   route() {
     let [id, ...params] = this.parse(location.hash);
-    let section = this.list.find((s) => s.id === id);
+    const visible = this.visible();
+    let section = visible.find((s) => s.id === id);
     if (!section) {
-      section = this.list[0];
+      section = visible[0];
       params = [];
       history.replaceState(null, '', `#/${section.id}`);
     }
@@ -63,7 +80,9 @@ const Sections = {
         ${withIcon ? `<span class="navtab-icon" aria-hidden="true">${s.icon}</span>` : ''}
         <span class="navtab-label">${s.label}</span>
       </a>`;
-    document.getElementById('nav-top').innerHTML = this.list.map((s) => item(s, false)).join('');
-    document.getElementById('nav-bottom').innerHTML = this.list.map((s) => item(s, true)).join('');
+    const visible = this.visible();
+    this.navIds = visible.map((s) => s.id).join(',');
+    document.getElementById('nav-top').innerHTML = visible.map((s) => item(s, false)).join('');
+    document.getElementById('nav-bottom').innerHTML = visible.map((s) => item(s, true)).join('');
   },
 };
