@@ -278,10 +278,10 @@ taller than the window; at 1920x1080 it fits with room to spare.
      only as wide as "12:45 PM", so the spare width goes to the prayer names.
      The headings and the columns share one set of explicit widths, so they
      line up exactly. Thin rules between rows.
-   - **Left, below — Streaks**. Three streak figures across the top, then a
-     square per prayer per day for the last seven days, a grid each under a
-     shared row of weekday labels. A new duo best is highlighted once in
-     lighter gold.
+   - **Left, below — Streaks**. Three streak figures across the top, then
+     each person's last seven days as columns of five bars, with the weekday
+     labels once beneath. A new duo best is highlighted once in lighter
+     gold.
 4. **Ayah of the Day** — top of the left column, like an illuminated page in a
    fine mushaf. Warm paper (`--card-warm`) and a fine gold hairline rule just
    inside the card border, kept restrained. Under the AYAH OF THE DAY header, a
