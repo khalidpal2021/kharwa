@@ -33,6 +33,7 @@ const State = {
   tick: null,
   ayahFor: null,       // date key of the ayah on screen
   ayahLoading: null,   // date key being fetched
+  qadaAll: new Set(),  // people whose full qada list is open on the card
 };
 
 /* ============================================================== helpers === */
@@ -56,15 +57,33 @@ function shownStatus(person, date, prayer, now = new Date()) {
   return closed ? 'missed' : 'none';
 }
 
-function toast(message, { error = false } = {}) {
+/** `action`, { label, run }, adds a button such as Undo, and keeps the toast up a little longer. */
+function toast(message, { error = false, action = null } = {}) {
   const node = document.createElement('div');
-  node.className = `toast${error ? ' is-error' : ''}`;
-  node.innerHTML = message;
-  el('toasts').appendChild(node);
-  setTimeout(() => {
+  node.className = `toast${error ? ' is-error' : ''}${action ? ' has-action' : ''}`;
+  node.innerHTML = action ? `<span>${message}</span>` : message;
+
+  let timer;
+  const dismiss = () => {
+    clearTimeout(timer);
     node.classList.add('is-out');
     setTimeout(() => node.remove(), 240);
-  }, 4200);
+  };
+
+  if (action) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'toast-btn';
+    btn.textContent = action.label;
+    btn.addEventListener('click', () => {
+      dismiss();
+      action.run();
+    }, { once: true });
+    node.appendChild(btn);
+  }
+
+  el('toasts').appendChild(node);
+  timer = setTimeout(dismiss, action ? 5500 : 4200);
 }
 
 function showBanner(text) {
@@ -458,9 +477,6 @@ function renderStreaks() {
 /** The five, plus Witr, which is only ever owed from the backlog. */
 const QADA_PRAYERS = [...PRAYERS, { key: 'witr', label: 'Witr' }];
 
-/** How many of the most recent owed prayers the card lists. */
-const QADA_LIST = 5;
-
 /**
  * What a person owes: every prayer shown as missed from their qada start
  * through today, oldest first, plus the backlog. Making one up is logging it
@@ -491,75 +507,260 @@ function qadaOwed(person) {
   return { missed, backlog, counts, total };
 }
 
-function renderQada() {
-  const me = State.me;
-  const owed = qadaOwed(me);
+/** Rows per person on the card before "Show all". */
+const QADA_LIST = 5;
 
-  const otherLine = PEOPLE_IDS.filter((p) => p !== me).map((p) => {
-    const n = qadaOwed(p).total;
-    return `<p class="qd-other">${esc(name(p))}: ${n ? `${n} to make up` : 'all caught up'}</p>`;
-  }).join('');
+/** + person id: the date the qada popup was last closed on this device. */
+const QADA_POP_STORE = 'kharwa.qadaPopup.';
 
-  if (!owed.total) {
-    el('qada').innerHTML = `<p class="qd-clear">All caught up.</p>${otherLine}`;
-    return;
-  }
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
-  const showWitr = (owed.backlog.witr || 0) > 0;
-  const counts = QADA_PRAYERS
-    .filter((p) => p.key !== 'witr' || showWitr)
-    .map((p) => `<span class="qd-count${owed.counts[p.key] ? '' : ' is-zero'}"
-                       title="${p.label}: ${owed.counts[p.key]}">${p.label.slice(0, 1)}&nbsp;${owed.counts[p.key]}</span>`)
-    .join('<span class="qd-sep" aria-hidden="true">·</span>');
+const QADA_LABEL = Object.fromEntries(QADA_PRAYERS.map((p) => [p.key, p.label]));
 
-  const recent = owed.missed.slice(-QADA_LIST);
-  const earlier = owed.missed.length - recent.length;
-  const missedRows = recent.map((m) => `
-    <li class="qd-row">
-      <span class="qd-what">${PRAYER_LABEL[m.prayer]} · ${esc(fmtDayNav.format(parseKey(m.date)))}</span>
-      <button class="btn qd-btn" type="button" data-date="${m.date}" data-prayer="${m.prayer}"
-              aria-label="Mark ${PRAYER_LABEL[m.prayer]}, ${esc(fmtGregorianShort.format(parseKey(m.date)))}, as made up">Made up</button>
-    </li>`).join('');
-
-  const backlogRows = QADA_PRAYERS
-    .filter((p) => (owed.backlog[p.key] || 0) > 0)
-    .map((p) => `
-      <li class="qd-row">
-        <span class="qd-what">${p.label} · ${owed.backlog[p.key]} from before</span>
-        <button class="btn qd-btn" type="button" data-backlog="${p.key}"
-                aria-label="Made up one ${p.label} from before">&minus;1 Made up</button>
-      </li>`).join('');
-
-  el('qada').innerHTML = `
-    <div class="qd-top">
-      <span class="qd-n">${owed.total}</span>
-      <span class="qd-l">to make up</span>
-    </div>
-    <p class="qd-counts">${counts}</p>
-    ${earlier ? `<p class="qd-more">${earlier} earlier not shown</p>` : ''}
-    ${missedRows ? `<ul class="qd-list" aria-label="Recent missed prayers">${missedRows}</ul>` : ''}
-    ${backlogRows ? `<ul class="qd-list" aria-label="Owed from before Kharwa">${backlogRows}</ul>` : ''}
-    ${otherLine}`;
+/** "today", "yesterday", "3 days ago" */
+function daysAgo(key) {
+  const n = Math.round((parseKey(todayKey()) - parseKey(key)) / 86400000);
+  if (n <= 0) return 'today';
+  return n === 1 ? 'yesterday' : `${n} days ago`;
 }
 
-el('qada').addEventListener('click', async (event) => {
-  const btn = event.target.closest('.qd-btn');
-  if (!btn) return;
+/** A person's owed prayers as rows: missed ones oldest first, then the backlog. */
+function qadaItems(owed) {
+  return [
+    ...owed.missed,
+    ...QADA_PRAYERS
+      .filter((p) => (owed.backlog[p.key] || 0) > 0)
+      .map((p) => ({ prayer: p.key, backlog: owed.backlog[p.key] })),
+  ];
+}
 
-  if (btn.dataset.date) {
-    setStatus(State.me, btn.dataset.prayer, 'late', btn.dataset.date);
+/**
+ * One owed prayer: the name in Playfair, when beneath it, and for your own a
+ * button. The card uses quiet ghost buttons, the popup outlined ones.
+ */
+function qadaRow(item, { mine, popup }) {
+  const label = QADA_LABEL[item.prayer];
+  let when;
+  let button = '';
+
+  if (item.backlog) {
+    when = `${item.backlog} from before Kharwa`;
+    if (mine) {
+      button = `<button class="btn ${popup ? 'qd-btn' : 'btn--ghost qd-ghost'}" type="button"
+                        data-backlog="${item.prayer}"
+                        aria-label="Made up one ${label} from before Kharwa">&minus;1${popup ? ' Made up' : ''}</button>`;
+    }
+  } else {
+    const day = fmtDayNav.format(parseKey(item.date));
+    when = `${esc(day)} · ${daysAgo(item.date)}`;
+    if (mine) {
+      button = `<button class="btn ${popup ? 'qd-btn' : 'btn--ghost qd-ghost'}" type="button"
+                        data-date="${item.date}" data-prayer="${item.prayer}"
+                        aria-label="Mark ${label}, ${esc(day)}, as made up">Made up</button>`;
+    }
+  }
+
+  return `
+    <li class="qd-row">
+      <div class="qd-what">
+        <span class="qd-name">${label}</span>
+        <span class="qd-when">${when}</span>
+      </div>
+      ${button}
+    </li>`;
+}
+
+/* --------------------------------------------------------------- card --- */
+
+/** A section per person, the current one first. The other's rows are read only. */
+function renderQada() {
+  const order = [State.me, ...PEOPLE_IDS.filter((p) => p !== State.me)];
+
+  el('qada').innerHTML = order.map((person) => {
+    const owed = qadaOwed(person);
+    const items = qadaItems(owed);
+    const mine = person === State.me;
+    const all = State.qadaAll.has(person);
+    const shown = all ? items : items.slice(0, QADA_LIST);
+
+    return `
+      <section class="qd-person">
+        <h3 class="qd-head">
+          <span class="qd-who">${esc(name(person))}</span>
+          ${owed.total ? `<span class="qd-total">· ${owed.total} to make up</span>` : ''}
+        </h3>
+        ${items.length
+          ? `<ul class="qd-list">${shown.map((i) => qadaRow(i, { mine })).join('')}</ul>`
+          : '<p class="qd-clear">All caught up.</p>'}
+        ${items.length > QADA_LIST ? `
+          <button class="qd-all" type="button" data-person="${person}" aria-expanded="${all}">${
+            all ? 'Show fewer' : `Show all (${items.length})`}</button>` : ''}
+      </section>`;
+  }).join('');
+}
+
+el('qada').addEventListener('click', (event) => {
+  const more = event.target.closest('.qd-all');
+  if (more) {
+    const { person } = more.dataset;
+    if (State.qadaAll.has(person)) State.qadaAll.delete(person);
+    else State.qadaAll.add(person);
+    renderQada();
+    return;
+  }
+  const btn = event.target.closest('[data-date], [data-backlog]');
+  if (btn) makeUp(btn);
+});
+
+/* ---------------------------------------------------------- making up --- */
+
+/**
+ * Fades the row out, then logs the prayer as late (or takes one off the
+ * backlog), with an Undo toast. Shared by the card and the popup.
+ */
+async function makeUp(btn) {
+  const row = btn.closest('.qd-row');
+  const { date, prayer, backlog } = btn.dataset;
+  btn.disabled = true;
+  row.classList.add('is-leaving');
+  await new Promise((r) => setTimeout(r, reducedMotion.matches ? 0 : 200));
+
+  if (backlog) {
+    const label = QADA_LABEL[backlog];
+    const before = Data.backlog[State.me]?.[backlog] || 0;
+    try {
+      if (before < 1) throw new Error('nothing left to make up');
+      await Data.saveBacklog(State.me, { [backlog]: before - 1 });
+    } catch (err) {
+      toast(`Could not save: ${esc(err.message || err)}`, { error: true });
+      renderQadaViews();
+      return;
+    }
+    renderQadaViews();
+    toast(`${label} from before Kharwa made up`, {
+      action: {
+        label: 'Undo',
+        run: async () => {
+          const now = Data.backlog[State.me]?.[backlog] || 0;
+          try {
+            await Data.saveBacklog(State.me, { [backlog]: now + 1 });
+          } catch (err) {
+            toast(`Could not undo: ${esc(err.message || err)}`, { error: true });
+          }
+          renderQadaViews();
+        },
+      },
+    });
     return;
   }
 
-  const prayer = btn.dataset.backlog;
-  const before = Data.backlog[State.me]?.[prayer] || 0;
-  if (before < 1) return;
-  try {
-    await Data.saveBacklog(State.me, { [prayer]: before - 1 });
-  } catch (err) {
-    toast(`Could not save: ${esc(err.message || err)}`, { error: true });
-  }
+  const saved = await setStatus(State.me, prayer, 'late', date);
+  if (!saved) return;
+  toast(`${PRAYER_LABEL[prayer]}, ${esc(fmtDayNav.format(parseKey(date)))}, made up`, {
+    action: { label: 'Undo', run: () => setStatus(State.me, prayer, 'none', date) },
+  });
+}
+
+function renderQadaViews() {
   renderQada();
+  renderQadaPop();
+}
+
+/* -------------------------------------------------------------- popup --- */
+
+const QadaPop = {
+  open: false,
+  returnFocus: null,
+  closing: null,   // the timer that closes it once everything is made up
+};
+
+function qadaPopSeenToday() {
+  try {
+    return localStorage.getItem(QADA_POP_STORE + State.me) === todayKey();
+  } catch {
+    return false;
+  }
+}
+
+/** On opening the app: at most once a day per person, and only when something is owed. */
+function maybeShowQadaPop() {
+  if (QadaPop.open || qadaPopSeenToday() || !qadaOwed(State.me).total) return;
+  QadaPop.open = true;
+  QadaPop.returnFocus = document.activeElement;
+  renderQadaPop();
+  el('qada-pop').hidden = false;
+  // The dialog itself, so no ring shows until someone tabs.
+  el('qd-pop-panel').focus();
+}
+
+function closeQadaPop() {
+  if (!QadaPop.open) return;
+  QadaPop.open = false;
+  clearTimeout(QadaPop.closing);
+  QadaPop.closing = null;
+  try {
+    localStorage.setItem(QADA_POP_STORE + State.me, todayKey());
+  } catch { /* it may show again today */ }
+  el('qada-pop').hidden = true;
+  if (QadaPop.returnFocus && QadaPop.returnFocus.isConnected) QadaPop.returnFocus.focus();
+}
+
+function renderQadaPop() {
+  if (!QadaPop.open) return;
+  const owed = qadaOwed(State.me);
+  const list = el('qd-pop-list');
+  const hadFocus = list.contains(document.activeElement);
+
+  if (!owed.total) {
+    el('qd-pop-title').textContent = 'All caught up';
+    list.innerHTML = '';
+    el('qada-pop').classList.add('is-done');
+    if (hadFocus) el('qd-pop-close').focus();
+    if (!QadaPop.closing) QadaPop.closing = setTimeout(closeQadaPop, 1600);
+    return;
+  }
+
+  // An Undo can bring a prayer back after "All caught up".
+  clearTimeout(QadaPop.closing);
+  QadaPop.closing = null;
+  el('qada-pop').classList.remove('is-done');
+
+  const n = owed.total;
+  el('qd-pop-title').textContent = `You have ${n} prayer${n === 1 ? '' : 's'} to make up`;
+  list.innerHTML = qadaItems(owed).map((i) => qadaRow(i, { mine: true, popup: true })).join('');
+
+  // The button that was pressed has gone; carry on with the next one.
+  if (hadFocus) (list.querySelector('button:not(:disabled)') || el('qd-pop-close')).focus();
+}
+
+el('qd-pop-list').addEventListener('click', (event) => {
+  const btn = event.target.closest('[data-date], [data-backlog]');
+  if (btn) makeUp(btn);
+});
+el('qd-pop-close').addEventListener('click', closeQadaPop);
+el('qd-pop-scrim').addEventListener('click', closeQadaPop);
+
+/* Esc closes it; Tab stays inside it, and the Undo toasts above it. */
+document.addEventListener('keydown', (event) => {
+  if (!QadaPop.open) return;
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeQadaPop();
+    return;
+  }
+  if (event.key !== 'Tab') return;
+
+  const focusable = [
+    ...el('qada-pop').querySelectorAll('button:not(:disabled)'),
+    ...el('toasts').querySelectorAll('button'),
+  ];
+  if (!focusable.length) return;
+  const i = focusable.indexOf(document.activeElement);
+  const next = event.shiftKey
+    ? focusable[(i <= 0 ? focusable.length : i) - 1]
+    : focusable[(i + 1) % focusable.length];
+  event.preventDefault();
+  next.focus();
 });
 
 /* ================================================================= ayah === */
@@ -597,7 +798,7 @@ function renderStatuses() {
 
   renderTimetable();
   renderStreaks();
-  renderQada();
+  renderQadaViews();
 
   // Re-rendering replaces the button the keyboard was on; put focus back.
   if (restore) {
@@ -620,12 +821,13 @@ function render() {
 
 /* ========================================================= interaction === */
 
-/** The one place a status is written. The Qada card passes its own date. */
+/** The one place a status is written. The Qada card passes its own date.
+    Resolves to whether the status is now `next`. */
 async function setStatus(person, prayer, next, date = State.viewDate) {
-  if (person !== State.me) return;
+  if (person !== State.me) return false;
 
   const before = Data.status(person, date, prayer);
-  if (before === next) return;
+  if (before === next) return true;
 
   // Optimistic, so a tap feels instant on a phone.
   Data.setLocal(person, date, prayer, next);
@@ -633,10 +835,12 @@ async function setStatus(person, prayer, next, date = State.viewDate) {
 
   try {
     await Data.writeStatus(person, date, prayer, next);
+    return true;
   } catch (err) {
     Data.setLocal(person, date, prayer, before);
     renderStatuses();
     toast(`Could not save: ${esc(err.message || err)}`, { error: true });
+    return false;
   }
 }
 
@@ -677,7 +881,7 @@ el('streaks').addEventListener('click', (event) => {
 /* keyboard: arrows change day, T jumps to today */
 document.addEventListener('keydown', (event) => {
   if (event.metaKey || event.ctrlKey || event.altKey) return;
-  if (!el('settings').hidden) return;
+  if (!el('settings').hidden || QadaPop.open) return;
   if (Sections.current !== 'prayer') return;
 
   const t = event.target;
@@ -857,6 +1061,7 @@ async function start() {
     await Data.loadQada();
     await Data.loadRecent();
     render();
+    maybeShowQadaPop();
   } catch (err) {
     showBanner(`Could not reach Supabase: ${err.message || err}`);
   }
@@ -873,6 +1078,7 @@ async function start() {
       await Data.loadQada();
       await Data.loadRecent();
       render();
+      maybeShowQadaPop();
     } catch { /* stay with what we have */ }
   });
 }

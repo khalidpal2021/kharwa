@@ -840,77 +840,70 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
    simply the next two cards. */
 .col--today { display: grid; gap: var(--s2); align-content: start; min-width: 0; }
 
-/* the total, as a streak figure */
-.qd-top {
-  display: grid;
-  justify-items: center;
-  gap: 2px;
-}
+/* a section per person, the current one first */
+.qd-person + .qd-person { margin-top: var(--s3); }
 
-.qd-n {
-  font-family: var(--serif);
-  font-size: 30px;
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  color: var(--foreground);
-}
-
-.qd-l {
-  font-family: var(--mono);
-  font-size: 9.5px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.13em;
-  color: var(--muted-foreground);
-}
-
-/* F 1 · D 0 · A 2 · M 0 · I 1 */
-.qd-counts {
+.qd-head {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
-  gap: 2px 7px;
-  margin-top: 10px;
-  font-family: var(--mono);
-  font-size: 11.5px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  font-variant-numeric: tabular-nums;
-  color: var(--foreground);
+  align-items: baseline;
+  gap: 0 6px;
+  margin-bottom: 6px;
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
 }
 
-.qd-count.is-zero { color: var(--muted-foreground); }
-.qd-sep { color: var(--border-hover); }
+.qd-total {
+  font-family: var(--sans);
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  color: var(--accent-text);
+}
 
-.qd-list { margin-top: var(--s2); }
-
-/* The backlog follows the missed list as one list; the line under it closes both. */
-.qd-list + .qd-list { margin-top: 0; }
-.qd-list + .qd-other { margin-top: 0; }
+.qd-list { margin: 0; padding: 0; list-style: none; }
 
 .qd-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--s2);
-  padding-right: 6px; /* room for the button's overhanging outline */
+  min-height: 54px;
+  padding: 5px 0;
   border-top: 1px solid var(--border);
+  transition: opacity 200ms ease-out;
 }
 
-.qd-what {
-  min-width: 0;
-  font-size: 14px;
+/* a made-up row fades out before the list redraws */
+.qd-row.is-leaving { opacity: 0; }
+
+.qd-what { display: grid; gap: 1px; min-width: 0; }
+
+.qd-name {
+  font-family: var(--serif);
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.qd-when {
+  font-size: 12.5px;
   line-height: 1.35;
+  color: var(--muted-foreground);
   font-variant-numeric: tabular-nums;
 }
 
-/* A quiet outlined button, kept small inside its 44px tap height. */
+/* the card's quiet ghost button, its text flush with the card's edge */
+.qd-ghost { flex: none; margin-right: -10px; font-size: 13px; }
+
+/* the popup's outlined button, kept small inside its 44px tap height */
 .qd-btn {
   position: relative;
   flex: none;
   min-height: var(--tap);
+  margin-right: 6px;
   padding: 0 4px;
   font-size: 12.5px;
   letter-spacing: 0.04em;
@@ -931,37 +924,163 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 .qd-btn:focus-visible { outline: none; }
 .qd-btn:focus-visible::before { outline: 2px solid var(--ring); outline-offset: 2px; }
 
-.qd-more {
-  margin-top: var(--s2);
-  margin-bottom: -6px;
-  font-size: 12px;
-  color: var(--muted-foreground);
-  text-align: center;
-}
-
 .qd-clear {
-  text-align: center;
+  padding: 10px 0 4px;
+  border-top: 1px solid var(--border);
   font-family: var(--serif);
   font-style: italic;
-  font-size: 16px;
+  font-size: 15px;
   color: var(--muted-foreground);
 }
 
-.qd-other {
-  margin-top: var(--s2);
-  padding-top: 10px;
+/* Show all (8) */
+.qd-all {
+  min-height: var(--tap);
+  padding: 0;
+  border: 0;
   border-top: 1px solid var(--border);
+  width: 100%;
+  background: none;
+  text-align: left;
+  font-family: var(--sans);
   font-size: 13px;
   color: var(--muted-foreground);
-  text-align: center;
+  cursor: pointer;
+  transition: color var(--ease);
+}
+
+.qd-all:hover {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 4px;
 }
 
 .qd-note {
-  margin-top: 10px;
+  margin-top: var(--s2);
   font-size: 11.5px;
   line-height: 1.5;
   color: var(--muted-foreground);
   text-align: center;
+}
+
+/* ------------------------------------------------------------ qada popup -- */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50; /* under the toasts, so Undo stays in reach */
+  display: grid;
+  place-items: center;
+  padding: var(--s3) 16px;
+}
+
+.modal-scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+  animation: modal-in 200ms ease-out;
+}
+
+.modal-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 460px;
+  max-height: min(84dvh, 720px);
+  padding: 6px 20px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  box-shadow: var(--shadow-md);
+  animation: modal-in 200ms ease-out;
+}
+
+.modal-panel:focus { outline: none; }
+
+@keyframes modal-in { from { opacity: 0; } }
+
+/* the label centred between its rules, the close button to its right */
+.modal-top {
+  display: grid;
+  grid-template-columns: var(--tap) minmax(0, 1fr) var(--tap);
+  align-items: center;
+  margin: 0 -14px;
+}
+
+.modal-top .cardhead { margin: 0; }
+
+.modal-close {
+  display: grid;
+  place-items: center;
+  width: var(--tap);
+  height: var(--tap);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-btn);
+  background: none;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: color var(--ease);
+}
+
+.modal-close:hover { color: var(--foreground); }
+
+.modal-title {
+  margin: 4px 0 var(--s2);
+  text-align: center;
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.modal-list {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal.is-done .modal-list { display: none; }
+.modal.is-done .modal-title { margin-bottom: var(--s1); font-style: italic; }
+
+/* toasts that can be undone */
+
+.toast.has-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-right: 4px;
+  min-height: var(--tap);
+}
+
+.toast-btn {
+  flex: none;
+  min-height: var(--tap);
+  padding: 0 12px;
+  border: 0;
+  background: none;
+  font-family: var(--sans);
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--accent-text);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.toast-btn:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 4px;
 }
 
 /* settings: the backlog, three across */

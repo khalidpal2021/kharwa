@@ -178,14 +178,25 @@ A card under Today, with the same header: QADA between two rules.
   unless they set another in Settings. Making one up is logging it as late,
   which takes it off and also counts for streaks. On top of that, a hand-entered
   backlog from before Kharwa (`qada_backlog`), per prayer, Witr included.
-- **The card** — the total as a Playfair numeral over a small-caps "TO MAKE UP",
-  then a mono row of counts per prayer, "F 1 · D 0 · A 2 · M 0 · I 1", zeros
-  muted, W added when there is a Witr backlog. Then the five most recent
-  missed prayers, oldest first ("Dhuhr · Thu, Oct 1"), each with a small
-  gold-outlined *Made up* button, and one row per backlog prayer with
-  *−1 Made up*. The other person's total sits in a quiet line beneath, read
-  only. With nothing owed it says "All caught up." A small muted Hanafi note
-  closes the card.
+- **The card** — a section per person, the current one first: the name in
+  Playfair with the total as a small gold count ("Khalid · 1 to make up"),
+  then a row per owed prayer, oldest first, with thin rules between: the
+  prayer in Playfair, "Thu, Oct 1 · 3 days ago" muted beneath, and for your
+  own rows a ghost *Made up* button. Backlog rows read "Fajr · 4 from before
+  Kharwa" with a *−1*. The other person's rows have no buttons. At most five
+  rows each, then "Show all (8)". Owing nothing reads "All caught up." in
+  quiet italic. The Hanafi note closes the card.
+- **The popup** — on opening the app, once a day per person (the date it was
+  closed is kept in `localStorage`) and only when something is owed. A white
+  card on the soft scrim, fading in: the QADA label with a × beside it,
+  "You have 2 prayers to make up" in Playfair, every owed row with an outlined
+  *Made up* (or *−1 Made up*), and "Pray them when you can, before the current
+  prayer if there's time." It closes on ×, a tap outside or Esc, keeps focus
+  inside (and on the Undo toasts above it), and says "All caught up" for a
+  moment before closing itself once everything is made up.
+- **Making up** — from either place, the row fades out, the prayer is logged
+  late (or the backlog drops by one), and a toast offers *Undo* for about five
+  seconds.
 - On desktop it sits under Today in the right-hand column.
 
 ## Desktop layout (≥ 900px)
