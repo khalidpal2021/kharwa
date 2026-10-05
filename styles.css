@@ -865,96 +865,65 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 .qd-btn:focus-visible { outline: none; }
 .qd-btn:focus-visible::before { outline: 2px solid var(--ring); outline-offset: 2px; }
 
-/* a line per person: the name, then the count in gold or "Caught up" */
-.qd-person + .qd-person { margin-top: var(--s2); }
+/* Your owed prayers, as rows like the Today table's: the name, the date
+   beside it, and an empty mark on the right in a 44px tap area. */
+.qd-rows { margin: -4px 0 0; padding: 0; list-style: none; }
 
-.qd-line {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--s2);
-  min-height: 28px;
+.qd-r {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--tap);
+  align-items: center;
+  column-gap: 10px;
+  border-bottom: 1px solid var(--border);
+  transition: opacity 200ms ease-out;
+}
+
+.qd-r.is-leaving { opacity: 0; }
+
+/* the date sits on the name's line */
+.qd-r-what { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+
+.qd-r-name {
   font-family: var(--serif);
   font-size: 17px;
   font-weight: 400;
   letter-spacing: -0.01em;
-  line-height: 1.2;
+  line-height: 1.3;
 }
 
-.qd-count {
-  font-family: var(--serif);
-  font-size: 24px;
-  line-height: 1;
+.qd-r-when {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  color: var(--muted-foreground);
   font-variant-numeric: tabular-nums;
-  color: var(--accent);
 }
 
-.qd-ok,
-.qd-both {
-  display: inline-flex;
+.qd-mark:disabled { cursor: default; }
+
+.qd-ok {
+  display: flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
-  font-family: var(--sans);
   font-size: 13px;
   letter-spacing: 0.02em;
   color: var(--accent-text);
 }
 
-.qd-both { display: flex; justify-content: center; padding: 2px 0; }
-
 .qd-check { flex: none; display: block; }
 
-/* a tile per owed prayer */
-.qd-tiles {
-  display: grid;
-  gap: 6px;
-  margin: var(--s1) 0 0;
-  padding: 0;
-  list-style: none;
+/* the other person, one quiet line */
+.qd-other {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--muted-foreground);
 }
 
-.qd-tile {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 54px;
-  padding: 7px 9px 7px 12px;
-  border-radius: var(--radius-btn);
-  background: var(--muted);
-  transition: opacity 200ms ease-out;
-}
-
-.qd-tile.is-leaving { opacity: 0; }
-
-/* Clearly a button: a gold outline on white, a check and the word. 34px
-   tall, with the tap area widened to 44px. */
-.qd-made {
-  position: relative;
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 34px;
-  padding: 0 11px;
-  border: 1px solid var(--accent);
-  border-radius: var(--radius-btn);
-  background: var(--card);
-  font-family: var(--sans);
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.03em;
-  color: var(--accent-text);
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  transition: background var(--ease), color var(--ease);
-}
-
-.qd-made::after { content: ""; position: absolute; inset: -5px -3px; }
-.qd-made:hover { background: var(--accent-wash); color: var(--foreground); }
-.qd-made:disabled { cursor: default; opacity: 0.6; }
-
-/* Show all (8) */
+/* +2 more */
 .qd-all {
   min-height: 36px;
   padding: 0;
@@ -2432,6 +2401,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
   .card { padding: 22px 26px; }
   .card-info { top: 10px; right: 12px; }
+  .qd-r { padding: 4px 0; }
 
   /* the feature card spans the top; the two below share the rest */
   .app > .card { flex: none; }

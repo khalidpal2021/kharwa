@@ -542,8 +542,8 @@ function qadaOwed(person) {
   return { missed, backlog, counts, total };
 }
 
-/** Rows per person on the card before "Show all". */
-const QADA_LIST = 5;
+/** Rows on the card before "+2 more". */
+const QADA_LIST = 3;
 
 /** + person id: the date the qada popup was last closed on this device. */
 const QADA_POP_STORE = 'kharwa.qadaPopup.';
@@ -596,71 +596,65 @@ function qadaRow(item) {
     </li>`;
 }
 
-/** The same on the card, as a tile. Only your own tiles get the button. */
-function qadaTile(item, mine) {
+/**
+ * One owed prayer on the card, like a Today row: the prayer in Playfair, the
+ * date small and muted beside it, and an empty mark to tap once it is made up.
+ */
+function qadaCardRow(item) {
   const label = QADA_LABEL[item.prayer];
   let when;
   let data;
   let aria;
 
   if (item.backlog) {
-    when = `${item.backlog} from before Kharwa`;
+    when = `${item.backlog} from before`;
     data = `data-backlog="${item.prayer}"`;
     aria = `Made up one ${label} from before Kharwa`;
   } else {
-    const day = esc(fmtDayNav.format(parseKey(item.date)));
-    when = `${day} · ${daysAgo(item.date)}`;
+    when = esc(fmtDayNav.format(parseKey(item.date)));
     data = `data-date="${item.date}" data-prayer="${item.prayer}"`;
-    aria = `Mark ${label}, ${day}, as made up`;
+    aria = `Mark ${label}, ${when}, as made up`;
   }
 
   return `
-    <li class="qd-tile">
-      <div class="qd-what">
-        <span class="qd-name">${label}</span>
-        <span class="qd-when">${when}</span>
-      </div>
-      ${mine ? `<button class="qd-made" type="button" ${data} aria-label="${aria}"><svg class="qd-check" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false"><path d="M3.2 8.4l3 3 6.6-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Made up</span></button>` : ''}
+    <li class="qd-r">
+      <span class="qd-r-what">
+        <span class="qd-r-name">${label}</span>
+        <span class="qd-r-when">${when}</span>
+      </span>
+      <button class="mark qd-mark" type="button" ${data} aria-label="${aria}">${markSvg('none')}</button>
     </li>`;
 }
 
 /* --------------------------------------------------------------- card --- */
 
 /**
- * A line per person, the current one first: the name, then their count in
- * gold or "Caught up". Under anyone who owes, a tile per prayer. When neither
- * owes anything the whole card is one line.
+ * Only your own owed prayers, as rows, then one quiet line for the other
+ * person. The card is hidden while both of you are caught up.
  */
 function renderQada() {
-  const order = [State.me, ...PEOPLE_IDS.filter((p) => p !== State.me)];
-  const owed = Object.fromEntries(order.map((p) => [p, qadaOwed(p)]));
+  const me = State.me;
+  const mine = qadaOwed(me);
+  const others = PEOPLE_IDS.filter((p) => p !== me).map((p) => ({ p, n: qadaOwed(p).total }));
 
-  if (order.every((p) => !owed[p].total)) {
-    el('qada').innerHTML = `<p class="qd-both"><svg class="qd-check" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false"><path d="M3.2 8.4l3 3 6.6-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Both caught up</p>`;
-    return;
-  }
+  el('qada-card').hidden = !mine.total && others.every((o) => !o.n);
+  if (el('qada-card').hidden) return;
 
-  el('qada').innerHTML = order.map((person) => {
-    const { total } = owed[person];
-    const items = qadaItems(owed[person]);
-    const all = State.qadaAll.has(person);
-    const shown = all ? items : items.slice(0, QADA_LIST);
+  const items = qadaItems(mine);
+  const all = State.qadaAll.has(me);
+  const shown = all ? items : items.slice(0, QADA_LIST);
+  const more = items.length - QADA_LIST;
 
-    return `
-      <section class="qd-person" aria-label="${esc(name(person))}">
-        <h3 class="qd-line">
-          <span class="qd-who">${esc(name(person))}</span>
-          ${total
-            ? `<span class="qd-count" aria-label="${total} to make up" title="${total} to make up">${total}</span>`
-            : '<span class="qd-ok"><svg class="qd-check" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false"><path d="M3.2 8.4l3 3 6.6-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Caught up</span>'}
-        </h3>
-        ${items.length ? `
-          <ul class="qd-tiles">${shown.map((i) => qadaTile(i, person === State.me)).join('')}</ul>` : ''}
-        ${items.length > QADA_LIST ? `
-          <button class="qd-all" type="button" data-person="${person}" aria-expanded="${all}">${
-            all ? 'Show fewer' : `Show all (${items.length})`}</button>` : ''}
-      </section>`;
-  }).join('');
+  const otherLines = others.map(({ p, n }) => `
+    <p class="qd-other">${esc(name(p))} · ${n ? `${n} to make up` : 'caught up'}</p>`).join('');
+
+  el('qada').innerHTML = `
+    ${items.length ? `
+      <ul class="qd-rows">${shown.map(qadaCardRow).join('')}</ul>
+      ${more > 0 ? `<button class="qd-all" type="button" data-person="${me}" aria-expanded="${all}">${
+        all ? 'Show fewer' : `+${more} more`}</button>` : ''}`
+      : `<p class="qd-ok"><svg class="qd-check" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false"><path d="M3.2 8.4l3 3 6.6-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>All caught up</p>`}
+    ${otherLines}`;
 }
 
 el('qada').addEventListener('click', (event) => {
@@ -683,11 +677,17 @@ el('qada').addEventListener('click', (event) => {
  * backlog), with an Undo toast. Shared by the card and the popup.
  */
 async function makeUp(btn) {
-  const row = btn.closest('.qd-row, .qd-tile');
+  const row = btn.closest('.qd-row, .qd-r');
   const { date, prayer, backlog } = btn.dataset;
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   btn.disabled = true;
+  // On the card the circle fills with the late mark, and holds a moment.
+  if (btn.classList.contains('qd-mark')) {
+    btn.innerHTML = markSvg('late');
+    await wait(reducedMotion.matches ? 250 : 600);
+  }
   row.classList.add('is-leaving');
-  await new Promise((r) => setTimeout(r, reducedMotion.matches ? 0 : 200));
+  await wait(reducedMotion.matches ? 0 : 200);
 
   if (backlog) {
     const label = QADA_LABEL[backlog];

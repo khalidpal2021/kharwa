@@ -176,16 +176,17 @@ A card under Today, with the same header: QADA between two rules.
   unless they set another in Settings. Making one up is logging it as late,
   which takes it off and also counts for streaks. On top of that, a hand-entered
   backlog from before Kharwa (`qada_backlog`), per prayer, Witr included.
-- **The card** — the QADA label with an ⓘ that explains qada, Made up and
-  the Hanafi note. Then a line per person, the current one first: the name in
-  Playfair on the left, and on the right their count as a gold Playfair
-  numeral, or a small gold "✓ Caught up". Under anyone who owes, a tile per
-  prayer, oldest first, on `--muted` with a 6px radius: the prayer in Playfair,
-  "Sat, Oct 3 · yesterday" small and muted beneath, and on your own tiles a
-  gold-outlined white button with a check, *Made up* (34px tall, 44px to tap).
-  Backlog tiles read "4 from before Kharwa" and take one off. The other
-  person's tiles have no button. At most five each, then "Show all (8)". When
-  neither owes anything the card is one centred line, "✓ Both caught up".
+- **The card** — quiet, and only there while one of you owes something: it is
+  hidden when both are caught up. The QADA label with its ⓘ (what qada is,
+  Made up, the Hanafi note), then only your own owed prayers, as rows like
+  the Today table's with thin rules between: the prayer in Playfair, the date
+  small and muted beside it ("Sat, Oct 3"), and on the right an empty mark,
+  the same size and style as Today's. Tapping it fills it with the late mark;
+  a moment later the row fades out and a toast offers Undo. Backlog prayers
+  are a row each ("Fajr  4 from before"), and each tap takes one off. At most
+  three rows, then "+2 more". Owing nothing yourself shows "✓ All caught up"
+  in small gold. Under it, one muted line for the other person, "Marwa ·
+  caught up" or "Marwa · 2 to make up", with nothing to tap.
 - **The popup** — on opening the app, once a day per person (the date it was
   closed is kept in `localStorage`) and only when something is owed. A white
   card on the soft scrim, fading in: the QADA label with a × beside it,
@@ -194,7 +195,8 @@ A card under Today, with the same header: QADA between two rules.
   prayer if there's time." It closes on ×, a tap outside or Esc, keeps focus
   inside (and on the Undo toasts above it), and says "All caught up" for a
   moment before closing itself once everything is made up.
-- **Making up** — from either place, the row fades out, the prayer is logged
+- **Making up** — from either place (on the card, after the mark fills),
+  the row fades out, the prayer is logged
   late (or the backlog drops by one), and a toast offers *Undo* for about five
   seconds.
 - On desktop it sits under Today in the right-hand column.
