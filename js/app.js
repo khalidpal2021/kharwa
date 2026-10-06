@@ -566,30 +566,34 @@ function qadaItems(owed) {
   ];
 }
 
-/** One owed prayer in the popup: the name in Playfair, when beneath it, and a button. */
+/**
+ * One owed prayer in the popup, like a Today row: the prayer in Playfair, the
+ * date and how long ago beneath it, and the Today mark on the right.
+ */
 function qadaRow(item) {
   const label = QADA_LABEL[item.prayer];
   let when;
-  let button;
+  let data;
+  let aria;
 
   if (item.backlog) {
     when = `${item.backlog} from before Kharwa`;
-    button = `<button class="btn qd-btn" type="button" data-backlog="${item.prayer}"
-                      aria-label="Made up one ${label} from before Kharwa">&minus;1 Made up</button>`;
+    data = `data-backlog="${item.prayer}"`;
+    aria = `Made up one ${label} from before Kharwa`;
   } else {
-    const day = fmtDayNav.format(parseKey(item.date));
-    when = `${esc(day)} · ${daysAgo(item.date)}`;
-    button = `<button class="btn qd-btn" type="button" data-date="${item.date}" data-prayer="${item.prayer}"
-                      aria-label="Mark ${label}, ${esc(day)}, as made up">Made up</button>`;
+    const day = esc(fmtDayNav.format(parseKey(item.date)));
+    when = `${day} · ${daysAgo(item.date)}`;
+    data = `data-date="${item.date}" data-prayer="${item.prayer}"`;
+    aria = `Mark ${label}, ${day}, as made up`;
   }
 
   return `
-    <li class="qd-row">
-      <div class="qd-what">
-        <span class="qd-name">${label}</span>
-        <span class="qd-when">${when}</span>
-      </div>
-      ${button}
+    <li class="qd-r qd-r--stack">
+      <span class="qd-r-what">
+        <span class="qd-r-name">${label}</span>
+        <span class="qd-r-when">${when}</span>
+      </span>
+      <button class="mark qd-mark" type="button" ${data} aria-label="${aria}">${markSvg('none')}</button>
     </li>`;
 }
 
@@ -671,15 +675,13 @@ el('qada').addEventListener('click', (event) => {
  * backlog), with an Undo toast. Shared by the card and the popup.
  */
 async function makeUp(btn) {
-  const row = btn.closest('.qd-row, .qd-r');
+  const row = btn.closest('.qd-r');
   const { date, prayer, backlog } = btn.dataset;
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   btn.disabled = true;
-  // On the card the circle fills with the late mark, and holds a moment.
-  if (btn.classList.contains('qd-mark')) {
-    btn.innerHTML = markSvg('late');
-    await wait(reducedMotion.matches ? 250 : 600);
-  }
+  // The circle fills with the late mark, and holds a moment.
+  btn.innerHTML = markSvg('late');
+  await wait(reducedMotion.matches ? 250 : 600);
   row.classList.add('is-leaving');
   await wait(reducedMotion.matches ? 0 : 200);
 
@@ -739,17 +741,27 @@ function openQadaPop() {
   QadaPop.open = true;
   QadaPop.returnFocus = document.activeElement;
   renderQadaPop();
+  el('qada-pop').classList.remove('is-closing');
+  el('qd-pop-panel').style.transform = '';
   el('qada-pop').hidden = false;
   // The dialog itself, so no ring shows until someone tabs.
   el('qd-pop-panel').focus();
 }
 
+/** Slides the sheet back down (or fades the modal), then hides it. */
 function closeQadaPop() {
   if (!QadaPop.open) return;
   QadaPop.open = false;
   clearTimeout(QadaPop.closing);
   QadaPop.closing = null;
-  el('qada-pop').hidden = true;
+  const pop = el('qada-pop');
+  pop.classList.add('is-closing');
+  setTimeout(() => {
+    if (QadaPop.open) return; // opened again meanwhile
+    pop.hidden = true;
+    pop.classList.remove('is-closing');
+    el('qd-pop-panel').style.transform = '';
+  }, reducedMotion.matches ? 0 : 200);
   if (QadaPop.returnFocus && QadaPop.returnFocus.isConnected) QadaPop.returnFocus.focus();
 }
 
@@ -760,7 +772,7 @@ function renderQadaPop() {
   const hadFocus = list.contains(document.activeElement);
 
   if (!owed.total) {
-    el('qd-pop-title').textContent = 'All caught up';
+    el('qd-pop-title').innerHTML = `<span class="qd-pop-ok"><svg class="qd-check" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M3.2 8.4l3 3 6.6-7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>All caught up</span>`;
     list.innerHTML = '';
     el('qada-pop').classList.add('is-done');
     if (hadFocus) el('qd-pop-close').focus();
@@ -774,7 +786,8 @@ function renderQadaPop() {
   el('qada-pop').classList.remove('is-done');
 
   const n = owed.total;
-  el('qd-pop-title').textContent = `You have ${n} prayer${n === 1 ? '' : 's'} to make up`;
+  el('qd-pop-title').innerHTML = `<span class="qd-pop-n">${n}</span>
+    <span class="qd-pop-t">prayer${n === 1 ? '' : 's'} to make up</span>`;
   list.innerHTML = qadaItems(owed).map((i) => qadaRow(i)).join('');
 
   // The button that was pressed has gone; carry on with the next one.
@@ -782,11 +795,48 @@ function renderQadaPop() {
 }
 
 el('qd-pop-list').addEventListener('click', (event) => {
-  const btn = event.target.closest('[data-date], [data-backlog]');
-  if (btn) makeUp(btn);
+  const mark = event.target.closest('.qd-mark');
+  if (mark) makeUp(mark);
 });
 el('qd-pop-close').addEventListener('click', closeQadaPop);
+el('qd-pop-done').addEventListener('click', closeQadaPop);
 el('qd-pop-scrim').addEventListener('click', closeQadaPop);
+
+/* On a phone the sheet follows a finger dragging it down, and closes past
+   90px. A drag that starts in the list only counts when the list is already
+   scrolled to its top. */
+(() => {
+  const panel = el('qd-pop-panel');
+  const sheet = window.matchMedia('(max-width: 899px)');
+  let startY = null;
+  let dy = 0;
+
+  panel.addEventListener('touchstart', (event) => {
+    const list = el('qd-pop-list');
+    if (!sheet.matches || (list.contains(event.target) && list.scrollTop > 0)) return;
+    startY = event.touches[0].clientY;
+    dy = 0;
+  }, { passive: true });
+
+  panel.addEventListener('touchmove', (event) => {
+    if (startY === null) return;
+    dy = Math.max(0, event.touches[0].clientY - startY);
+    if (dy < 6) return; // a tap, not a drag
+    if (event.cancelable) event.preventDefault();
+    panel.style.transition = 'none';
+    panel.style.transform = `translateY(${dy}px)`;
+  }, { passive: false });
+
+  const end = () => {
+    if (startY === null) return;
+    startY = null;
+    panel.style.transition = '';
+    if (dy > 90) closeQadaPop();
+    else panel.style.transform = '';
+  };
+  panel.addEventListener('touchend', end);
+  panel.addEventListener('touchcancel', end);
+})();
 
 /* Esc closes it; Tab stays inside it, and the Undo toasts above it. */
 document.addEventListener('keydown', (event) => {

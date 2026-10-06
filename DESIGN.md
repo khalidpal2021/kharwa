@@ -193,13 +193,27 @@ A card under Today, and a popup.
   card's padding leaves below.
 - **The popup** — every time the app is opened or reloaded while you owe
   something (not on coming back to a tab that was already open). Closing it
-  holds until the next open. A white card on the soft scrim, fading in: the QADA
-  label with its ⓘ (what qada is, Made up, the Hanafi note) and a × beside it,
-  "You have 2 prayers to make up" in Playfair, every owed row with an outlined
-  *Made up* (or *−1 Made up*), and "Pray them when you can, before the current
-  prayer if there's time." It closes on ×, a tap outside or Esc, keeps focus
-  inside (and on the Undo toasts above it), and says "All caught up" for a
-  moment before closing itself once everything is made up.
+  (×, Close, a tap outside, Esc, or on a phone a swipe down) holds until the
+  next open.
+  - *Phone (< 900px)*: a bottom sheet, full width, that slides up over 250ms
+    with rounded 16px top corners, a small grey drag handle, and the iPhone
+    home-indicator inset below its last button. It follows a finger dragged
+    down and closes past 90px (a drag in the list only counts once the list
+    is at its top). The dim behind it is warmer and darker than the settings
+    sheet's (`--scrim-strong`, 45% ink). While it is up, toasts move to the
+    top of the screen so Undo never covers it.
+  - *Desktop*: a centred modal, at most 420px wide, 12px radius, `--shadow-lg`,
+    fading and scaling in from 97%.
+  - *Content*: a 2px gold line (under the handle on a phone, along the top on
+    desktop); the count as a large gold Playfair numeral with "prayers to make
+    up" beside it in 22px Playfair, and a small muted × in the corner; then the
+    owed prayers as rows ruled like the Today table: the prayer in Playfair,
+    "Sat, Oct 3 · yesterday" small and muted beneath, and the Today mark on
+    the right. Then one full-width ghost *Close* button, 44px tall. 24px
+    padding throughout. Once the last one is made up the header reads "✓ All
+    caught up" in gold for a moment, then the popup closes itself. No label,
+    ⓘ or footnote: those live on the Qada card. Motion is skipped under
+    `prefers-reduced-motion`.
 - **Making up** — from either place (on the card, after the mark fills),
   the row fades out, the prayer is logged late (or the backlog drops by one),
   and a toast offers *Undo* for about five seconds.
@@ -225,7 +239,7 @@ holds it: `infoButton('key')` in markup, or `<span data-info-slot="key">` in
 `index.html`, and `Info.add('key', () => html)` for what it says.
 
 Where they are: Today (top-right corner: the legend and how missed is
-decided), Streaks, Qada (on the card and in the popup),
+decided), Streaks, Qada (on the card),
 Settings (the timetable note, the qada start date, the backlog), the Hadith
 reader (how to bookmark), and the end of the Learn sub-tab bar (that tab's
 intro and the imam note). What stays visible is what you act on or need at a

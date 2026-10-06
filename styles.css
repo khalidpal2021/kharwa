@@ -39,7 +39,9 @@
   --card-warm:         #FFFCF8;
   --shadow-ink:        rgba(26, 26, 26, 0.04);
   --shadow-ink-md:     rgba(26, 26, 26, 0.06);
+  --shadow-ink-lg:     rgba(26, 26, 26, 0.14);
   --scrim:             rgba(26, 26, 26, 0.32);
+  --scrim-strong:      rgba(26, 26, 26, 0.45); /* behind the qada sheet */
 
   /* Type */
   --serif: "Playfair Display", Georgia, "Times New Roman", serif;
@@ -58,6 +60,7 @@
   --radius-card: 8px;
   --shadow-sm: 0 1px 2px var(--shadow-ink);
   --shadow-md: 0 4px 12px var(--shadow-ink-md);
+  --shadow-lg: 0 16px 40px var(--shadow-ink-lg);
 
   --ease: 170ms ease-out;
   --tap: 44px;
@@ -807,66 +810,6 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
    simply the next two cards. */
 .col--today { display: grid; gap: var(--s2); align-content: start; min-width: 0; }
 
-.qd-list { margin: 0; padding: 0; list-style: none; }
-
-.qd-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--s2);
-  min-height: 54px;
-  padding: 5px 0;
-  border-top: 1px solid var(--border);
-  transition: opacity 200ms ease-out;
-}
-
-/* a made-up row fades out before the list redraws */
-.qd-row.is-leaving { opacity: 0; }
-
-.qd-what { display: grid; gap: 1px; min-width: 0; }
-
-.qd-name {
-  font-family: var(--serif);
-  font-size: 16px;
-  letter-spacing: -0.01em;
-  line-height: 1.25;
-}
-
-.qd-when {
-  font-size: 12.5px;
-  line-height: 1.35;
-  color: var(--muted-foreground);
-  font-variant-numeric: tabular-nums;
-}
-
-/* the popup's outlined button, kept small inside its 44px tap height */
-.qd-btn {
-  position: relative;
-  flex: none;
-  min-height: var(--tap);
-  margin-right: 6px;
-  padding: 0 4px;
-  font-size: 12.5px;
-  letter-spacing: 0.04em;
-  color: var(--accent-text);
-  -webkit-tap-highlight-color: transparent;
-}
-
-.qd-btn::before {
-  content: "";
-  position: absolute;
-  inset: 8px -6px;
-  border: 1px solid var(--accent-hairline);
-  border-radius: var(--radius-btn);
-  transition: background var(--ease), border-color var(--ease);
-}
-
-.qd-btn:hover::before { border-color: var(--accent); background: var(--accent-wash); }
-.qd-btn:focus-visible { outline: none; }
-.qd-btn:focus-visible::before { outline: 2px solid var(--ring); outline-offset: 2px; }
-
-.qd-mark:disabled { cursor: default; }
-
 /* ------------------------------------------------------------- qada card -- */
 
 /* Your owed prayers, as rows like the Today table's above, so the two cards
@@ -949,14 +892,6 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   font-size: 12.5px;
   line-height: 1;
   color: var(--muted-foreground);
-}
-
-.qd-note {
-  margin-top: var(--s2);
-  font-size: 11.5px;
-  line-height: 1.5;
-  color: var(--muted-foreground);
-  text-align: center;
 }
 
 /* ------------------------------------------------------------------ info -- */
@@ -1055,50 +990,97 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 /* ------------------------------------------------------------ qada popup -- */
 
+/* A bottom sheet on a phone: slides up, rounded on top, with a drag handle,
+   over a warmer, darker dim than the settings sheet so it stands out. */
 .modal {
   position: fixed;
   inset: 0;
   z-index: 50; /* under the toasts, so Undo stays in reach */
-  display: grid;
-  place-items: center;
-  padding: var(--s3) 16px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
 }
 
 .modal-scrim {
   position: absolute;
   inset: 0;
-  background: var(--scrim);
-  animation: modal-in 200ms ease-out;
+  background: var(--scrim-strong);
+  animation: modal-in 250ms ease-out;
 }
 
-.modal-panel {
+.qd-sheet {
   position: relative;
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 460px;
-  max-height: min(84dvh, 720px);
-  padding: 6px 20px 18px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
+  max-height: 88dvh;
+  overflow: hidden;
+  border-radius: 16px 16px 0 0;
   background: var(--card);
-  box-shadow: var(--shadow-md);
-  animation: modal-in 200ms ease-out;
+  box-shadow: var(--shadow-lg);
+  animation: sheet-up 250ms ease-out;
+  transition: transform 200ms ease-out;
 }
 
-.modal-panel:focus { outline: none; }
+.qd-sheet:focus { outline: none; }
+
+.modal.is-closing .modal-scrim { animation: modal-out 200ms ease-in forwards; }
+.modal.is-closing .qd-sheet { animation: sheet-down 200ms ease-in forwards; }
 
 @keyframes modal-in { from { opacity: 0; } }
+@keyframes modal-out { to { opacity: 0; } }
+@keyframes sheet-up { from { transform: translateY(100%); } }
+@keyframes sheet-down { to { transform: translateY(100%); } }
+@keyframes modal-pop { from { opacity: 0; transform: scale(0.97); } }
+@keyframes modal-pop-out { to { opacity: 0; transform: scale(0.97); } }
 
-/* the label centred between its rules, the close button to its right */
-.modal-top {
-  display: grid;
-  grid-template-columns: var(--tap) minmax(0, 1fr) var(--tap);
-  align-items: center;
-  margin: 0 -14px;
+.qd-sheet-handle {
+  flex: none;
+  width: 36px;
+  height: 4px;
+  margin: 8px auto;
+  border-radius: 2px;
+  background: var(--border-hover);
 }
 
-.modal-top .cardhead { margin: 0; }
+/* the gold accent: just under the handle here, along the top on desktop */
+.qd-sheet-accent { flex: none; height: 2px; background: var(--accent); }
+
+/* "1 prayer to make up": the count large and gold, the words beside it */
+.qd-sheet-head {
+  flex: none;
+  position: relative;
+  padding: 20px 56px 16px 24px;
+}
+
+.qd-pop-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--serif);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+.qd-pop-n {
+  font-size: 40px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.qd-pop-t { font-size: 22px; line-height: 1.2; }
+
+.qd-pop-ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 22px;
+  line-height: 40px; /* as tall as the count it replaces */
+  color: var(--accent-text);
+}
+
+.qd-sheet-head .modal-close { position: absolute; top: 8px; right: 10px; }
 
 .modal-close {
   display: grid;
@@ -1109,7 +1091,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   border: 0;
   border-radius: var(--radius-btn);
   background: none;
-  font-size: 24px;
+  font-size: 22px;
   line-height: 1;
   color: var(--muted-foreground);
   cursor: pointer;
@@ -1118,25 +1100,37 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 .modal-close:hover { color: var(--foreground); }
 
-.modal-title {
-  margin: 4px 0 var(--s2);
-  text-align: center;
-  font-family: var(--serif);
-  font-size: 22px;
-  font-weight: 400;
-  letter-spacing: -0.01em;
-  line-height: 1.25;
-}
-
-.modal-list {
+/* the rows, ruled like the Today table */
+.qd-sheet-list {
+  flex: 1 1 auto;
   min-height: 0;
+  margin: 0;
+  padding: 0 24px;
+  list-style: none;
   overflow-y: auto;
   overscroll-behavior: contain;
-  border-bottom: 1px solid var(--border);
 }
 
-.modal.is-done .modal-list { display: none; }
-.modal.is-done .modal-title { margin-bottom: var(--s1); font-style: italic; }
+.qd-sheet-list .qd-r:first-child { border-top: 1px solid var(--border); }
+
+/* in the popup the date sits under the name */
+.qd-r--stack { padding: 7px 0; }
+.qd-r--stack .qd-r-what { flex-direction: column; align-items: flex-start; gap: 1px; }
+
+.qd-sheet-foot {
+  flex: none;
+  padding: 12px 24px calc(24px + env(safe-area-inset-bottom, 0px));
+}
+
+.modal.is-done .qd-sheet-list { display: none; }
+
+/* With the sheet up on a phone, toasts move to the top so Undo never covers it. */
+@media (max-width: 899px) {
+  body:has(#qada-pop:not([hidden])) .toasts {
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    bottom: auto;
+  }
+}
 
 /* toasts that can be undone */
 
@@ -2407,6 +2401,20 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
   .card { padding: 22px 26px; }
   .card-info { top: 10px; right: 12px; }
+
+  /* the qada popup: a centred modal that fades and scales in */
+  .modal { align-items: center; padding: var(--s4); }
+
+  .qd-sheet {
+    max-width: 420px;
+    max-height: min(80dvh, 640px);
+    border-radius: 12px;
+    animation: modal-pop 200ms ease-out;
+  }
+
+  .modal.is-closing .qd-sheet { animation: modal-pop-out 150ms ease-in forwards; }
+  .qd-sheet-handle { display: none; }
+  .qd-sheet-foot { padding-bottom: 24px; }
 
   /* the qada rows, sized like the Today rows on desktop */
   .qd-r { padding: 12px 0; }
