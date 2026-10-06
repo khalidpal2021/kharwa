@@ -193,7 +193,7 @@ A card under Today, and a popup.
   card's padding leaves below.
 - **The popup** — every time the app is opened or reloaded while you owe
   something (not on coming back to a tab that was already open). Closing it
-  (×, Close, a tap outside, Esc, or on a phone a swipe down) holds until the
+  (×, a tap outside, Esc, or on a phone a swipe down) holds until the
   next open.
   - *Phone (< 900px)*: a bottom sheet, full width, that slides up over 250ms
     with rounded 16px top corners, a small grey drag handle, and the iPhone
@@ -209,8 +209,8 @@ A card under Today, and a popup.
     up" beside it in 22px Playfair, and a small muted × in the corner; then the
     owed prayers as rows ruled like the Today table: the prayer in Playfair,
     "Sat, Oct 3 · yesterday" small and muted beneath, and the Today mark on
-    the right. Then one full-width ghost *Close* button, 44px tall. 24px
-    padding throughout. Once the last one is made up the header reads "✓ All
+    the right. No button below them; 24px of space under the last row, plus
+    the iPhone home-indicator inset. 24px padding throughout. Once the last one is made up the header reads "✓ All
     caught up" in gold for a moment, then the popup closes itself. No label,
     ⓘ or footnote: those live on the Qada card. Motion is skipped under
     `prefers-reduced-motion`.

@@ -853,7 +853,6 @@ el('qd-pop-list').addEventListener('click', (event) => {
   if (mark) makeUp(mark);
 });
 el('qd-pop-close').addEventListener('click', closeQadaPop);
-el('qd-pop-done').addEventListener('click', closeQadaPop);
 el('qd-pop-scrim').addEventListener('click', closeQadaPop);
 
 swipeToClose(el('qd-pop-panel'), () => el('qd-pop-list'), closeQadaPop);
