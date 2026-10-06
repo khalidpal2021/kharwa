@@ -326,6 +326,10 @@ Info.add('qada-start', () => {
     : 'Left empty, it is the date of your first log.'}</p>`;
 });
 
+Info.add('tafsir', () => `
+  <p>The tafsir shown when you tap an ayah in the Quran tab. Each is the
+     published text of that work, unchanged.</p>`);
+
 Info.add('switch', () => `
   <p>Forgets who you are on this device and asks again. Nothing you have logged changes.</p>`);
 
@@ -895,6 +899,7 @@ async function renderAyah() {
     el('ayah-en').textContent = ayah.english;
     el('ayah-ref').textContent = `${ayah.surah} · ${ayah.number}`;
     el('ayah-link').href = `#/quran/${ayah.number.replace(':', '/')}`;
+    el('ayah-link').dataset.ref = ayah.number;
     el('ayah').hidden = false;
     State.ayahFor = key;
   } catch {
@@ -903,6 +908,14 @@ async function renderAyah() {
     State.ayahLoading = null;
   }
 }
+
+/* "Read in context" opens the ayah sheet; the link is the fallback. */
+el('ayah-link').addEventListener('click', (event) => {
+  const [s, a] = (el('ayah-link').dataset.ref || '').split(':').map(Number);
+  if (!s || !a || event.metaKey || event.ctrlKey || event.shiftKey) return;
+  event.preventDefault();
+  AyahSheet.openAt(s, a);
+});
 
 /* ============================================================== render ==== */
 
@@ -1096,6 +1109,9 @@ function fillSettings() {
   el('set-qada-start').value = Data.qadaStart(State.me) || '';
   el('set-qada-start').max = todayKey();
   setSwitch(Data.showsLearn(State.me));
+  el('set-tafsir').innerHTML = AYAH_TAFSIRS
+    .map((t) => `<option value="${t.id}">${esc(t.label)}</option>`).join('');
+  el('set-tafsir').value = AyahSheet.tafsir().id;
 
   const backlog = Data.backlog[State.me] || {};
   el('set-backlog').innerHTML = QADA_PRAYERS.map((p) => backlogStepper(p, backlog[p.key] || 0)).join('');
@@ -1212,6 +1228,13 @@ el('set-name').addEventListener('blur', () => {
 
 el('set-qada-start').addEventListener('change', () => queueSave('qada-start', saveQadaStart));
 
+/* Kept on this device, per person. */
+el('set-tafsir').addEventListener('change', () => {
+  AyahSheet.setTafsir(el('set-tafsir').value);
+  setSaveError('tafsir', '');
+  flashSaved('tafsir');
+});
+
 el('set-learn').addEventListener('click', () => {
   const on = el('set-learn').getAttribute('aria-checked') !== 'true';
   setSwitch(on);
@@ -1302,7 +1325,7 @@ document.addEventListener('keydown', (event) => {
   if (event.key !== 'Tab') return;
 
   const focusable = [...el('settings-panel').querySelectorAll(
-    'button:not(:disabled):not([tabindex="-1"]), input:not(:disabled)',
+    'button:not(:disabled):not([tabindex="-1"]), input:not(:disabled), select',
   )].filter((node) => node.getClientRects().length);
   if (!focusable.length) return;
   const i = focusable.indexOf(document.activeElement);

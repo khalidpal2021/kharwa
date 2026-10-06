@@ -242,8 +242,8 @@ session (`sessionStorage`).
   missing, a small notice sits at the top of this tab and the steppers are
   disabled.
 - **App** — a list of rows with room for more: *Show Learn tab* as a switch
-  (44×26, gold when on), then *Prayer times · Islamic Society of Tracy* with
-  its ⓘ.
+  (44×26, gold when on), *Tafsir* (a dropdown, kept per person on the
+  device), then *Prayer times · Islamic Society of Tracy* with its ⓘ.
 
 There is no Save button. Each field saves itself when it changes: the name
 after a 700ms pause in typing (or on leaving the field), the date on change,
@@ -443,6 +443,56 @@ from the Al-Quran Cloud API and is never written into the code.
   Bookmarks and the reading position (the topmost ayah in a band across the
   upper screen, saved 1.5s after it settles) are kept per person in Supabase;
   the position is also kept on the device, and the newer copy wins.
+
+### Ayah context sheet
+
+Tapping any ayah in the reader (anywhere but its star, and not while text is
+being selected), pressing Enter on one, or "Read in context →" on the Ayah of
+the Day opens a sheet about it: the qada popup's sheet, taller, a 600px modal
+on desktop. Ayat show a soft gold tint on hover and a little more on tap, so
+they read as tappable. It closes on ×, a tap outside, Esc or a swipe down.
+
+In order:
+
+1. **Reference** — the surah's English name in Playfair with its Arabic name
+   beside it, "Ayah 135", and a small gold-outlined MECCAN or MEDINAN tag.
+2. **The ayah** — the Arabic large in Amiri Quran, right to left, then the
+   translation the reader is set to.
+3. **Word by word** — collapsed; opened, each word reads right to left as a
+   small tile: the Arabic, its transliteration in muted italic, its meaning.
+4. **Tafsir** — the person's chosen tafsir, first three paragraphs then *Read
+   more*, credited by name beneath. Arabic quoted inside it reads right to left
+   in the Quran face. If the work has no entry: "No tafsir available for this
+   ayah."
+5. **Reason for revelation** — only when Al-Wahidi's Asbab al-Nuzul has an
+   entry, credited to him, with the same *Read more*.
+6. **Around it** — the ayah before and after (across surahs), small, each
+   opening in the sheet.
+
+A row of icons stays at the bottom: play the recitation (Mishary Alafasy, per
+ayah), previous, next (updating the sheet in place, disabled at 1:1 and
+114:6), copy (Arabic, translation and reference), and bookmark, which is the
+reader's own per-person bookmark, so the star in the reader follows it.
+
+**Sources.** Nothing in the sheet is written, summarised or paraphrased; every
+word of explanation is the published text, fetched as is, and the sheet says
+so when a source has nothing.
+
+- Tafsir and Asbab al-Nuzul: the spa5k/tafsir_api static files on jsDelivr,
+  one JSON file per ayah (`…/tafsir/{slug}/{surah}/{ayah}.json`, 404 when the
+  work has no entry). A tafsir often comments on a group of ayat at once, so
+  neighbouring ayat can show the same text. Some entries lost their quotation
+  marks upstream (stored as U+FFFD); those are shown as plain `"` marks.
+- Word by word: the Quran.com API v4, no key.
+- The ayah, translation and surah details: Al-Quran Cloud, through the reader's
+  cache. Audio: `cdn.islamic.network`.
+
+Fetched JSON is cached in memory for the session; each section loads quietly
+("Loading tafsir…") without holding up the others.
+
+The tafsir is chosen per person in Settings → App, kept on the device: Ma'arif
+al-Qur'an (Mufti Muhammad Shafi, Hanafi; the default), Tafsir Ibn Kathir
+(abridged), Tafsir al-Jalalayn, or Al-Mukhtasar.
 
 ## Hadith
 

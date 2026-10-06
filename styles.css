@@ -1110,9 +1110,10 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 .modal.is-done .sheet-list { display: none; }
 
-/* With the sheet up on a phone, toasts move to the top so Undo never covers it. */
+/* With a sheet up on a phone, toasts move to the top so they never cover it. */
 @media (max-width: 899px) {
-  body:has(#qada-pop:not([hidden])) .toasts {
+  body:has(#qada-pop:not([hidden])) .toasts,
+  body:has(#ayah-pop:not([hidden])) .toasts {
     top: calc(12px + env(safe-area-inset-top, 0px));
     bottom: auto;
   }
@@ -1211,6 +1212,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 }
 
 .set-field .input { font-size: 16px; } /* so iOS does not zoom */
+.set-select { appearance: auto; cursor: pointer; }
 
 /* "Saved ✓", beside the field for a moment */
 .set-saved {
@@ -1361,6 +1363,292 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 .stepper-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
 .stepper:has(.stepper-input:disabled) { background: var(--muted); opacity: 0.6; }
+
+/* ------------------------------------------------------------ ayah sheet -- */
+
+/* The qada popup's sheet, taller: the head and the actions stay put and the
+   middle scrolls. */
+.ay-sheet { max-height: 90dvh; }
+
+.ay-head {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s2);
+  padding: 2px 12px 14px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ay-head-text { min-width: 0; }
+
+.ay-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  font-weight: 400;
+}
+
+.ay-en {
+  font-family: var(--serif);
+  font-size: 22px;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.ay-ar {
+  font-family: var(--quran);
+  font-size: 20px;
+  line-height: 1.4;
+  color: var(--muted-foreground);
+}
+
+.ay-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+
+/* Meccan / Medinan */
+.ay-tag {
+  padding: 1px 8px;
+  border: 1px solid var(--accent-hairline);
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+
+.ay-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 24px var(--s3);
+}
+
+/* the ayah itself */
+.ay-verse { padding: var(--s3) 0; }
+
+.ay-arabic {
+  font-family: var(--quran);
+  font-size: 28px;
+  line-height: 2.05;
+  text-align: right;
+  color: var(--foreground);
+}
+
+.ay-translation {
+  margin-top: var(--s2);
+  font-size: 15.5px;
+  line-height: 1.65;
+  color: var(--foreground);
+}
+
+/* sections, divided by hairlines */
+.ay-wbw,
+.ay-section { padding: var(--s2) 0; border-top: 1px solid var(--border); }
+
+.ay-h,
+.ay-summary {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+
+.ay-h { margin-bottom: 10px; }
+
+.ay-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 32px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.ay-summary::-webkit-details-marker { display: none; }
+
+/* a chevron that turns when open */
+.ay-summary::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  margin-right: 4px;
+  border: solid var(--muted-foreground);
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform var(--ease);
+}
+
+.ay-wbw[open] .ay-summary::after { transform: rotate(-135deg) translateY(-2px); }
+.ay-words-wrap { margin-top: 10px; }
+
+/* word by word: right to left, each word over its reading and meaning */
+.ay-words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ay-word {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 64px;
+  max-width: 120px;
+  padding: 8px 10px;
+  border-radius: var(--radius-btn);
+  background: var(--muted);
+  text-align: center;
+}
+
+.ay-word-ar { font-family: var(--quran); font-size: 22px; line-height: 1.7; }
+.ay-word-tr { font-size: 12px; font-style: italic; color: var(--muted-foreground); }
+.ay-word-en { font-size: 12px; line-height: 1.35; color: var(--foreground); }
+
+/* tafsir and asbab: the published text, unchanged */
+.ay-prose p {
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--foreground);
+}
+
+/* Arabic quoted in the tafsir reads right to left, in the Quran face. */
+.ay-prose p:dir(rtl) {
+  font-family: var(--quran);
+  font-size: 19px;
+  line-height: 2;
+}
+
+.ay-prose p + p,
+.ay-prose + .ay-prose p:first-child { margin-top: 10px; }
+
+.ay-more {
+  min-height: 36px;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--sans);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--accent-text);
+  cursor: pointer;
+}
+
+.ay-more:hover { text-decoration: underline; text-underline-offset: 4px; }
+
+.ay-credit {
+  margin-top: var(--s1);
+  font-size: 12px;
+  font-style: italic;
+  color: var(--muted-foreground);
+}
+
+.ay-quiet { font-size: 13.5px; font-style: italic; color: var(--muted-foreground); }
+
+/* the ayat either side, small and tappable */
+.ay-around { display: grid; gap: 6px; }
+
+.ay-around-row {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--radius-btn);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--ease);
+}
+
+.ay-around-row:hover { background: var(--muted); }
+
+.ay-around-ref {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.ay-around-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--foreground);
+}
+
+/* the actions: one quiet row of icons */
+.ay-actions {
+  flex: none;
+  display: flex;
+  justify-content: space-around;
+  padding: 4px 12px calc(4px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--border);
+}
+
+.ay-act {
+  display: grid;
+  place-items: center;
+  width: var(--tap);
+  height: var(--tap);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-btn);
+  background: none;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--ease), background var(--ease);
+}
+
+.ay-act:hover { color: var(--foreground); background: var(--muted); }
+.ay-act:disabled { color: var(--border-hover); background: none; cursor: default; }
+.ay-act[aria-pressed="true"] { color: var(--accent); }
+.ay-star { fill: none; }
+.ay-act[aria-pressed="true"] .ay-star { fill: currentColor; }
+
+/* tappable ayat in the reader: a soft tint on hover, a little more on tap */
+.qr-ayah { position: relative; isolation: isolate; cursor: pointer; }
+
+.qr-ayah::before {
+  content: "";
+  position: absolute;
+  inset: 4px -10px;
+  z-index: -1;
+  border-radius: var(--radius-card);
+  background: var(--accent-faint);
+  opacity: 0;
+  transition: opacity var(--ease);
+  pointer-events: none;
+}
+
+@media (hover: hover) {
+  .qr-ayah:hover::before { opacity: 1; }
+}
+
+.qr-ayah:active::before { opacity: 1; background: var(--accent-wash); }
+.qr-ayah:focus-visible { outline: none; }
+.qr-ayah:focus-visible::before { opacity: 1; box-shadow: inset 0 0 0 2px var(--ring); }
 
 /* toasts that can be undone */
 
@@ -2567,6 +2855,10 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   .modal.is-closing .sheet { animation: modal-pop-out 150ms ease-in forwards; }
   .sheet-handle { display: none; }
   .qd-pop-sheet { padding-bottom: 24px; }
+
+  /* the ayah sheet: a wider modal */
+  .ay-sheet { max-width: 600px; max-height: min(86dvh, 820px); }
+  .ay-head { padding-top: 20px; } /* no drag handle above it here */
 
   /* settings: a modal with the tabs down the left */
   .set-sheet { max-width: 560px; height: min(480px, 85dvh); }

@@ -325,9 +325,21 @@ const Quran = {
       if (remove) this.toggleBookmark(Number(remove.dataset.surah), Number(remove.dataset.ayah));
     });
 
+    // The star bookmarks; anywhere else on an ayah opens its context.
     el('qr-text').addEventListener('click', (event) => {
       const num = event.target.closest('.qr-num');
-      if (num) this.toggleBookmark(this.surah.number, Number(num.dataset.ayah));
+      if (num) {
+        this.toggleBookmark(this.surah.number, Number(num.dataset.ayah));
+        return;
+      }
+      const ayah = event.target.closest('.qr-ayah');
+      if (!ayah || String(window.getSelection?.() || '').trim()) return; // selecting text, not tapping
+      AyahSheet.openAt(this.surah.number, Number(ayah.dataset.ayah));
+    });
+    el('qr-text').addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' || !event.target.matches('.qr-ayah')) return;
+      event.preventDefault();
+      AyahSheet.openAt(this.surah.number, Number(event.target.dataset.ayah));
     });
 
     // Reading options
@@ -809,7 +821,7 @@ const Quran = {
       // With Arabic off, the number moves to the start of the first line shown.
       const lead = arabic ? '' : this.marker(n);
       return `
-        <li class="qr-ayah" id="qr-ayah-${n}" data-ayah="${n}">
+        <li class="qr-ayah" id="qr-ayah-${n}" data-ayah="${n}" tabindex="0">
           ${arabic ? `<p class="qr-ar" lang="ar" dir="rtl">${esc(i === 0 ? first : arText)} ${this.marker(n)}</p>` : ''}
           ${tr ? `<p class="qr-tr${lead ? ' qr-lead' : ''}">${lead}${esc(tr[i])}</p>` : ''}
           ${tx ? `<p class="qr-en${t.rtl ? ' is-rtl' : ''}${lead && !tr ? ' qr-lead' : ''}"${t.rtl ? ` lang="${t.lang}" dir="rtl"` : ''}>${
