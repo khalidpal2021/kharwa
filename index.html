@@ -392,56 +392,103 @@
     </div>
 
     <!-- ----------------------------------------------------- settings --- -->
-    <div id="settings" class="sheet" hidden>
-      <div id="settings-scrim" class="sheet-scrim"></div>
-      <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-        <div class="sheet-head">
-          <div class="sheet-title-row">
-            <h2 id="settings-title" class="sheet-title">Settings</h2>
-            <span data-info-slot="settings"></span>
-          </div>
-          <button id="settings-close" class="btn btn--ghost" type="button">Close</button>
+    <!-- Tabbed, and every field saves itself: js/app.js. A bottom sheet on a
+         phone, a modal with the tabs down the left on desktop. -->
+    <div id="settings" class="modal" hidden>
+      <div id="settings-scrim" class="modal-scrim"></div>
+      <div id="settings-panel" class="sheet set-sheet" role="dialog" aria-modal="true" aria-labelledby="settings-title" tabindex="-1">
+        <div class="sheet-handle" aria-hidden="true"></div>
+        <div class="set-head">
+          <h2 id="settings-title" class="set-title">Settings</h2>
+          <button id="settings-close" class="modal-close" type="button" aria-label="Close">&times;</button>
         </div>
 
-        <p id="settings-who" class="sheet-who"></p>
-
-        <label class="field">
-          <span class="field-label">Display name</span>
-          <input id="set-name" class="input" type="text" autocomplete="off" maxlength="40" />
-        </label>
-
-        <label class="ln-toggle set-toggle">
-          <input id="set-learn" type="checkbox" />
-          <span class="ln-toggle-box" aria-hidden="true"></span>
-          <span class="ln-toggle-text">Show Learn tab</span>
-        </label>
-
-        <hr class="rule rule--full" />
-
-        <div class="field">
-          <div class="field-head">
-            <label class="field-label" for="set-qada-start">Count qada from</label>
-            <span data-info-slot="qada-start"></span>
+        <div class="set-body">
+          <div id="set-tabs" class="set-tabs" role="tablist" aria-label="Settings sections">
+            <button id="set-tab-profile" class="set-tab" type="button" role="tab" data-tab="profile"
+                    aria-controls="set-panel-profile" aria-selected="true">Profile</button>
+            <button id="set-tab-qada" class="set-tab" type="button" role="tab" data-tab="qada"
+                    aria-controls="set-panel-qada" aria-selected="false" tabindex="-1">Qada</button>
+            <button id="set-tab-app" class="set-tab" type="button" role="tab" data-tab="app"
+                    aria-controls="set-panel-app" aria-selected="false" tabindex="-1">App</button>
           </div>
-          <input id="set-qada-start" class="input" type="date" />
+
+          <div id="set-panels" class="set-panels">
+
+            <!-- profile -->
+            <section id="set-panel-profile" class="set-panel" role="tabpanel" aria-labelledby="set-tab-profile">
+              <div class="set-field">
+                <div class="set-label-row">
+                  <label class="set-label" for="set-name">Display name</label>
+                  <span class="set-saved" data-for="name" aria-live="polite"></span>
+                </div>
+                <input id="set-name" class="input" type="text" autocomplete="off" maxlength="40" />
+                <p class="set-error" data-for="name" role="alert" hidden></p>
+                <p id="settings-who" class="set-hint"></p>
+              </div>
+
+              <hr class="set-rule" />
+
+              <div class="set-row set-row--start">
+                <button id="switch-person" class="btn btn--ghost set-ghost" type="button">Switch person</button>
+                <span data-info-slot="switch"></span>
+              </div>
+            </section>
+
+            <!-- qada -->
+            <section id="set-panel-qada" class="set-panel" role="tabpanel" aria-labelledby="set-tab-qada" hidden>
+              <p id="set-backlog-note" class="set-notice" hidden>
+                The backlog below needs the qada_backlog table. Run supabase/schema.sql again to turn it on.
+              </p>
+
+              <div class="set-field">
+                <div class="set-label-row">
+                  <label class="set-label" for="set-qada-start">Count qada from</label>
+                  <span data-info-slot="qada-start"></span>
+                  <span class="set-saved" data-for="qada-start" aria-live="polite"></span>
+                </div>
+                <input id="set-qada-start" class="input" type="date" />
+                <p class="set-error" data-for="qada-start" role="alert" hidden></p>
+              </div>
+
+              <hr class="set-rule" />
+
+              <fieldset class="set-field">
+                <legend class="set-label-row">
+                  <span class="set-label">Owed from before Kharwa</span>
+                  <span data-info-slot="backlog"></span>
+                  <span class="set-saved" data-for="backlog" aria-live="polite"></span>
+                </legend>
+                <div id="set-backlog" class="set-grid"></div>
+                <p class="set-error" data-for="backlog" role="alert" hidden></p>
+              </fieldset>
+            </section>
+
+            <!-- app: a list of rows, with room for more (notifications, say) -->
+            <section id="set-panel-app" class="set-panel" role="tabpanel" aria-labelledby="set-tab-app" hidden>
+              <div class="set-row">
+                <div class="set-row-text">
+                  <span id="set-learn-label" class="set-label">Show Learn tab</span>
+                  <span class="set-saved" data-for="learn" aria-live="polite"></span>
+                </div>
+                <button id="set-learn" class="switch" type="button" role="switch" aria-checked="false"
+                        aria-labelledby="set-learn-label"><span class="switch-thumb"></span></button>
+              </div>
+              <p class="set-error" data-for="learn" role="alert" hidden></p>
+
+              <hr class="set-rule" />
+
+              <div class="set-row">
+                <div class="set-row-text">
+                  <span class="set-label">Prayer times</span>
+                  <span data-info-slot="prayer-times"></span>
+                </div>
+                <span class="set-value">Islamic Society of Tracy</span>
+              </div>
+            </section>
+
+          </div>
         </div>
-
-        <fieldset class="field set-backlog">
-          <legend class="field-head">
-            <span class="field-label">Owed from before Kharwa</span>
-            <span data-info-slot="backlog"></span>
-          </legend>
-          <div id="set-backlog" class="set-backlog-grid"></div>
-          <p id="set-backlog-note" class="sheet-note set-backlog-note">Run supabase/schema.sql again to turn this on.</p>
-        </fieldset>
-
-        <button id="set-save" class="btn btn--primary" type="button">Save settings</button>
-        <p id="set-status" class="sheet-status" role="status"></p>
-
-        <hr class="rule rule--full" />
-
-        <button id="switch-person" class="btn btn--ghost btn--block" type="button">Switch person</button>
-        <p class="sheet-note sheet-note--center">Forgets who you are on this device and asks again.</p>
       </div>
     </div>
 
@@ -450,15 +497,15 @@
          on a phone, a centred modal on desktop. -->
     <div id="qada-pop" class="modal" hidden>
       <div id="qd-pop-scrim" class="modal-scrim"></div>
-      <div id="qd-pop-panel" class="qd-sheet" role="dialog" aria-modal="true" aria-labelledby="qd-pop-title" tabindex="-1">
-        <div class="qd-sheet-handle" aria-hidden="true"></div>
-        <div class="qd-sheet-accent" aria-hidden="true"></div>
-        <div class="qd-sheet-head">
+      <div id="qd-pop-panel" class="sheet" role="dialog" aria-modal="true" aria-labelledby="qd-pop-title" tabindex="-1">
+        <div class="sheet-handle" aria-hidden="true"></div>
+        <div class="sheet-accent" aria-hidden="true"></div>
+        <div class="sheet-head">
           <h2 id="qd-pop-title" class="qd-pop-title" aria-live="polite"></h2>
           <button id="qd-pop-close" class="modal-close" type="button" aria-label="Close">&times;</button>
         </div>
-        <ul id="qd-pop-list" class="qd-sheet-list"></ul>
-        <div class="qd-sheet-foot">
+        <ul id="qd-pop-list" class="sheet-list"></ul>
+        <div class="sheet-foot">
           <button id="qd-pop-done" class="btn btn--ghost btn--block" type="button">Close</button>
         </div>
       </div>

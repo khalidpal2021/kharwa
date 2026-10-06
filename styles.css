@@ -154,24 +154,12 @@ button, a, input, select, textarea, label,
   line-height: 1.1;
 }
 
-.field-label {
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  line-height: 1.4;
-  color: var(--accent-text);
-}
-
 .rule {
   display: block;
   height: 1px;
   background: var(--border);
   border: 0;
 }
-
-.rule--full { width: 100%; margin: var(--s3) 0 var(--s2); }
 
 /* ---------------------------------------------------------------- cards -- */
 
@@ -935,8 +923,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 /* Beside a small-caps label: centred on the capitals, which sit a little above
    the middle of the label's line. The 4px gap reads as about 5.5px, since the
    label's letter-spacing trails its last letter. */
-.cardhead-label .info-btn,
-.field-head .info-btn { transform: translateY(-1px); }
+.cardhead-label .info-btn { transform: translateY(-1px); }
 
 /* In a card's top-right corner, in the gutter its padding leaves. */
 .has-info { position: relative; }
@@ -1008,7 +995,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   animation: modal-in 250ms ease-out;
 }
 
-.qd-sheet {
+.sheet {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -1022,10 +1009,10 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   transition: transform 200ms ease-out;
 }
 
-.qd-sheet:focus { outline: none; }
+.sheet:focus { outline: none; }
 
 .modal.is-closing .modal-scrim { animation: modal-out 200ms ease-in forwards; }
-.modal.is-closing .qd-sheet { animation: sheet-down 200ms ease-in forwards; }
+.modal.is-closing .sheet { animation: sheet-down 200ms ease-in forwards; }
 
 @keyframes modal-in { from { opacity: 0; } }
 @keyframes modal-out { to { opacity: 0; } }
@@ -1034,7 +1021,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 @keyframes modal-pop { from { opacity: 0; transform: scale(0.97); } }
 @keyframes modal-pop-out { to { opacity: 0; transform: scale(0.97); } }
 
-.qd-sheet-handle {
+.sheet-handle {
   flex: none;
   width: 36px;
   height: 4px;
@@ -1044,10 +1031,10 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 }
 
 /* the gold accent: just under the handle here, along the top on desktop */
-.qd-sheet-accent { flex: none; height: 2px; background: var(--accent); }
+.sheet-accent { flex: none; height: 2px; background: var(--accent); }
 
 /* "1 prayer to make up": the count large and gold, the words beside it */
-.qd-sheet-head {
+.sheet-head {
   flex: none;
   position: relative;
   padding: 20px 56px 16px 24px;
@@ -1080,7 +1067,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   color: var(--accent-text);
 }
 
-.qd-sheet-head .modal-close { position: absolute; top: 8px; right: 10px; }
+.sheet-head .modal-close { position: absolute; top: 8px; right: 10px; }
 
 .modal-close {
   display: grid;
@@ -1101,7 +1088,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 .modal-close:hover { color: var(--foreground); }
 
 /* the rows, ruled like the Today table */
-.qd-sheet-list {
+.sheet-list {
   flex: 1 1 auto;
   min-height: 0;
   margin: 0;
@@ -1111,18 +1098,18 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   overscroll-behavior: contain;
 }
 
-.qd-sheet-list .qd-r:first-child { border-top: 1px solid var(--border); }
+.sheet-list .qd-r:first-child { border-top: 1px solid var(--border); }
 
 /* in the popup the date sits under the name */
 .qd-r--stack { padding: 7px 0; }
 .qd-r--stack .qd-r-what { flex-direction: column; align-items: flex-start; gap: 1px; }
 
-.qd-sheet-foot {
+.sheet-foot {
   flex: none;
   padding: 12px 24px calc(24px + env(safe-area-inset-bottom, 0px));
 }
 
-.modal.is-done .qd-sheet-list { display: none; }
+.modal.is-done .sheet-list { display: none; }
 
 /* With the sheet up on a phone, toasts move to the top so Undo never covers it. */
 @media (max-width: 899px) {
@@ -1131,6 +1118,250 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
     bottom: auto;
   }
 }
+
+/* ------------------------------------------------------------ settings -- */
+
+/* The same sheet as the qada popup, at one height whichever tab is open, so
+   nothing jumps; a tab longer than that scrolls inside. */
+.set-sheet { height: min(600px, 88dvh); }
+
+.set-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  padding: 0 12px 8px 24px;
+}
+
+.set-title {
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.set-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* On a phone the tabs run across the top, small-caps, gold underline. */
+.set-tabs {
+  flex: none;
+  display: flex;
+  gap: 22px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.set-tab {
+  min-height: 40px;
+  margin-bottom: -1px;
+  padding: 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: color var(--ease), border-color var(--ease);
+}
+
+.set-tab:hover { color: var(--foreground); }
+
+.set-tab[aria-selected="true"] {
+  color: var(--accent-text);
+  border-bottom-color: var(--accent);
+}
+
+.set-panels {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 20px 24px calc(24px + env(safe-area-inset-bottom, 0px));
+}
+
+/* fields: calm sentence-case labels, not the small-caps mono */
+.set-field { margin: 0; padding: 0; border: 0; min-width: 0; }
+
+.set-label-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin-bottom: var(--s1);
+  padding: 0;
+}
+
+.set-label {
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+  color: var(--foreground);
+}
+
+.set-field .input { font-size: 16px; } /* so iOS does not zoom */
+
+/* "Saved ✓", beside the field for a moment */
+.set-saved {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity var(--ease);
+}
+
+.set-saved.is-on { opacity: 1; }
+
+.set-error {
+  margin-top: var(--s1);
+  padding-left: var(--s1);
+  border-left: 2px solid var(--mark-empty);
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--foreground);
+}
+
+.set-hint { margin-top: var(--s1); font-size: 13px; color: var(--muted-foreground); }
+
+.set-rule { height: 1px; margin: var(--s3) 0; border: 0; background: var(--border); }
+
+.set-notice {
+  margin-bottom: var(--s3);
+  padding: 10px 12px;
+  border-left: 2px solid var(--accent);
+  border-radius: var(--radius-btn);
+  background: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted-foreground);
+}
+
+/* a row: what it is on the left, its control on the right */
+.set-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  min-height: var(--tap);
+}
+
+.set-row--start { justify-content: flex-start; gap: 0; }
+
+.set-row-text { display: flex; align-items: center; gap: 6px; min-width: 0; }
+
+.set-value { font-size: 13px; color: var(--muted-foreground); text-align: right; }
+
+.set-ghost { margin-left: -10px; } /* its text in line with the fields */
+
+/* The Learn switch: 44 by 26, gold when on, with a taller tap area. */
+.switch {
+  position: relative;
+  flex: none;
+  width: 44px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--border-hover);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background var(--ease);
+}
+
+.switch::after { content: ""; position: absolute; inset: -9px -4px; }
+.switch[aria-checked="true"] { background: var(--accent); }
+
+.switch-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--card);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--ease);
+}
+
+.switch[aria-checked="true"] .switch-thumb { transform: translateX(18px); }
+
+/* the backlog: three across, each a − number + stepper */
+.set-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s2) 12px;
+}
+
+.step { display: grid; gap: 6px; min-width: 0; }
+
+.step-label { font-size: 13px; color: var(--muted-foreground); }
+
+.stepper {
+  display: flex;
+  height: var(--tap);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--card);
+  overflow: hidden;
+  transition: border-color var(--ease), box-shadow var(--ease);
+}
+
+.stepper:hover { border-color: var(--border-hover); }
+.stepper:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-wash); }
+
+.stepper-btn {
+  flex: none;
+  width: 32px;
+  padding: 0;
+  border: 0;
+  background: var(--muted);
+  font-family: var(--sans);
+  font-size: 17px;
+  line-height: 1;
+  color: var(--foreground);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background var(--ease), color var(--ease);
+}
+
+.stepper-btn:hover { background: var(--border); }
+.stepper-btn:disabled { color: var(--border-hover); cursor: default; background: var(--muted); }
+.stepper-btn:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+
+.stepper-input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: center;
+  font-family: var(--sans);
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  color: var(--foreground);
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.stepper-input:focus { outline: none; }
+.stepper-input::-webkit-outer-spin-button,
+.stepper-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+.stepper:has(.stepper-input:disabled) { background: var(--muted); opacity: 0.6; }
 
 /* toasts that can be undone */
 
@@ -1165,28 +1396,6 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   text-decoration-color: var(--accent);
   text-underline-offset: 4px;
 }
-
-/* settings: the backlog, three across */
-
-.set-toggle { margin: -4px 0 var(--s1); }
-
-.set-backlog { margin: 0 0 var(--s2); padding: 0; border: 0; min-width: 0; }
-.set-backlog legend { padding: 0; }
-
-.set-backlog-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px var(--s1);
-}
-
-.set-backlog-item { display: grid; gap: 4px; min-width: 0; }
-
-.set-backlog-label { font-size: 13px; color: var(--muted-foreground); }
-
-.set-backlog-item .input { font-size: 16px; font-variant-numeric: tabular-nums; }
-.set-backlog-item .input:disabled { background: var(--muted); color: var(--muted-foreground); }
-
-.set-backlog-note { margin: var(--s1) 0 0; }
 
 /* ------------------------------------------------------ ayah of the day -- */
 
@@ -2265,51 +2474,6 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   color: var(--muted-foreground);
 }
 
-/* ------------------------------------------------------------ settings -- */
-
-.sheet { position: fixed; inset: 0; z-index: 40; }
-
-.sheet-scrim { position: absolute; inset: 0; background: var(--scrim); }
-
-.sheet-panel {
-  position: absolute;
-  left: 0; right: 0; bottom: 0;
-  max-height: 92dvh;
-  overflow-y: auto;
-  max-width: 560px;
-  margin: 0 auto;
-  padding: var(--s3) var(--s3) calc(var(--s3) + env(safe-area-inset-bottom, 0px));
-  border-top: 1px solid var(--border);
-  border-radius: var(--radius-card) var(--radius-card) 0 0;
-  background: var(--card);
-  box-shadow: var(--shadow-md);
-}
-
-.sheet-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--s2);
-  margin-bottom: 4px;
-}
-
-.sheet-title {
-  font-family: var(--serif);
-  font-size: 22px;
-  font-weight: 400;
-  letter-spacing: -0.01em;
-}
-
-.sheet-who { font-size: 13px; color: var(--muted-foreground); margin-bottom: var(--s3); }
-
-.field { display: block; margin-bottom: var(--s2); }
-.field-label { display: block; margin-bottom: var(--s1); }
-
-.sheet-title-row { display: flex; align-items: center; gap: 8px; }
-
-.field-head { display: flex; align-items: center; gap: 4px; margin-bottom: var(--s1); }
-.field-head .field-label { margin-bottom: 0; }
-
 .input {
   width: 100%;
   min-height: var(--tap);
@@ -2323,17 +2487,6 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 .input:hover { border-color: var(--border-hover); }
 .input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 2px var(--accent-wash); }
-
-.sheet-note { font-size: 13px; color: var(--muted-foreground); margin-bottom: var(--s2); }
-.sheet-note--center { text-align: center; margin: var(--s1) 0 0; }
-
-.sheet-status {
-  min-height: 20px;
-  margin-top: var(--s1);
-  text-align: center;
-  font-size: 13.5px;
-  color: var(--accent-text);
-}
 
 /* -------------------------------------------------- banner and toasts --- */
 
@@ -2405,16 +2558,41 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   /* the qada popup: a centred modal that fades and scales in */
   .modal { align-items: center; padding: var(--s4); }
 
-  .qd-sheet {
+  .sheet {
     max-width: 420px;
     max-height: min(80dvh, 640px);
     border-radius: 12px;
     animation: modal-pop 200ms ease-out;
   }
 
-  .modal.is-closing .qd-sheet { animation: modal-pop-out 150ms ease-in forwards; }
-  .qd-sheet-handle { display: none; }
-  .qd-sheet-foot { padding-bottom: 24px; }
+  .modal.is-closing .sheet { animation: modal-pop-out 150ms ease-in forwards; }
+  .sheet-handle { display: none; }
+  .sheet-foot { padding-bottom: 24px; }
+
+  /* settings: a modal with the tabs down the left */
+  .set-sheet { max-width: 560px; height: min(480px, 85dvh); }
+  .set-head { padding: 18px 12px 14px 24px; border-bottom: 1px solid var(--border); }
+  .set-body { flex-direction: row; }
+
+  .set-tabs {
+    flex-direction: column;
+    gap: 2px;
+    width: 150px;
+    padding: var(--s2) 0;
+    border-bottom: 0;
+    border-right: 1px solid var(--border);
+  }
+
+  .set-tab {
+    margin: 0;
+    padding: 0 20px;
+    text-align: left;
+    border-bottom: 0;
+    border-left: 2px solid transparent;
+  }
+
+  .set-tab[aria-selected="true"] { border-left-color: var(--accent); }
+  .set-panels { padding: 22px 24px 24px; }
 
   /* the qada rows, sized like the Today rows on desktop */
   .qd-r { padding: 12px 0; }
@@ -2679,19 +2857,6 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   .hd-ar { font-size: 24px; }
   .hd-en { font-size: 16px; }
 
-  /* settings as a centred dialog */
-
-  .sheet { display: grid; place-items: center; padding: var(--s3); }
-
-  .sheet-panel {
-    position: relative;
-    left: auto; right: auto; bottom: auto;
-    width: 100%;
-    max-width: 460px;
-    max-height: 86dvh;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-card);
-  }
 }
 
 /* ===========================================================================

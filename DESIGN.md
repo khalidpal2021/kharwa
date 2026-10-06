@@ -199,8 +199,8 @@ A card under Today, and a popup.
     with rounded 16px top corners, a small grey drag handle, and the iPhone
     home-indicator inset below its last button. It follows a finger dragged
     down and closes past 90px (a drag in the list only counts once the list
-    is at its top). The dim behind it is warmer and darker than the settings
-    sheet's (`--scrim-strong`, 45% ink). While it is up, toasts move to the
+    is at its top). The dim behind it is warmer and darker than the page's
+    other dims (`--scrim-strong`, 45% ink). While it is up, toasts move to the
     top of the screen so Undo never covers it.
   - *Desktop*: a centred modal, at most 420px wide, 12px radius, `--shadow-lg`,
     fading and scaling in from 97%.
@@ -217,6 +217,41 @@ A card under Today, and a popup.
 - **Making up** — from either place (on the card, after the mark fills),
   the row fades out, the prayer is logged late (or the backlog drops by one),
   and a toast offers *Undo* for about five seconds.
+
+## Settings
+
+Opened from the gear. The same sheet as the qada popup (`.sheet`): on a phone
+a bottom sheet with the drag handle and rounded top corners, closed by ×, a
+tap outside, Esc or a swipe down; on desktop a centred modal, 560px wide, 12px
+radius, `--shadow-lg`. "Settings" in Playfair with a small muted × at the top.
+It keeps one height (600px on a phone, 480px on desktop, less on a short
+screen) whichever tab is open, so nothing jumps; a longer tab scrolls inside.
+
+Three tabs, the one place the small-caps mono stays: across the top on a phone
+with a gold underline under the open one, down the left on desktop (150px,
+divided by a hairline) with gold text and a thin gold bar on its left edge.
+Arrow keys move between them; the last one opened is remembered for the
+session (`sessionStorage`).
+
+- **Profile** — display name; "On this device as Khalid" beneath it; then a
+  quiet ghost *Switch person*, its explanation in an ⓘ.
+- **Qada** — "Count qada from" (a date) and "Owed from before Kharwa", each
+  with its ⓘ. The backlog is six steppers, three across: the prayer's name over
+  a 44px box with − and + either side of the number. Whole numbers only, never
+  below zero (the − goes quiet at zero). When the `qada_backlog` table is
+  missing, a small notice sits at the top of this tab and the steppers are
+  disabled.
+- **App** — a list of rows with room for more: *Show Learn tab* as a switch
+  (44×26, gold when on), then *Prayer times · Islamic Society of Tracy* with
+  its ⓘ.
+
+There is no Save button. Each field saves itself when it changes: the name
+after a 700ms pause in typing (or on leaving the field), the date on change,
+the switch at once, and a run of stepper taps once they stop. "Saved ✓" shows
+in small muted text beside the field for a moment; a failed save shows
+"Couldn't save: …" under it instead, and the switch springs back. Labels are
+sentence case in Source Sans at medium weight, not the gold mono, so the forms
+read calmly. 16–24px spacing, thin rules between groups.
 
 ## Info (ⓘ)
 
@@ -240,7 +275,7 @@ holds it: `infoButton('key')` in markup, or `<span data-info-slot="key">` in
 
 Where they are: Today (top-right corner: the legend and how missed is
 decided), Streaks, Qada (on the card),
-Settings (the timetable note, the qada start date, the backlog), the Hadith
+Settings (Switch person, the qada start date, the backlog, the prayer times), the Hadith
 reader (how to bookmark), and the end of the Learn sub-tab bar (that tab's
 intro and the imam note). What stays visible is what you act on or need at a
 glance.
@@ -490,7 +525,7 @@ Either route opens the same full-screen dialog, built from the same position and
 prayer data: one step at a time with a large figure, what to say, a progress bar,
 and 54px Back and Next buttons. Fajr is 32 steps with the sunnah, 16 without.
 
-Learn is shown per person: a *Show Learn tab* checkbox in Settings, stored as
+Learn is shown per person: a *Show Learn tab* switch in Settings, stored as
 `people.show_learn`, on for Khalid and off for Marwa by default (and when the
 column is missing). Off, it leaves both navs, so the other tabs spread across
 the bar, and a `#/learn` link lands on Prayer. A section opts into this with an

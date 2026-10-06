@@ -315,7 +315,7 @@ Info.add('qada', () => `
   <p>Mark one Made up once you have prayed it: it is logged late, and counts as prayed.</p>
   <p>Hanafi: if you owe fewer than six, make them up before the current prayer when there&rsquo;s time.</p>`);
 
-Info.add('settings', () => `
+Info.add('prayer-times', () => `
   <p>Prayer times follow the Islamic Society of Tracy&rsquo;s published timetable,
      so there is nothing to configure for them.</p>`);
 
@@ -325,6 +325,9 @@ Info.add('qada-start', () => {
     ? `Clear it to go back to your first log, ${esc(fmtGregorianShort.format(parseKey(first)))}.`
     : 'Left empty, it is the date of your first log.'}</p>`;
 });
+
+Info.add('switch', () => `
+  <p>Forgets who you are on this device and asks again. Nothing you have logged changes.</p>`);
 
 Info.add('backlog', () => `
   <p>Prayers you owe from before you started using Kharwa. They are added to your
@@ -734,6 +737,66 @@ const QadaPop = {
   closing: null,   // the timer that closes it once everything is made up
 };
 
+/* ------------------------------------------------------------ sheets --- */
+
+/* The qada popup and Settings: a bottom sheet on a phone, a modal on desktop. */
+
+function showSheet(modal, panel) {
+  modal.classList.remove('is-closing');
+  panel.style.transform = '';
+  modal.hidden = false;
+}
+
+/** Slides the sheet back down (or fades the modal), then hides it. */
+function hideSheet(modal, panel) {
+  modal.classList.add('is-closing');
+  setTimeout(() => {
+    if (!modal.classList.contains('is-closing')) return; // opened again meanwhile
+    modal.hidden = true;
+    modal.classList.remove('is-closing');
+    panel.style.transform = '';
+  }, reducedMotion.matches ? 0 : 200);
+}
+
+/**
+ * On a phone a sheet follows a finger dragging it down, and closes past 90px.
+ * A drag that starts in its scrolling part only counts when that is already
+ * scrolled to the top.
+ */
+function swipeToClose(panel, scroller, onClose) {
+  const sheet = window.matchMedia('(max-width: 899px)');
+  let startY = null;
+  let dy = 0;
+
+  panel.addEventListener('touchstart', (event) => {
+    const area = scroller();
+    if (!sheet.matches || (area.contains(event.target) && area.scrollTop > 0)) return;
+    startY = event.touches[0].clientY;
+    dy = 0;
+  }, { passive: true });
+
+  panel.addEventListener('touchmove', (event) => {
+    if (startY === null) return;
+    dy = Math.max(0, event.touches[0].clientY - startY);
+    if (dy < 6) return; // a tap, not a drag
+    if (event.cancelable) event.preventDefault();
+    panel.style.transition = 'none';
+    panel.style.transform = `translateY(${dy}px)`;
+  }, { passive: false });
+
+  const end = () => {
+    if (startY === null) return;
+    startY = null;
+    panel.style.transition = '';
+    if (dy > 90) onClose();
+    else panel.style.transform = '';
+  };
+  panel.addEventListener('touchend', end);
+  panel.addEventListener('touchcancel', end);
+}
+
+/* -------------------------------------------------------------- popup --- */
+
 /** Every time the app is opened or reloaded while something is owed. Closing
     it holds until the next open. */
 function openQadaPop() {
@@ -741,9 +804,7 @@ function openQadaPop() {
   QadaPop.open = true;
   QadaPop.returnFocus = document.activeElement;
   renderQadaPop();
-  el('qada-pop').classList.remove('is-closing');
-  el('qd-pop-panel').style.transform = '';
-  el('qada-pop').hidden = false;
+  showSheet(el('qada-pop'), el('qd-pop-panel'));
   // The dialog itself, so no ring shows until someone tabs.
   el('qd-pop-panel').focus();
 }
@@ -754,14 +815,7 @@ function closeQadaPop() {
   QadaPop.open = false;
   clearTimeout(QadaPop.closing);
   QadaPop.closing = null;
-  const pop = el('qada-pop');
-  pop.classList.add('is-closing');
-  setTimeout(() => {
-    if (QadaPop.open) return; // opened again meanwhile
-    pop.hidden = true;
-    pop.classList.remove('is-closing');
-    el('qd-pop-panel').style.transform = '';
-  }, reducedMotion.matches ? 0 : 200);
+  hideSheet(el('qada-pop'), el('qd-pop-panel'));
   if (QadaPop.returnFocus && QadaPop.returnFocus.isConnected) QadaPop.returnFocus.focus();
 }
 
@@ -802,41 +856,7 @@ el('qd-pop-close').addEventListener('click', closeQadaPop);
 el('qd-pop-done').addEventListener('click', closeQadaPop);
 el('qd-pop-scrim').addEventListener('click', closeQadaPop);
 
-/* On a phone the sheet follows a finger dragging it down, and closes past
-   90px. A drag that starts in the list only counts when the list is already
-   scrolled to its top. */
-(() => {
-  const panel = el('qd-pop-panel');
-  const sheet = window.matchMedia('(max-width: 899px)');
-  let startY = null;
-  let dy = 0;
-
-  panel.addEventListener('touchstart', (event) => {
-    const list = el('qd-pop-list');
-    if (!sheet.matches || (list.contains(event.target) && list.scrollTop > 0)) return;
-    startY = event.touches[0].clientY;
-    dy = 0;
-  }, { passive: true });
-
-  panel.addEventListener('touchmove', (event) => {
-    if (startY === null) return;
-    dy = Math.max(0, event.touches[0].clientY - startY);
-    if (dy < 6) return; // a tap, not a drag
-    if (event.cancelable) event.preventDefault();
-    panel.style.transition = 'none';
-    panel.style.transform = `translateY(${dy}px)`;
-  }, { passive: false });
-
-  const end = () => {
-    if (startY === null) return;
-    startY = null;
-    panel.style.transition = '';
-    if (dy > 90) closeQadaPop();
-    else panel.style.transform = '';
-  };
-  panel.addEventListener('touchend', end);
-  panel.addEventListener('touchcancel', end);
-})();
+swipeToClose(el('qd-pop-panel'), () => el('qd-pop-list'), closeQadaPop);
 
 /* Esc closes it; Tab stays inside it, and the Undo toasts above it. */
 document.addEventListener('keydown', (event) => {
@@ -978,7 +998,7 @@ el('streaks').addEventListener('click', (event) => {
 /* keyboard: arrows change day, T jumps to today */
 document.addEventListener('keydown', (event) => {
   if (event.metaKey || event.ctrlKey || event.altKey) return;
-  if (!el('settings').hidden || QadaPop.open) return;
+  if (Settings.open || QadaPop.open) return;
   if (Sections.current !== 'prayer') return;
 
   const t = event.target;
@@ -997,32 +1017,255 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
-/* settings */
+/* ============================================================ settings === */
 
-function openSettings() {
+/* Three tabs: Profile, Qada and App. Each field saves itself when it changes
+   (typing waits for a pause) and says "Saved ✓" beside it for a moment, or
+   shows what went wrong under it. */
+
+const SETTINGS_TABS = ['profile', 'qada', 'app'];
+const SETTINGS_TAB_STORE = 'kharwa.settings.tab'; // for this session only
+
+const Settings = {
+  open: false,
+  tab: 'profile',
+  timers: {},       // field -> the debounce waiting to save it
+  pending: {},      // field -> the save that debounce will run
+  chains: {},       // field -> the save in flight, so saves of one field never overlap
+  savedTimers: {},
+};
+
+const clampCount = (v) => Math.min(99999, Math.max(0, Math.floor(Number(v) || 0)));
+
+function rememberedSettingsTab() {
+  try {
+    const t = sessionStorage.getItem(SETTINGS_TAB_STORE);
+    return SETTINGS_TABS.includes(t) ? t : 'profile';
+  } catch {
+    return 'profile';
+  }
+}
+
+function showSettingsTab(id, { focus = false } = {}) {
+  Settings.tab = id;
+  try { sessionStorage.setItem(SETTINGS_TAB_STORE, id); } catch { /* private mode */ }
+  for (const t of SETTINGS_TABS) {
+    const on = t === id;
+    const tab = el(`set-tab-${t}`);
+    tab.setAttribute('aria-selected', String(on));
+    tab.tabIndex = on ? 0 : -1;
+    el(`set-panel-${t}`).hidden = !on;
+  }
+  el('set-tabs').setAttribute('aria-orientation',
+    window.matchMedia('(min-width: 900px)').matches ? 'vertical' : 'horizontal');
+  el('set-panels').scrollTop = 0;
+  if (focus) el(`set-tab-${id}`).focus();
+}
+
+/* ------------------------------------------------------------ fields --- */
+
+function setSwitch(on) {
+  el('set-learn').setAttribute('aria-checked', String(on));
+}
+
+function backlogStepper(p, count) {
+  const off = Data.backlogReady ? '' : ' disabled';
+  return `
+    <div class="step">
+      <label class="step-label" for="set-bl-${p.key}">${p.label}</label>
+      <div class="stepper">
+        <button class="stepper-btn" type="button" data-step="-1" data-prayer="${p.key}"
+                aria-label="One fewer ${p.label}"${off || (count ? '' : ' disabled')}>&minus;</button>
+        <input id="set-bl-${p.key}" class="stepper-input" type="number" inputmode="numeric"
+               min="0" max="99999" step="1" data-prayer="${p.key}" value="${count}"${off} />
+        <button class="stepper-btn" type="button" data-step="1" data-prayer="${p.key}"
+                aria-label="One more ${p.label}"${off}>+</button>
+      </div>
+    </div>`;
+}
+
+/** The − button goes quiet at zero. */
+function syncStepper(input) {
+  const minus = input.parentElement.querySelector('[data-step="-1"]');
+  minus.disabled = !Data.backlogReady || clampCount(input.value) === 0;
+}
+
+function fillSettings() {
   const me = Data.people[State.me] || {};
-  el('settings-who').textContent = `Signed in on this device as ${name(State.me)}.`;
+  el('settings-who').textContent = `On this device as ${name(State.me)}`;
   el('set-name').value = me.display_name || '';
-  el('set-learn').checked = Data.showsLearn(State.me);
-  el('set-status').textContent = '';
-
   el('set-qada-start').value = Data.qadaStart(State.me) || '';
   el('set-qada-start').max = todayKey();
+  setSwitch(Data.showsLearn(State.me));
 
   const backlog = Data.backlog[State.me] || {};
-  el('set-backlog').innerHTML = QADA_PRAYERS.map((p) => `
-    <label class="set-backlog-item">
-      <span class="set-backlog-label">${p.label}</span>
-      <input class="input" type="number" inputmode="numeric" min="0" max="99999" step="1"
-             data-prayer="${p.key}" value="${backlog[p.key] || 0}"${Data.backlogReady ? '' : ' disabled'} />
-    </label>`).join('');
+  el('set-backlog').innerHTML = QADA_PRAYERS.map((p) => backlogStepper(p, backlog[p.key] || 0)).join('');
   el('set-backlog-note').hidden = Data.backlogReady;
-  el('settings').hidden = false;
-  el('set-name').focus();
+
+  for (const node of document.querySelectorAll('#settings .set-error')) node.hidden = true;
+  for (const node of document.querySelectorAll('#settings .set-saved')) node.classList.remove('is-on');
+}
+
+/* ------------------------------------------------------------ saving --- */
+
+function setSaveError(field, text) {
+  const node = document.querySelector(`#settings .set-error[data-for="${field}"]`);
+  node.textContent = text;
+  node.hidden = !text;
+  // An error replaces any "Saved ✓" still showing from before.
+  if (text) document.querySelector(`#settings .set-saved[data-for="${field}"]`).classList.remove('is-on');
+}
+
+function flashSaved(field) {
+  const node = document.querySelector(`#settings .set-saved[data-for="${field}"]`);
+  node.textContent = 'Saved ✓';
+  node.classList.add('is-on');
+  clearTimeout(Settings.savedTimers[field]);
+  Settings.savedTimers[field] = setTimeout(() => node.classList.remove('is-on'), 1800);
+}
+
+/** Saves `field` with `save` after `wait` ms, replacing a save still waiting. */
+function queueSave(field, save, wait = 0) {
+  clearTimeout(Settings.timers[field]);
+  Settings.pending[field] = save;
+  Settings.timers[field] = setTimeout(() => runSave(field), wait);
+}
+
+/** `save` resolves to false when there was nothing to change. */
+function runSave(field) {
+  clearTimeout(Settings.timers[field]);
+  const save = Settings.pending[field];
+  delete Settings.pending[field];
+  if (!save) return Settings.chains[field];
+  Settings.chains[field] = (Settings.chains[field] || Promise.resolve()).then(async () => {
+    try {
+      const changed = await save();
+      setSaveError(field, '');
+      if (changed !== false) flashSaved(field);
+    } catch (err) {
+      setSaveError(field, `Couldn’t save: ${err.message || err}`);
+    }
+  });
+  return Settings.chains[field];
+}
+
+/** On closing: anything still waiting goes now. */
+function flushSettingSaves() {
+  for (const field of Object.keys(Settings.pending)) runSave(field);
+}
+
+async function saveName() {
+  const value = el('set-name').value.trim();
+  if (!value || value === (Data.people[State.me]?.display_name || '')) return false;
+  await Data.saveSettings(State.me, { display_name: value });
+  el('settings-who').textContent = `On this device as ${name(State.me)}`;
+  render();
+  return true;
+}
+
+/* Stored only when it differs from the first log, so an untouched date keeps
+   following it. qada_start is absent until schema.sql is re-run. */
+async function saveQadaStart() {
+  const me = Data.people[State.me] || {};
+  const start = el('set-qada-start').value || null;
+  const qadaStart = start && start !== Data.firstLog[State.me] ? start : null;
+  if (qadaStart === (me.qada_start || null)) return false;
+  if (!('qada_start' in me)) throw new Error('run supabase/schema.sql again first.');
+  await Data.saveSettings(State.me, { qada_start: qadaStart });
+  el('set-qada-start').value = Data.qadaStart(State.me) || '';
+  await Data.loadRecent(); // an earlier start reaches past the logs in the cache
+  render();
+  return true;
+}
+
+async function saveShowLearn(on) {
+  const me = Data.people[State.me] || {};
+  if (on === Data.showsLearn(State.me)) return false;
+  try {
+    if (!('show_learn' in me)) throw new Error('run supabase/schema.sql again first.');
+    await Data.saveSettings(State.me, { show_learn: on });
+  } catch (err) {
+    setSwitch(Data.showsLearn(State.me));
+    throw err;
+  }
+  Sections.refresh();
+  return true;
+}
+
+async function saveBacklogCounts() {
+  const backlog = Data.backlog[State.me] || {};
+  const counts = {};
+  for (const input of el('set-backlog').querySelectorAll('.stepper-input')) {
+    const n = clampCount(input.value);
+    if (n !== (backlog[input.dataset.prayer] || 0)) counts[input.dataset.prayer] = n;
+  }
+  if (!Object.keys(counts).length) return false;
+  await Data.saveBacklog(State.me, counts);
+  renderQadaViews();
+  return true;
+}
+
+el('set-name').addEventListener('input', () => queueSave('name', saveName, 700));
+el('set-name').addEventListener('blur', () => {
+  if (!el('set-name').value.trim()) el('set-name').value = Data.people[State.me]?.display_name || '';
+  if (Settings.pending.name) runSave('name');
+});
+
+el('set-qada-start').addEventListener('change', () => queueSave('qada-start', saveQadaStart));
+
+el('set-learn').addEventListener('click', () => {
+  const on = el('set-learn').getAttribute('aria-checked') !== 'true';
+  setSwitch(on);
+  queueSave('learn', () => saveShowLearn(on));
+});
+
+/* The backlog: − and + step one at a time, and a quick run of taps saves once. */
+el('set-backlog').addEventListener('click', (event) => {
+  const btn = event.target.closest('.stepper-btn');
+  if (!btn) return;
+  const input = btn.parentElement.querySelector('.stepper-input');
+  input.value = clampCount(clampCount(input.value) + Number(btn.dataset.step));
+  syncStepper(input);
+  queueSave('backlog', saveBacklogCounts, 500);
+});
+
+el('set-backlog').addEventListener('keydown', (event) => {
+  // Whole numbers only, never negative.
+  if (event.target.matches('.stepper-input') && ['-', '+', 'e', 'E', '.', ','].includes(event.key)) {
+    event.preventDefault();
+  }
+});
+
+el('set-backlog').addEventListener('input', (event) => {
+  if (!event.target.matches('.stepper-input')) return;
+  syncStepper(event.target);
+  queueSave('backlog', saveBacklogCounts, 700);
+});
+
+el('set-backlog').addEventListener('change', (event) => {
+  if (!event.target.matches('.stepper-input')) return;
+  event.target.value = clampCount(event.target.value);
+  syncStepper(event.target);
+  if (Settings.pending.backlog) runSave('backlog');
+});
+
+/* -------------------------------------------------------- open, close --- */
+
+function openSettings() {
+  if (Settings.open) return;
+  Settings.open = true;
+  fillSettings();
+  showSettingsTab(rememberedSettingsTab());
+  showSheet(el('settings'), el('settings-panel'));
+  // The dialog itself, so no ring shows until someone tabs.
+  el('settings-panel').focus();
 }
 
 function closeSettings() {
-  el('settings').hidden = true;
+  if (!Settings.open) return;
+  Settings.open = false;
+  flushSettingSaves();
+  hideSheet(el('settings'), el('settings-panel'));
   el('settings-open').focus();
 }
 
@@ -1030,57 +1273,48 @@ el('settings-open').addEventListener('click', openSettings);
 el('settings-close').addEventListener('click', closeSettings);
 el('settings-scrim').addEventListener('click', closeSettings);
 
+el('set-tabs').addEventListener('click', (event) => {
+  const tab = event.target.closest('[role="tab"]');
+  if (tab) showSettingsTab(tab.dataset.tab);
+});
+
+/* Arrow keys move between the tabs, whichever way they run. */
+el('set-tabs').addEventListener('keydown', (event) => {
+  const i = SETTINGS_TABS.indexOf(Settings.tab);
+  const n = SETTINGS_TABS.length;
+  const next = {
+    ArrowRight: (i + 1) % n, ArrowDown: (i + 1) % n,
+    ArrowLeft: (i + n - 1) % n, ArrowUp: (i + n - 1) % n,
+    Home: 0, End: n - 1,
+  }[event.key];
+  if (next === undefined) return;
+  event.preventDefault();
+  showSettingsTab(SETTINGS_TABS[next], { focus: true });
+});
+
+/* Esc closes it, and Tab stays inside it. */
 document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape' && !el('settings').hidden) closeSettings();
+  if (!Settings.open) return;
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeSettings();
+    return;
+  }
+  if (event.key !== 'Tab') return;
+
+  const focusable = [...el('settings-panel').querySelectorAll(
+    'button:not(:disabled):not([tabindex="-1"]), input:not(:disabled)',
+  )].filter((node) => node.getClientRects().length);
+  if (!focusable.length) return;
+  const i = focusable.indexOf(document.activeElement);
+  const next = event.shiftKey
+    ? focusable[(i <= 0 ? focusable.length : i) - 1]
+    : focusable[(i + 1) % focusable.length];
+  event.preventDefault();
+  next.focus();
 });
 
-el('set-save').addEventListener('click', async () => {
-  const me = Data.people[State.me] || {};
-  const patch = { display_name: el('set-name').value.trim() || name(State.me) };
-
-  // Stored only when it differs from the first log, so an untouched date keeps
-  // following it. qada_start is absent until schema.sql is re-run.
-  const start = el('set-qada-start').value || null;
-  const qadaStart = start && start !== Data.firstLog[State.me] ? start : null;
-  if (qadaStart !== (me.qada_start || null)) {
-    if (!('qada_start' in me)) {
-      el('set-status').textContent = 'Run supabase/schema.sql again to change the qada start date.';
-      return;
-    }
-    patch.qada_start = qadaStart;
-  }
-
-  // Absent until schema.sql is re-run, when the default still applies.
-  const showLearn = el('set-learn').checked;
-  if (showLearn !== Data.showsLearn(State.me)) {
-    if (!('show_learn' in me)) {
-      el('set-status').textContent = 'Run supabase/schema.sql again to change the Learn tab.';
-      return;
-    }
-    patch.show_learn = showLearn;
-  }
-
-  const backlog = Data.backlog[State.me] || {};
-  const counts = {};
-  for (const input of el('set-backlog').querySelectorAll('input')) {
-    const n = Math.max(0, Math.floor(Number(input.value) || 0));
-    if (n !== (backlog[input.dataset.prayer] || 0)) counts[input.dataset.prayer] = n;
-  }
-
-  el('set-status').textContent = 'Saving…';
-  try {
-    await Data.saveSettings(State.me, patch);
-    if (Data.backlogReady) await Data.saveBacklog(State.me, counts);
-    // An earlier start reaches back past the logs in the cache.
-    if ('qada_start' in patch) await Data.loadRecent();
-    if ('show_learn' in patch) Sections.refresh();
-    el('set-status').textContent = 'Saved.';
-    render();
-    setTimeout(closeSettings, 550);
-  } catch (err) {
-    el('set-status').textContent = `Could not save: ${err.message || err}`;
-  }
-});
+swipeToClose(el('settings-panel'), () => el('set-panels'), closeSettings);
 
 el('switch-person').addEventListener('click', () => {
   try {
