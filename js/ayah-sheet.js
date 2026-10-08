@@ -2,9 +2,9 @@
    ayah-sheet.js — tap an ayah for its context.
 
    A bottom sheet on a phone, a modal on desktop (the same sheet as the qada
-   popup). In order: the reference, the ayah and its translation, word by word,
-   the tafsir, the reason for revelation when there is one, and the ayat either
-   side; then play, previous, next, copy and bookmark.
+   popup). A tab bar across the top, with the × at its end: Ayah, Tafsir,
+   Revelation (only when there is an entry) and Words. A slim bar of actions
+   along the bottom: previous, play, bookmark, copy, next.
 
    Every word of explanation comes from a published work, fetched as is:
    - tafsir and Al-Wahidi's Asbab al-Nuzul from the spa5k/tafsir_api static
@@ -35,6 +35,17 @@ const AYAH_TAFSIRS = [
 ];
 const ASBAB = { id: 'en-asbab-al-nuzul-by-al-wahidi', credit: 'Asbab al-Nuzul · Al-Wahidi' };
 
+const AYAH_TABS = ['ayah', 'tafsir', 'revelation', 'words'];
+
+/* The sources, credited in an ⓘ on each tab. */
+const sourceNote = (credit, via) => `
+  <p><b>${esc(credit)}</b></p>
+  <p>The published text, shown unchanged, from ${via}.</p>`;
+Info.add('ay-tafsir', () => sourceNote(AyahSheet.tafsir().credit, 'spa5k/tafsir_api') +
+  '<p>A tafsir often explains a group of ayat together, so neighbouring ayat can share it.</p>');
+Info.add('ay-asbab', () => sourceNote(ASBAB.credit, 'spa5k/tafsir_api'));
+Info.add('ay-words', () => sourceNote('Word by word · Quran.com', 'the Quran.com API'));
+
 /** Paragraphs of tafsir shown before "Read more". */
 const TAFSIR_LEAD = 3;
 
@@ -50,6 +61,8 @@ const AYAH_ICONS = {
 const AyahSheet = {
   ready: false,
   open: false,
+  want: 'ayah',        // the tab asked for; kept while moving between ayat
+  tab: 'ayah',         // the tab showing (Ayah when Revelation has no entry)
   surah: null,
   ayah: null,
   token: 0,            // the ayah on screen, so a late response for another is dropped
@@ -142,27 +155,39 @@ const AyahSheet = {
     el('ayah-close').addEventListener('click', () => this.close());
     el('ayah-scrim').addEventListener('click', () => this.close());
 
-    el('ayah-body').addEventListener('click', (event) => {
-      const go = event.target.closest('[data-go]');
-      if (go) {
-        const [s, a] = go.dataset.go.split(':').map(Number);
-        this.show(s, a);
-        return;
-      }
-      const more = event.target.closest('.ay-more');
-      if (more) {
-        const rest = el('ayah-body').querySelector(`#${more.getAttribute('aria-controls')}`);
-        const open = more.getAttribute('aria-expanded') !== 'true';
-        rest.hidden = !open;
-        more.setAttribute('aria-expanded', String(open));
-        more.textContent = open ? 'Show less' : 'Read more';
-      }
+    el('ay-tabs').addEventListener('click', (event) => {
+      const tab = event.target.closest('[role="tab"]');
+      if (!tab) return;
+      this.want = tab.dataset.tab;
+      this.showTab();
     });
 
-    // Word by word loads the first time it is opened.
-    el('ayah-body').addEventListener('toggle', (event) => {
-      if (event.target.matches('.ay-wbw') && event.target.open) this.renderWords();
-    }, true);
+    // Arrow keys move between the tabs that are showing.
+    el('ay-tabs').addEventListener('keydown', (event) => {
+      const tabs = AYAH_TABS.filter((t) => !el(`ay-tab-${t}`).hidden);
+      const i = tabs.indexOf(this.tab);
+      const next = {
+        ArrowRight: (i + 1) % tabs.length,
+        ArrowLeft: (i + tabs.length - 1) % tabs.length,
+        Home: 0,
+        End: tabs.length - 1,
+      }[event.key];
+      if (next === undefined) return;
+      event.preventDefault();
+      this.want = tabs[next];
+      this.showTab();
+      el(`ay-tab-${this.tab}`).focus();
+    });
+
+    el('ayah-body').addEventListener('click', (event) => {
+      const more = event.target.closest('.ay-more');
+      if (!more) return;
+      const rest = el('ayah-body').querySelector(`#${more.getAttribute('aria-controls')}`);
+      const open = more.getAttribute('aria-expanded') !== 'true';
+      rest.hidden = !open;
+      more.setAttribute('aria-expanded', String(open));
+      more.textContent = open ? 'Show less' : 'Read more';
+    });
 
     el('ayah-actions').addEventListener('click', (event) => {
       const btn = event.target.closest('[data-act]');
@@ -186,7 +211,7 @@ const AyahSheet = {
       }
       if (event.key !== 'Tab') return;
       const focusable = [
-        ...el('ayah-panel').querySelectorAll('button:not(:disabled), summary, a[href]'),
+        ...el('ayah-panel').querySelectorAll('button:not(:disabled):not([tabindex="-1"])'),
         ...el('toasts').querySelectorAll('button'),
       ].filter((node) => node.getClientRects().length);
       if (!focusable.length) return;
@@ -201,10 +226,12 @@ const AyahSheet = {
     swipeToClose(el('ayah-panel'), () => el('ayah-body'), () => this.close());
   },
 
+  /** From the reader or the Ayah of the Day: always opens on the Ayah tab. */
   async openAt(s, a) {
     if (!this.ready) this.init();
     if (!this.open) {
       this.open = true;
+      this.want = 'ayah';
       this.returnFocus = document.activeElement;
       showSheet(el('ayah-pop'), el('ayah-panel'));
       el('ayah-panel').focus();
@@ -227,16 +254,52 @@ const AyahSheet = {
     if (!this.open) return;
     this.open = false;
     this.stopAudio();
+    Info.close();
     hideSheet(el('ayah-pop'), el('ayah-panel'));
     if (this.returnFocus && this.returnFocus.isConnected) this.returnFocus.focus();
   },
 
+  /* ---------------------------------------------------------------- tabs --- */
+
+  /**
+   * Shows the tab asked for, or the Ayah tab when that one is not there for
+   * this ayah (Revelation, with no entry). The ask is kept, so moving on to an
+   * ayah that has an entry goes back to it.
+   */
+  showTab() {
+    const tab = el(`ay-tab-${this.want}`)?.hidden === false ? this.want : 'ayah';
+    const changed = tab !== this.tab;
+    this.tab = tab;
+    for (const t of AYAH_TABS) {
+      const on = t === tab;
+      el(`ay-tab-${t}`).setAttribute('aria-selected', String(on));
+      el(`ay-tab-${t}`).tabIndex = on ? 0 : -1;
+      el(`ay-pane-${t}`).hidden = !on;
+    }
+    el('ayah-body').setAttribute('aria-labelledby', `ay-tab-${tab}`);
+    if (changed) el('ayah-body').scrollTop = 0;
+    if (tab === 'words') this.renderWords();
+  },
+
   /* ----------------------------------------------------------- rendering --- */
 
-  /** Shows one ayah, replacing whatever was in the sheet. */
+  /** "Aal-i-Imraan · 3:135", with Meccan / Medinan on the Ayah tab and an ⓘ
+      for the source on the others. */
+  refLine(info, tag = false) {
+    const meta = Quran.surahs[this.surah - 1];
+    return `
+      <p class="ay-ref">
+        <span>${esc(meta.englishName)} · ${this.surah}:${this.ayah}</span>
+        ${tag ? `<span class="ay-tag">${esc(meta.type)}</span>` : ''}
+        ${info ? infoButton(info) : ''}
+      </p>`;
+  },
+
+  /** Shows one ayah, replacing whatever was in the sheet, on the same tab. */
   async show(s, a) {
     const token = ++this.token;
     this.stopAudio();
+    Info.close();
     this.surah = s;
     this.ayah = a;
     this.text = null;   // so Copy never copies the last ayah while this one loads
@@ -245,70 +308,38 @@ const AyahSheet = {
     try {
       await Quran.loadSurahList();
     } catch {
-      el('ayah-body').innerHTML = '<p class="ay-quiet">This ayah could not be loaded. Check your connection and try again.</p>';
+      el('ay-pane-ayah').innerHTML = '<p class="ay-quiet">This ayah could not be loaded. Check your connection and try again.</p>';
       return;
     }
     if (token !== this.token) return;
 
     const meta = Quran.surahs[s - 1];
-    el('ayah-title').innerHTML = `
-      <span class="ay-en">${esc(meta.englishName)}</span>
-      <span class="ay-ar" lang="ar" dir="rtl">${esc(meta.name)}</span>`;
-    el('ayah-meta').innerHTML = `Ayah ${a} <span class="ay-tag">${esc(meta.type)}</span>`;
-
-    const prev = this.neighbour(s, a, -1);
-    const next = this.neighbour(s, a, 1);
+    el('ayah-panel').setAttribute('aria-label', `${meta.englishName} ${s}:${a}`);
     this.renderActions();
 
-    // The frame first, every source in it loading quietly.
-    el('ayah-body').innerHTML = `
-      <section class="ay-verse">
+    // Each pane starts with its own quiet loading line.
+    el('ay-pane-ayah').innerHTML = `
+      <div class="ay-verse">
+        ${this.refLine(null, true)}
         <p id="ay-arabic" class="ay-arabic" lang="ar" dir="rtl"></p>
         <p id="ay-translation" class="ay-translation"><span class="ay-quiet">Loading…</span></p>
-      </section>
+      </div>`;
+    el('ay-pane-tafsir').innerHTML = `${this.refLine('ay-tafsir')}
+      <div id="ay-tafsir"><p class="ay-quiet">Loading tafsir…</p></div>`;
+    el('ay-pane-revelation').innerHTML = `${this.refLine('ay-asbab')}
+      <div id="ay-asbab"><p class="ay-quiet">Loading…</p></div>`;
+    el('ay-pane-words').innerHTML = `${this.refLine('ay-words')}
+      <div id="ay-words" class="ay-words-wrap"><p class="ay-quiet">Loading…</p></div>`;
+    this.showTab();
 
-      <details class="ay-wbw">
-        <summary class="ay-summary">Word by word</summary>
-        <div id="ay-words" class="ay-words-wrap"><p class="ay-quiet">Loading…</p></div>
-      </details>
-
-      <section class="ay-section" aria-labelledby="ay-h-tafsir">
-        <h3 id="ay-h-tafsir" class="ay-h">Tafsir</h3>
-        <div id="ay-tafsir"><p class="ay-quiet">Loading tafsir…</p></div>
-      </section>
-
-      <section id="ay-asbab-section" class="ay-section" aria-labelledby="ay-h-asbab" hidden>
-        <h3 id="ay-h-asbab" class="ay-h">Reason for revelation</h3>
-        <div id="ay-asbab"></div>
-      </section>
-
-      <section class="ay-section" aria-labelledby="ay-h-around">
-        <h3 id="ay-h-around" class="ay-h">Around it</h3>
-        <div id="ay-around" class="ay-around"></div>
-      </section>`;
-
-    // The ayah itself, and the ones either side.
-    const texts = Promise.all([
-      this.ayahText(s, a),
-      prev ? this.ayahText(prev.s, prev.a) : null,
-      next ? this.ayahText(next.s, next.a) : null,
-    ]);
-    texts.then(([here, before, after]) => {
+    this.ayahText(s, a).then((here) => {
       if (token !== this.token) return;
       this.text = here;
       el('ay-arabic').textContent = here.arabic;
       el('ay-translation').textContent = here.translation;
-      const around = (ref, t, label) => (ref && t ? `
-        <button class="ay-around-row" type="button" data-go="${ref.s}:${ref.a}">
-          <span class="ay-around-ref">${label} · ${ref.s}:${ref.a}</span>
-          <span class="ay-around-text">${esc(t.translation)}</span>
-        </button>` : '');
-      el('ay-around').innerHTML = around(prev, before, 'Before') + around(next, after, 'After')
-        || '<p class="ay-quiet">This is the only ayah here.</p>';
     }).catch(() => {
       if (token !== this.token) return;
       el('ay-translation').innerHTML = '<span class="ay-quiet">The text could not be loaded. Check your connection.</span>';
-      el('ay-around').innerHTML = '';
     });
 
     this.renderTafsir(token);
@@ -335,11 +366,9 @@ const AyahSheet = {
     try {
       const text = await this.source(t.id, s, a);
       if (token !== this.token) return;
-      if (!text) {
-        html = '<p class="ay-quiet">No tafsir available for this ayah.</p>';
-      } else {
-        html = `${this.prose(text, 'ay-tafsir-rest')}<p class="ay-credit">${esc(t.credit)}</p>`;
-      }
+      html = text
+        ? this.prose(text, 'ay-tafsir-rest')
+        : '<p class="ay-quiet">No tafsir available for this ayah.</p>';
     } catch {
       if (token !== this.token) return;
       html = '<p class="ay-quiet">The tafsir could not be loaded. Check your connection and try again.</p>';
@@ -347,27 +376,37 @@ const AyahSheet = {
     el('ay-tafsir').innerHTML = html;
   },
 
-  /** Only shown when Al-Wahidi has an entry for this ayah. */
+  /** The Revelation tab is only there when Al-Wahidi has an entry. Until that
+      is known it keeps however it was for the last ayah, so the bar holds still. */
   async renderAsbab(token) {
     const { surah: s, ayah: a } = this;
     let text = null;
+    let failed = false;
     try {
       text = await this.source(ASBAB.id, s, a);
-    } catch { /* leave it hidden */ }
-    if (token !== this.token || !text) return;
-    el('ay-asbab').innerHTML = `${this.prose(text, 'ay-asbab-rest')}<p class="ay-credit">${esc(ASBAB.credit)}</p>`;
-    el('ay-asbab-section').hidden = false;
+    } catch {
+      failed = true;
+    }
+    if (token !== this.token) return;
+    if (failed) {
+      el('ay-asbab').innerHTML = '<p class="ay-quiet">This could not be loaded. Check your connection and try again.</p>';
+      return;
+    }
+    el('ay-tab-revelation').hidden = !text;
+    if (text) el('ay-asbab').innerHTML = this.prose(text, 'ay-asbab-rest');
+    this.showTab();
   },
 
   /** Right to left, as the ayah reads: each word, its transliteration and meaning. */
   async renderWords() {
     const token = this.token;
     const box = el('ay-words');
-    if (box.dataset.for === `${this.surah}:${this.ayah}`) return;
+    const key = `${this.surah}:${this.ayah}`;
+    if (!box || box.dataset.for === key) return;
+    box.dataset.for = key;
     try {
       const words = await this.words(this.surah, this.ayah);
       if (token !== this.token) return;
-      box.dataset.for = `${this.surah}:${this.ayah}`;
       box.innerHTML = words.length ? `
         <ol class="ay-words" dir="rtl">${words.map((w) => `
           <li class="ay-word">
@@ -375,15 +414,16 @@ const AyahSheet = {
             <span class="ay-word-tr" dir="ltr">${esc(w.transliteration?.text || '')}</span>
             <span class="ay-word-en" dir="ltr">${esc(w.translation?.text || '')}</span>
           </li>`).join('')}
-        </ol>
-        <p class="ay-credit">Word by word · Quran.com</p>`
+        </ol>`
         : '<p class="ay-quiet">No word-by-word text for this ayah.</p>';
     } catch {
       if (token !== this.token) return;
+      delete box.dataset.for;
       box.innerHTML = '<p class="ay-quiet">Word by word could not be loaded. Check your connection and try again.</p>';
     }
   },
 
+  /** ‹ previous, play, bookmark, copy, next › */
   renderActions() {
     if (this.surah === null) return;
     const { surah: s, ayah: a } = this;
@@ -392,12 +432,12 @@ const AyahSheet = {
     const btn = (act, icon, label, extra = '') => `
       <button class="ay-act" type="button" data-act="${act}" aria-label="${label}" title="${label}"${extra}>${icon}</button>`;
     el('ayah-actions').innerHTML = [
+      btn('prev', AYAH_ICONS.prev, 'Previous ayah', this.neighbour(s, a, -1) ? '' : ' disabled'),
       btn('play', playing ? AYAH_ICONS.pause : AYAH_ICONS.play, playing ? 'Pause recitation' : 'Play recitation',
         ` aria-pressed="${playing}"`),
-      btn('prev', AYAH_ICONS.prev, 'Previous ayah', this.neighbour(s, a, -1) ? '' : ' disabled'),
-      btn('next', AYAH_ICONS.next, 'Next ayah', this.neighbour(s, a, 1) ? '' : ' disabled'),
-      btn('copy', AYAH_ICONS.copy, 'Copy ayah'),
       btn('bookmark', AYAH_ICONS.star, on ? 'Remove bookmark' : 'Bookmark ayah', ` aria-pressed="${on}"`),
+      btn('copy', AYAH_ICONS.copy, 'Copy ayah'),
+      btn('next', AYAH_ICONS.next, 'Next ayah', this.neighbour(s, a, 1) ? '' : ' disabled'),
     ].join('');
   },
 

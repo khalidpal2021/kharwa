@@ -508,16 +508,28 @@
     <!-- Tap an ayah for its context: js/ayah-sheet.js. -->
     <div id="ayah-pop" class="modal" hidden>
       <div id="ayah-scrim" class="modal-scrim"></div>
-      <div id="ayah-panel" class="sheet ay-sheet" role="dialog" aria-modal="true" aria-labelledby="ayah-title" tabindex="-1">
+      <div id="ayah-panel" class="sheet ay-sheet" role="dialog" aria-modal="true" aria-label="Ayah" tabindex="-1">
         <div class="sheet-handle" aria-hidden="true"></div>
-        <div class="ay-head">
-          <div class="ay-head-text">
-            <h2 id="ayah-title" class="ay-title"></h2>
-            <p id="ayah-meta" class="ay-meta"></p>
+        <!-- The tabs and the ×, fixed while the content scrolls. -->
+        <div class="ay-bar">
+          <div id="ay-tabs" class="ay-tabs" role="tablist" aria-label="About this ayah">
+            <button id="ay-tab-ayah" class="ay-tab" type="button" role="tab" data-tab="ayah"
+                    aria-controls="ayah-body" aria-selected="true">Ayah</button>
+            <button id="ay-tab-tafsir" class="ay-tab" type="button" role="tab" data-tab="tafsir"
+                    aria-controls="ayah-body" aria-selected="false" tabindex="-1">Tafsir</button>
+            <button id="ay-tab-revelation" class="ay-tab" type="button" role="tab" data-tab="revelation"
+                    aria-controls="ayah-body" aria-selected="false" tabindex="-1" hidden>Revelation</button>
+            <button id="ay-tab-words" class="ay-tab" type="button" role="tab" data-tab="words"
+                    aria-controls="ayah-body" aria-selected="false" tabindex="-1">Words</button>
           </div>
           <button id="ayah-close" class="modal-close" type="button" aria-label="Close">&times;</button>
         </div>
-        <div id="ayah-body" class="ay-body"></div>
+        <div id="ayah-body" class="ay-body" role="tabpanel" aria-labelledby="ay-tab-ayah">
+          <div id="ay-pane-ayah" class="ay-pane"></div>
+          <div id="ay-pane-tafsir" class="ay-pane" hidden></div>
+          <div id="ay-pane-revelation" class="ay-pane" hidden></div>
+          <div id="ay-pane-words" class="ay-pane" hidden></div>
+        </div>
         <div id="ayah-actions" class="ay-actions" role="toolbar" aria-label="Ayah actions"></div>
       </div>
     </div>

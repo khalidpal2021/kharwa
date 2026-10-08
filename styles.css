@@ -1366,50 +1366,83 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 /* ------------------------------------------------------------ ayah sheet -- */
 
-/* The qada popup's sheet, taller: the head and the actions stay put and the
-   middle scrolls. */
+/* The qada popup's sheet, taller: the tab bar and the actions stay put and
+   the middle scrolls. */
 .ay-sheet { max-height: 90dvh; }
 
-.ay-head {
+/* the tabs on the left, the × on the right, over one hairline */
+.ay-bar {
   flex: none;
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   justify-content: space-between;
-  gap: var(--s2);
-  padding: 2px 12px 14px 24px;
+  gap: var(--s1);
+  padding: 0 8px 0 20px;
   border-bottom: 1px solid var(--border);
 }
 
-.ay-head-text { min-width: 0; }
+.ay-tabs {
+  display: flex;
+  gap: 20px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
 
-.ay-title {
+.ay-tabs::-webkit-scrollbar { display: none; }
+
+.ay-tab {
+  appearance: none;
+  flex: none;
+  position: relative;
+  height: var(--tap);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.12em;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--ease);
+}
+
+.ay-tab:hover { color: var(--foreground); }
+.ay-tab[aria-selected="true"] { color: var(--accent-text); }
+
+/* the gold underline, sitting on the bar's rule */
+.ay-tab[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  background: var(--accent);
+}
+
+.ay-tab:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+
+.ay-bar .modal-close { flex: none; align-self: center; }
+
+/* "An-Nisaa · 4:1", centred, with Medinan or a source ⓘ beside it */
+.ay-ref {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 12px;
-  font-weight: 400;
-}
-
-.ay-en {
-  font-family: var(--serif);
-  font-size: 22px;
-  letter-spacing: -0.01em;
-  line-height: 1.2;
-}
-
-.ay-ar {
-  font-family: var(--quran);
-  font-size: 20px;
-  line-height: 1.4;
-  color: var(--muted-foreground);
-}
-
-.ay-meta {
-  display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 4px;
-  font-size: 13px;
+  justify-content: center;
+  gap: 4px 10px;
+  margin-bottom: var(--s3);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.12em;
   color: var(--muted-foreground);
 }
 
@@ -1431,68 +1464,29 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 0 24px var(--s3);
+  padding: var(--s3);
 }
 
-/* the ayah itself */
-.ay-verse { padding: var(--s3) 0; }
+/* the ayah itself, centred */
+.ay-verse { text-align: center; }
 
 .ay-arabic {
   font-family: var(--quran);
-  font-size: 28px;
-  line-height: 2.05;
-  text-align: right;
+  font-size: 24px;
+  line-height: 2;
   color: var(--foreground);
 }
 
 .ay-translation {
-  margin-top: var(--s2);
-  font-size: 15.5px;
-  line-height: 1.65;
-  color: var(--foreground);
+  max-width: 520px;
+  margin: var(--s2) auto 0;
+  font-family: var(--serif);
+  font-size: 17px;
+  font-style: italic;
+  line-height: 1.6;
+  color: var(--muted-foreground);
 }
 
-/* sections, divided by hairlines */
-.ay-wbw,
-.ay-section { padding: var(--s2) 0; border-top: 1px solid var(--border); }
-
-.ay-h,
-.ay-summary {
-  font-family: var(--mono);
-  font-size: 10.5px;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--accent-text);
-}
-
-.ay-h { margin-bottom: 10px; }
-
-.ay-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 32px;
-  cursor: pointer;
-  list-style: none;
-}
-
-.ay-summary::-webkit-details-marker { display: none; }
-
-/* a chevron that turns when open */
-.ay-summary::after {
-  content: "";
-  width: 7px;
-  height: 7px;
-  margin-right: 4px;
-  border: solid var(--muted-foreground);
-  border-width: 0 1.5px 1.5px 0;
-  transform: rotate(45deg) translateY(-2px);
-  transition: transform var(--ease);
-}
-
-.ay-wbw[open] .ay-summary::after { transform: rotate(-135deg) translateY(-2px); }
-.ay-words-wrap { margin-top: 10px; }
 
 /* word by word: right to left, each word over its reading and meaning */
 .ay-words {
@@ -1552,50 +1546,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 .ay-more:hover { text-decoration: underline; text-underline-offset: 4px; }
 
-.ay-credit {
-  margin-top: var(--s1);
-  font-size: 12px;
-  font-style: italic;
-  color: var(--muted-foreground);
-}
-
 .ay-quiet { font-size: 13.5px; font-style: italic; color: var(--muted-foreground); }
-
-/* the ayat either side, small and tappable */
-.ay-around { display: grid; gap: 6px; }
-
-.ay-around-row {
-  display: grid;
-  gap: 2px;
-  width: 100%;
-  padding: 8px 10px;
-  border: 0;
-  border-radius: var(--radius-btn);
-  background: none;
-  text-align: left;
-  cursor: pointer;
-  transition: background var(--ease);
-}
-
-.ay-around-row:hover { background: var(--muted); }
-
-.ay-around-ref {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted-foreground);
-}
-
-.ay-around-text {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  font-size: 13.5px;
-  line-height: 1.5;
-  color: var(--foreground);
-}
 
 /* the actions: one quiet row of icons */
 .ay-actions {
@@ -2857,8 +2808,9 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   .qd-pop-sheet { padding-bottom: 24px; }
 
   /* the ayah sheet: a wider modal */
-  .ay-sheet { max-width: 600px; max-height: min(86dvh, 820px); }
-  .ay-head { padding-top: 20px; } /* no drag handle above it here */
+  .ay-sheet { max-width: 620px; max-height: 80dvh; }
+  .ay-body { padding: var(--s4); }
+  .ay-arabic { font-size: 28px; }
 
   /* settings: a modal with the tabs down the left */
   .set-sheet { max-width: 560px; height: min(480px, 85dvh); }
