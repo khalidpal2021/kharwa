@@ -2431,15 +2431,38 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 .qr-en.is-rtl .qr-en-num { margin-right: 0; margin-left: 8px; }
 
-/* With Arabic off, the star leads the first line instead. Floated, so the
-   text wraps beside it and the line spacing stays even. */
-.qr-lead .qr-num {
-  float: left;
-  font-size: 24px;
-  margin: 0 10px 0 0;
+/* With Arabic off, the star sits in a 40px column on the left and the lines
+   in a column of their own beside it, so nothing wraps under it. The column
+   is one first line tall and centres the star in it, so the numeral sits on
+   the first line whichever layer that is. */
+.qr-ayah--side {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  column-gap: 6px;
+  align-items: start;
 }
 
-.qr-en.is-rtl.qr-lead .qr-num { float: right; margin: 4px 0 0 10px; }
+.qr-side {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(var(--qr-tx) * 1.6);
+}
+
+.qr-first-en .qr-side { height: calc(var(--qr-tx) * 1.65); }
+.qr-first-rtl .qr-side { height: calc(var(--qr-tx) * 1.1 * 2.3); }
+
+.qr-lines > :first-child { margin-top: 0; }
+
+/* Western digits in the star: the same ornament as at the end of the Arabic */
+.qr-side .qr-num { margin: 0; font-size: 26px; }
+.qr-side .qr-num-text {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 0.5em;
+  font-variant-numeric: tabular-nums;
+}
+.qr-side .qr-num--3 .qr-num-text { font-size: 0.4em; }
 
 /* The ornamental ayah number, which is also the bookmark button. Not saved:
    a thin gold outline with the numeral in gold. Saved: solid gold with the

@@ -768,13 +768,16 @@ const Quran = {
   },
 
   /** The ornamental ayah number, which is also the bookmark button: an
-      outlined star when not saved, solid gold when saved. */
-  marker(n) {
+      outlined star when not saved, solid gold when saved. Arabic numerals at
+      the end of the Arabic; Western ones in the side column without it. */
+  marker(n, side = false) {
     const surah = this.surah.number;
     const on = this.bookmarkSet.has(`${surah}:${n}`);
-    return `<button class="qr-num${on ? ' is-bookmarked' : ''}${n > 99 ? ' qr-num--3' : ''}" type="button" data-ayah="${n}"
-        aria-pressed="${on}" aria-label="${on ? 'Remove bookmark' : `Bookmark ayah ${surah}:${n}`}">${QURAN_STAR_SVG}<span
-        class="qr-num-text" lang="ar" aria-hidden="true">${fmtArabicDigits.format(n)}</span></button>`;
+    const digits = side
+      ? `<span class="qr-num-text" aria-hidden="true">${n}</span>`
+      : `<span class="qr-num-text" lang="ar" aria-hidden="true">${fmtArabicDigits.format(n)}</span>`;
+    return `<button class="qr-num${side ? ' qr-num--side' : ''}${on ? ' is-bookmarked' : ''}${n > 99 ? ' qr-num--3' : ''}" type="button" data-ayah="${n}"
+        aria-pressed="${on}" aria-label="${on ? 'Remove bookmark' : `Bookmark ayah ${surah}:${n}`}">${QURAN_STAR_SVG}${digits}</button>`;
   },
 
   /** "Tap ✦ to bookmark", until the first bookmark is saved on this device
@@ -796,12 +799,12 @@ const Quran = {
 
     // Basmala: split from ayah 1 of the Uthmani text, then shown above in
     // every layer that is on. If it isn't found, ayah 1 stays as given.
-    let first = ar[0];
+    let ayah1 = ar[0];
     let basmala = false;
     if (this.basmala) {
-      const rest = splitBasmala(first, this.basmala[QURAN_ARABIC]);
+      const rest = splitBasmala(ayah1, this.basmala[QURAN_ARABIC]);
       if (rest !== null) {
-        first = rest;
+        ayah1 = rest;
         basmala = true;
       }
     }
@@ -816,16 +819,25 @@ const Quran = {
 
     const text = el('qr-text');
     text.className = `qr-text qr-size-${size}`;
+    // With Arabic off, the number sits in a column of its own on the left,
+    // centred on the first line shown beside it (see .qr-first-*).
+    const firstLine = tr ? 'tr' : (t.rtl ? 'rtl' : 'en');
     text.innerHTML = `<ol class="qr-ayat">${ar.map((arText, i) => {
       const n = i + 1;
-      // With Arabic off, the number moves to the start of the first line shown.
-      const lead = arabic ? '' : this.marker(n);
+      const trLine = tr ? `<p class="qr-tr">${esc(tr[i])}</p>` : '';
+      const txLine = (num) => (tx ? `<p class="qr-en${t.rtl ? ' is-rtl' : ''}"${t.rtl ? ` lang="${t.lang}" dir="rtl"` : ''}>${
+        num}${esc(tx[i])}</p>` : '');
+      if (!arabic) {
+        return `
+        <li class="qr-ayah qr-ayah--side qr-first-${firstLine}" id="qr-ayah-${n}" data-ayah="${n}" tabindex="0">
+          <div class="qr-side">${this.marker(n, true)}</div>
+          <div class="qr-lines">${trLine}${txLine('')}</div>
+        </li>`;
+      }
       return `
         <li class="qr-ayah" id="qr-ayah-${n}" data-ayah="${n}" tabindex="0">
-          ${arabic ? `<p class="qr-ar" lang="ar" dir="rtl">${esc(i === 0 ? first : arText)} ${this.marker(n)}</p>` : ''}
-          ${tr ? `<p class="qr-tr${lead ? ' qr-lead' : ''}">${lead}${esc(tr[i])}</p>` : ''}
-          ${tx ? `<p class="qr-en${t.rtl ? ' is-rtl' : ''}${lead && !tr ? ' qr-lead' : ''}"${t.rtl ? ` lang="${t.lang}" dir="rtl"` : ''}>${
-            lead && !tr ? lead : (arabic ? `<span class="qr-en-num">${n}</span>` : '')}${esc(tx[i])}</p>` : ''}
+          <p class="qr-ar" lang="ar" dir="rtl">${esc(i === 0 ? ayah1 : arText)} ${this.marker(n)}</p>
+          ${trLine}${txLine(`<span class="qr-en-num">${n}</span>`)}
         </li>`;
     }).join('')}</ol>`;
 
