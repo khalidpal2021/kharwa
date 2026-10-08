@@ -551,16 +551,40 @@ Where the words come from matters, and the split is deliberate:
 - **Qur'an** is fetched from the same Al-Quran Cloud API the Quran tab uses,
   through `Quran.loadEditions`, so it shares that cache and nothing of the
   Qur'an is written into the source. Arabic, transliteration and Sahih
-  International, with whole-surah audio from `cdn.islamic.network`; the play
-  button hides itself if the audio will not load.
+  International.
 - **Everything else** — Thana, Taʿawwudh, the tasbīḥ of rukūʿ and sujūd,
   Tashahhud, Ṣalawāt, the duʿā before salām, Qunūt — is written out in
   `js/learn-content.js`, which carries a TO REVIEW WITH IMAM header listing
   exactly what wants checking. It is kept in one file for that reason.
 
-Figures are inline SVG line drawings, side on, facing the qibla, no faces:
-`--foreground` for the body, `--accent` for whichever part the step is about,
-a hairline for the ground. One set, one style.
+Every phrase has a voice, set out in `js/learn-audio.js`, best first: the
+Qur'an (and the basmala) is Mishary Alafasy ayah by ayah from
+`cdn.islamic.network`; the prayer phrases are human recordings from Hisn
+al-Muslim (hisnmuslim.com), clipped to the duʿā itself, since each file opens
+with its chapter title, with the start and end of every line taken from the
+pauses; the taʿawwudh is Alafasy from EveryAyah. Takbīr, Taḥmīd, Salām and
+Qunūt have no recording of the exact wording, so the device's Arabic
+text-to-speech reads them at 0.8 speed, on a button that says *Computer voice,
+check pronunciation*, or *No Arabic computer voice on this device* where there
+is none. An ⓘ by each button names the source. Under it: Loop, 0.75×, and Line
+by line for anything longer than a line, which pauses after each line for as
+long as the line took, to say it back. The line being recited is lit in the
+Arabic and the transliteration (a whole ayah for a surah), and a phrase said
+three times plays three times. One `<audio>` is shared and its source swapped,
+so a sequence keeps playing on iOS after the first tap.
+
+The positions are pictures in `assets/learn/`, one file per position and named
+by it (takbir, qiyam, ruku, standing, sujood, jalsa, tashahhud, salam), so a
+photo can replace a drawing under the same name. `LEARN_PICTURES` maps them, and
+the Steps list and Practice use the same files, the full width of the card on a
+phone and up to 560px on desktop. Side on, facing the qibla to the left, so the
+right hand, the right foot and the raised right index are the ones in view; a
+realistic figure in a long shirt and trousers on a prayer mat, shaded in two or
+three warm tones, no face, with a dashed qibla arrow. Takbīr, qiyām and
+tashahhud carry a round close-up of the hands. Salām is seen from the qibla,
+the head turned right, then left. The wudu steps keep small inline line
+drawings: `--foreground` for the body, `--accent` for the part the step is
+about.
 
 Practice lists the five prayers as compact rows in one card: the name in
 Playfair, a row of small blocks showing the shape of the prayer — sunnah

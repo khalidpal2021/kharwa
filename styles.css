@@ -3262,18 +3262,19 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 .ln-pos-body {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
   gap: var(--s2);
-  align-items: start;
   margin: var(--s2) 0;
 }
 
+/* the picture, the full width of the card */
 .ln-pos-fig {
-  padding: 8px;
+  overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
   background: var(--muted);
 }
+
+.ln-pic { display: block; width: 100%; height: auto; }
 
 /* --------------------------------------------------------- recitations --- */
 
@@ -3340,23 +3341,67 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 .ln-loading { font-size: 12.5px; color: var(--muted-foreground); }
 
-.ln-play {
-  margin-left: auto;
-  width: 28px; height: 28px;
-  display: grid; place-items: center;
-  border: 1px solid var(--border-hover);
-  border-radius: 50%;
+/* the voice: play, its source, and Loop / 0.75× / Line by line */
+.ln-player {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin-bottom: var(--s1);
+}
+
+.ln-pbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 14px 0 11px;
+  border: 1px solid var(--accent-hairline);
+  border-radius: 999px;
   background: var(--card);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--accent-text);
   cursor: pointer;
   transition: border-color var(--ease), background var(--ease);
 }
 
-.ln-play:hover { border-color: var(--accent); }
-.ln-play svg { fill: currentColor; }
-.ln-play .ln-stop-icon { display: none; }
-.ln-play.is-playing .ln-play-icon { display: none; }
-.ln-play.is-playing .ln-stop-icon { display: inline; }
+.ln-pbtn:hover { border-color: var(--accent); }
+.ln-pbtn.is-playing { background: var(--accent-wash); border-color: var(--accent); }
+.ln-pbtn:disabled { color: var(--muted-foreground); border-color: var(--border); cursor: default; background: var(--card); }
+.ln-pbtn.is-tts { font-size: 12.5px; }
+.ln-pbtn svg { flex: none; fill: currentColor; }
+.ln-pbtn .ln-stop-icon { display: none; }
+.ln-pbtn.is-playing .ln-play-icon { display: none; }
+.ln-pbtn.is-playing .ln-stop-icon { display: inline; }
+
+.ln-popts { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.ln-chip {
+  min-height: 32px;
+  padding: 0 9px;
+  border: 1px solid var(--border-hover);
+  border-radius: 999px;
+  background: none;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: color var(--ease), border-color var(--ease), background var(--ease);
+}
+
+.ln-chip:hover { color: var(--foreground); }
+.ln-chip[aria-pressed="true"] { color: var(--accent-text); border-color: var(--accent); background: var(--accent-faint); }
+
+/* the line being recited */
+.ln-line { border-radius: 4px; transition: background 200ms ease-out; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.ln-line.is-reciting { background: var(--accent-tint); }
+.ln-tr .ln-line.is-reciting { color: var(--foreground); }
+
+.ln-ayah, .ln-basmala { border-radius: var(--radius-btn); transition: background 200ms ease-out; }
+.ln-ayah.is-reciting, .ln-basmala.is-reciting { background: var(--accent-wash); box-shadow: 0 0 0 6px var(--accent-wash); }
 
 /* ------------------------------------------------------------- prayers --- */
 
@@ -3492,9 +3537,8 @@ body.is-guiding { overflow: hidden; }
 .ln-g-sub { font-size: 13px; color: var(--muted-foreground); margin-top: 2px; }
 
 .ln-g-fig {
-  max-width: 190px;
-  margin: var(--s2) auto;
-  padding: var(--s2);
+  margin: var(--s2) 0;
+  overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
   background: var(--muted);
@@ -3550,11 +3594,10 @@ body.is-guiding { overflow: hidden; }
 @media (min-width: 900px) {
   .learn { max-width: 760px; margin: 0 auto; }
   .ln-step { grid-template-columns: 64px minmax(0, 1fr); }
-  .ln-pos-body { grid-template-columns: 130px minmax(0, 1fr); }
+  .ln-pos-fig { justify-self: center; width: 100%; max-width: 560px; }
   .ln-ar { font-size: 1.7rem; }
   .ln-guide .ln-ar { font-size: 2rem; }
   .ln-g-name { font-size: 36px; }
-  .ln-g-fig { max-width: 230px; }
 }
 
 /* ------------------------------------------------- learn sub-tabs, revised --- */

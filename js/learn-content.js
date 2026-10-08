@@ -1,5 +1,5 @@
 /* ===========================================================================
-   learn-content.js — the words and the drawings for the Learn section.
+   learn-content.js — the words and the pictures for the Learn section.
 
    FIQH: Hanafi throughout, since ISOT is Hanafi. Where another school commonly
    differs, the step carries a short `note`; the main instruction stays Hanafi.
@@ -239,7 +239,7 @@ const LEARN_POSITIONS = [
     id: 'qawmah',
     name: 'Qawmah',
     sub: 'Rising from rukūʿ',
-    fig: 'qawmah',
+    fig: 'standing',
     body: [
       'Rise until standing fully upright, arms at the sides.',
       'Be still here before going down; do not rush through it.',
@@ -365,80 +365,29 @@ const LEARN_PRAYERS = {
   },
 };
 
-/* ---------------------------------------------------------------- figures -- */
+/* ------------------------------------------------------------- pictures -- */
 
-/* Side view, facing right, the qibla to the right. No faces. The stroke colour
-   comes from CSS; gold picks out the part of the body the step is about. */
+/* One picture per position, in assets/learn/, named by position so a photo
+   can take the place of a drawing: save it under the same name (or change
+   the extension here). Side on, facing the qibla to the left, so the right
+   hand, the right foot and the right index finger are the ones in view.
+   Salam is seen from the qibla instead, to show the head turning. */
+const LEARN_PICTURES = Object.fromEntries([
+  ['takbir',    'Takbīr: hands raised beside the ears, palms towards the qibla, thumbs at the earlobes'],
+  ['qiyam',     'Qiyām: standing, the right hand over the left below the navel'],
+  ['ruku',      'Rukūʿ: back flat and level with the head, hands gripping the knees with the fingers spread'],
+  ['standing',  'Qawmah: standing upright, arms at the sides'],
+  ['sujood',    'Sujūd: forehead and nose on the ground, palms flat beside the head, elbows raised off the ground, toes bent towards the qibla'],
+  ['jalsa',     'Jalsa: sitting on the left foot, the right foot upright, hands on the thighs'],
+  ['tashahhud', 'Tashahhud: sitting as in jalsa, the right index finger raised'],
+  ['salam',     'Salām: the head turned to the right, then to the left'],
+].map(([id, alt]) => [id, { src: `assets/learn/${id}.svg`, alt }]));
+
+/* ------------------------------------------------------- wudu drawings -- */
+
+/* Small line drawings for the wudu steps. The stroke colour comes from CSS;
+   gold picks out the part of the body the step is about. */
 const LEARN_FIGURES = {
-  takbir: `<svg viewBox="0 0 120 100" class="fig" aria-hidden="true" focusable="false">
-    <line class="fig-ground" x1="8" y1="92" x2="112" y2="92"/>
-    <circle class="fig-line" cx="66" cy="22" r="8"/>
-    <path class="fig-line" d="M64 30 L62 62"/>
-    <path class="fig-line" d="M62 62 L56 92 M62 62 L70 92"/>
-    <path class="fig-gold" d="M64 38 L52 34 L54 22 M64 38 L76 34 L74 22"/>
-  </svg>`,
-
-  qiyam: `<svg viewBox="0 0 120 100" class="fig" aria-hidden="true" focusable="false">
-    <line class="fig-ground" x1="8" y1="92" x2="112" y2="92"/>
-    <circle class="fig-line" cx="66" cy="22" r="8"/>
-    <path class="fig-line" d="M64 30 L62 62"/>
-    <path class="fig-line" d="M62 62 L56 92 M62 62 L70 92"/>
-    <path class="fig-gold" d="M64 38 L54 50 L66 56 M64 38 L74 50 L66 56"/>
-  </svg>`,
-
-  ruku: `<svg viewBox="0 0 120 100" class="fig" aria-hidden="true" focusable="false">
-    <line class="fig-ground" x1="8" y1="92" x2="112" y2="92"/>
-    <circle class="fig-line" cx="92" cy="46" r="8"/>
-    <path class="fig-line" d="M84 48 L56 54"/>
-    <path class="fig-line" d="M56 54 L54 92 M56 54 L62 92"/>
-    <path class="fig-gold" d="M80 50 L78 74"/>
-    <path class="fig-gold" d="M72 52 L70 74"/>
-  </svg>`,
-
-  qawmah: `<svg viewBox="0 0 120 100" class="fig" aria-hidden="true" focusable="false">
-    <line class="fig-ground" x1="8" y1="92" x2="112" y2="92"/>
-    <circle class="fig-line" cx="66" cy="22" r="8"/>
-    <path class="fig-line" d="M64 30 L62 62"/>
-    <path class="fig-line" d="M62 62 L56 92 M62 62 L70 92"/>
-    <path class="fig-gold" d="M62 36 L56 62 M66 36 L72 62"/>
-  </svg>`,
-
-  sujood: `<svg viewBox="0 0 120 100" class="fig" aria-hidden="true" focusable="false">
-    <line class="fig-ground" x1="8" y1="92" x2="112" y2="92"/>
-    <circle class="fig-line" cx="88" cy="84" r="7"/>
-    <path class="fig-line" d="M82 80 L56 66"/>
-    <path class="fig-line" d="M56 66 L50 90 L34 90"/>
-    <path class="fig-gold" d="M80 78 L80 90 M70 72 L70 90"/>
-  </svg>`,
-
-  jalsa: `<svg viewBox="0 0 120 100" class="fig" aria-hidden="true" focusable="false">
-    <line class="fig-ground" x1="8" y1="92" x2="112" y2="92"/>
-    <circle class="fig-line" cx="70" cy="36" r="8"/>
-    <path class="fig-line" d="M68 44 L64 72"/>
-    <path class="fig-line" d="M64 72 L86 72 M64 72 L46 72 L46 90 L40 90"/>
-    <path class="fig-gold" d="M66 50 L78 68"/>
-  </svg>`,
-
-  tashahhud: `<svg viewBox="0 0 120 100" class="fig" aria-hidden="true" focusable="false">
-    <line class="fig-ground" x1="8" y1="92" x2="112" y2="92"/>
-    <circle class="fig-line" cx="70" cy="36" r="8"/>
-    <path class="fig-line" d="M68 44 L64 72"/>
-    <path class="fig-line" d="M64 72 L86 72 M64 72 L46 72 L46 90 L40 90"/>
-    <path class="fig-gold" d="M66 50 L78 68"/>
-    <path class="fig-gold" d="M78 68 L84 60"/>
-    <circle class="fig-dot" cx="85" cy="58" r="2"/>
-  </svg>`,
-
-  salam: `<svg viewBox="0 0 120 100" class="fig" aria-hidden="true" focusable="false">
-    <line class="fig-ground" x1="8" y1="92" x2="112" y2="92"/>
-    <circle class="fig-line" cx="80" cy="36" r="8"/>
-    <path class="fig-line" d="M70 42 L64 72"/>
-    <path class="fig-line" d="M64 72 L86 72 M64 72 L46 72 L46 90 L40 90"/>
-    <path class="fig-gold" d="M66 50 L78 68"/>
-    <path class="fig-gold" d="M88 30 L96 26" stroke-dasharray="3 3"/>
-  </svg>`,
-
-  /* wudu */
   hands: `<svg viewBox="0 0 120 100" class="fig" aria-hidden="true" focusable="false">
     <path class="fig-line" d="M38 70 C38 52 46 44 54 44 L54 30 M54 44 C62 44 70 52 70 70 Z"/>
     <path class="fig-line" d="M58 44 L58 28 M64 46 L65 32"/>

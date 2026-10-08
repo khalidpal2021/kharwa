@@ -5,11 +5,9 @@
    from the same Al-Quran Cloud API the Quran tab uses (via Quran.loadEditions,
    so it shares that cache). Nothing of the Qur'an is written into the source.
 
-   Depends on learn-content.js, quran.js, router.js and, at run time, app.js
-   (el, esc) and times.js (PRAYERS).
+   Depends on learn-content.js, learn-audio.js, quran.js, router.js and, at
+   run time, app.js (el, esc) and times.js (PRAYERS).
    =========================================================================== */
-
-const LEARN_AUDIO = 'https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/';
 
 const LEARN_TAB_STORE = 'kharwa.learn.tab';
 const LEARN_SUNNAH_STORE = 'kharwa.learn.sunnah';
@@ -19,8 +17,6 @@ const Learn = {
   tab: null,
   includeSunnah: true, // Practice walks the sunnah rakʿahs too
   surahs: {},          // surah number -> { ar: [], tr: [], en: [], basmala }
-  audio: null,         // the one <audio> element in play
-  playing: null,       // surah number currently playing
   guide: null,         // { prayer, steps, at } while pray-along is open
   wakeLock: null,
 
@@ -58,46 +54,38 @@ const Learn = {
   /* ------------------------------------------------------------- audio --- */
 
   stopAudio() {
-    if (this.audio) {
-      this.audio.pause();
-      this.audio = null;
-    }
-    this.playing = null;
-    for (const b of document.querySelectorAll('.ln-play')) b.classList.remove('is-playing');
+    LearnAudio.stop();
   },
 
-  /** Plays a whole surah. The button hides itself if the audio will not load. */
-  toggleAudio(n, button) {
-    if (this.playing === n) { this.stopAudio(); return; }
-    this.stopAudio();
+  /* -------------------------------------------------------------- figures --- */
 
-    const audio = new Audio(`${LEARN_AUDIO}${n}.mp3`);
-    audio.addEventListener('ended', () => this.stopAudio());
-    audio.addEventListener('error', () => {
-      this.stopAudio();
-      button.hidden = true;
-    });
-    audio.play().then(() => {
-      this.audio = audio;
-      this.playing = n;
-      button.classList.add('is-playing');
-    }).catch(() => { button.hidden = true; });
+  /** A position's picture, from assets/learn/; wudu keeps its line drawings. */
+  figure(fig) {
+    const pic = LEARN_PICTURES[fig];
+    if (pic) return `<img class="ln-pic" src="${pic.src}" alt="${esc(pic.alt)}" loading="lazy" decoding="async">`;
+    return LEARN_FIGURES[fig] || '';
   },
 
   /* ------------------------------------------------------- recitations --- */
 
-  /** One recitation: Arabic, transliteration, meaning, how many times. */
+  /** One recitation: Arabic, transliteration, meaning, how many times, and
+      its voice. The Arabic and transliteration are cut into lines, so the
+      line being recited can be lit. */
   reciteMarkup(key) {
     const r = LEARN_RECITATIONS[key];
     if (!r) return '';
+    const v = LEARN_VOICES[key];
+    const lines = learnLines(key, r);
+    const spans = (list) => list.map((t, i) => `<span class="ln-line" data-line="${i}">${esc(t)}</span>`).join(' ');
     return `
-      <div class="ln-recite">
+      <div class="ln-recite" data-voice="${key}" data-times="${r.times}">
         <div class="ln-recite-head">
           <span class="ln-recite-label">${esc(r.label)}</span>
           ${r.times > 1 ? `<span class="ln-times">&times;${r.times}</span>` : ''}
         </div>
-        <p class="ln-ar" lang="ar" dir="rtl">${esc(r.ar)}</p>
-        <p class="ln-tr">${esc(r.tr)}</p>
+        ${LearnAudio.controls(v.kind, v.source, lines.ar.length)}
+        <p class="ln-ar" lang="ar" dir="rtl">${spans(lines.ar)}</p>
+        <p class="ln-tr">${lines.tr ? spans(lines.tr) : esc(r.tr)}</p>
         <p class="ln-en">${esc(r.en)}</p>
         ${r.note ? `<p class="ln-note">${esc(r.note)}</p>` : ''}
       </div>`;
@@ -109,15 +97,8 @@ const Learn = {
         <div class="ln-recite-head">
           <span class="ln-recite-label">${esc(s.name)}</span>
           <span class="ln-surah-meaning">${esc(s.meaning)}</span>
-          <button class="ln-play" type="button" data-surah="${s.n}"
-                  aria-label="Play ${esc(s.name)}">
-            <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" focusable="false">
-              <path class="ln-play-icon" d="M8 5.5v13l11-6.5z"/>
-              <rect class="ln-stop-icon" x="7" y="6" width="4" height="12" rx="1"/>
-              <rect class="ln-stop-icon" x="13" y="6" width="4" height="12" rx="1"/>
-            </svg>
-          </button>
         </div>
+        ${LearnAudio.controls('human', 'quran', 2)}
         ${s.note ? `<p class="ln-note">${esc(s.note)}</p>` : ''}
         <div class="ln-surah-body" data-body="${s.n}">
           <p class="ln-loading">Loading…</p>
@@ -131,8 +112,9 @@ const Learn = {
       const n = Number(node.dataset.body);
       try {
         const s = await this.loadSurah(n);
+        const first = s.basmala ? 1 : 0;   // the basmala is line 0 when there is one
         node.innerHTML = s.ar.map((ar, i) => `
-          <div class="ln-ayah">
+          <div class="ln-ayah" data-line="${i + first}">
             <p class="ln-ar" lang="ar" dir="rtl">${esc(ar)}${
               s.ar.length > 1 ? `<span class="ln-ayah-n">${i + 1}</span>` : ''}</p>
             <p class="ln-tr">${esc(s.tr[i])}</p>
@@ -140,7 +122,7 @@ const Learn = {
           </div>`).join('');
         if (s.basmala) {
           node.insertAdjacentHTML('afterbegin',
-            `<p class="ln-ar ln-basmala" lang="ar" dir="rtl">${esc(s.basmala)}</p>`);
+            `<p class="ln-ar ln-basmala" lang="ar" dir="rtl" data-line="0">${esc(s.basmala)}</p>`);
         }
       } catch {
         node.innerHTML = '<p class="ln-note">Could not load the text. It will try again next time.</p>';
@@ -156,9 +138,10 @@ const Learn = {
     panel.className = 'ln-panel';
     panel.id = `learn-panel-${tab.id}`;
     panel.innerHTML = tab.render();
+    LearnAudio.markVoices(panel);
     el('learn-panels').appendChild(panel);
     this.panels[tab.id] = panel;
-    if (tab.id === 'positions') this.fillSurahs(panel);
+    if (tab.id === 'steps') this.fillSurahs(panel);
     return panel;
   },
 
@@ -179,6 +162,7 @@ const Learn = {
   /** Show one sub-tab, building it if this is its first visit. */
   activate(id) {
     const tab = LEARN_TABS.find((t) => t.id === id) || LEARN_TABS[0];
+    if (tab.id !== this.tab) this.stopAudio();
 
     if (!this.panels[tab.id]) this.buildPanel(tab);
     else if (tab.dynamic) {
@@ -213,7 +197,7 @@ const Learn = {
       <ol class="ln-steps">
         ${LEARN_WUDU.steps.map((s, i) => `
           <li class="ln-step">
-            <span class="ln-step-fig">${LEARN_FIGURES[s.fig] || ''}</span>
+            <span class="ln-step-fig">${this.figure(s.fig)}</span>
             <span class="ln-step-text">
               <span class="ln-step-title">
                 <span class="ln-step-n">${i + 1}</span>${esc(s.title)}
@@ -241,7 +225,7 @@ const Learn = {
               </span>
             </div>
             <div class="ln-pos-body">
-              <div class="ln-pos-fig">${LEARN_FIGURES[p.fig] || ''}</div>
+              <div class="ln-pos-fig">${this.figure(p.fig)}</div>
               <div class="ln-pos-text">
                 <ul class="ln-bullets">${p.body.map((b) => `<li>${esc(b)}</li>`).join('')}</ul>
                 ${p.note ? `<p class="ln-note">${esc(p.note)}</p>` : ''}
@@ -433,6 +417,7 @@ const Learn = {
   },
 
   closeGuide() {
+    this.stopAudio();
     this.guide = null;
     el('learn-guide').hidden = true;
     document.body.classList.remove('is-guiding');
@@ -444,6 +429,7 @@ const Learn = {
     const next = this.guide.at + by;
     if (next < 0) return;
     if (next >= this.guide.steps.length) { this.closeGuide(); return; }
+    this.stopAudio();
     this.guide.at = next;
     this.renderGuide();
   },
@@ -460,7 +446,7 @@ const Learn = {
     const body = s.kind === 'unit'
       ? `<p class="ln-g-lead">${esc(s.sub)}</p>`
       : `
-        <div class="ln-g-fig">${LEARN_FIGURES[s.fig] || ''}</div>
+        <div class="ln-g-fig">${this.figure(s.fig)}</div>
         <ul class="ln-g-body">${(s.body || []).map((b) => `<li>${esc(b)}</li>`).join('')}</ul>
         ${s.recite ? `<p class="ln-g-lead">${esc(s.recite)}${
             s.aloud ? ' <span class="ln-aloud">aloud</span>' : ' <span class="ln-silent">silently</span>'}</p>` : ''}
@@ -470,6 +456,7 @@ const Learn = {
       <h2 class="ln-g-name">${esc(s.title || s.name)}</h2>
       ${s.sub && s.kind !== 'unit' ? `<p class="ln-g-sub">${esc(s.sub)}</p>` : ''}
       ${body}`;
+    LearnAudio.markVoices(el('ln-guide-step'));
 
     el('ln-back').disabled = at === 0;
     el('ln-next').textContent = at === total - 1 ? 'Finish' : 'Next';
@@ -574,8 +561,8 @@ const LEARN_ALIASES = { positions: 'steps', 'pray-along': 'practice' };
 /* --------------------------------------------------------------- events --- */
 
 document.getElementById('section-learn').addEventListener('click', (event) => {
-  const play = event.target.closest('.ln-play');
-  if (play) { Learn.toggleAudio(Number(play.dataset.surah), play); return; }
+  const act = event.target.closest('.ln-player [data-act]');
+  if (act) { LearnAudio.handle(act); return; }
 
   const guide = event.target.closest('.ln-guide-btn');
   if (guide) Learn.openGuide(guide.dataset.prayer);
@@ -586,6 +573,11 @@ window.addEventListener('resize', () => Learn.updateTabFade());
 
 document.getElementById('section-learn').addEventListener('change', (event) => {
   if (event.target.id === 'ln-sunnah') Learn.setSunnah(event.target.checked);
+});
+
+// Leaving Learn stops whatever is playing.
+window.addEventListener('hashchange', () => {
+  if (!location.hash.startsWith('#/learn')) Learn.stopAudio();
 });
 
 document.getElementById('ln-next').addEventListener('click', () => Learn.moveGuide(1));
