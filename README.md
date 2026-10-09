@@ -52,6 +52,20 @@ It is a static site with no build step. On Vercel, import the repo and accept
 the defaults — no framework, no build command, output directory is the repo
 root.
 
+### Home-screen app
+
+Kharwa installs as an app (`manifest.webmanifest`, icons in `icons/`). On
+Android and desktop Chrome, *Settings → App → Install Kharwa* opens the
+browser's install prompt; on iPhone it explains Share → Add to Home Screen.
+
+`sw.js` is the service worker. The page, `js/`, `styles.css` and
+`config.js` are network-first, so a push shows up the next time the app is
+opened; the cached copy is only used offline. Fonts, icons, pictures and the
+pinned CDN libraries are cache-first. Supabase and the Qur'an, hadith and audio
+APIs are never cached. A new file under `js/` should be added to `APP_SHELL`
+in `sw.js` so it is there offline; bump `VERSION` only when the caching
+itself changes, which clears the old caches.
+
 ## How it works
 
 - **Who's this?** On first visit you pick Khalid or Marwa. The choice lives in

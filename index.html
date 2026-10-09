@@ -8,8 +8,16 @@
   <title>Kharwa</title>
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
   <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192" />
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png" />
   <link rel="manifest" href="manifest.webmanifest" />
+
+  <!-- Installed to the home screen: full screen, named Kharwa. The status bar
+       stays "default" (dark text on light), since the page is ivory. -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Kharwa" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="application-name" content="Kharwa" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -466,6 +474,23 @@
 
             <!-- app: a list of rows, with room for more (notifications, say) -->
             <section id="set-panel-app" class="set-panel" role="tabpanel" aria-labelledby="set-tab-app" hidden>
+              <!-- Install Kharwa: js/install.js shows it only where it can be
+                   installed, and hides it once it is. -->
+              <div id="set-install" class="set-install" hidden>
+                <div class="set-field">
+                  <span class="set-label">Install Kharwa</span>
+                  <p id="set-install-hint" class="set-hint">Opens like an app, with its own icon and no browser bar.</p>
+                  <button id="set-install-btn" class="btn btn--primary set-install-btn" type="button" hidden>Install</button>
+                  <p id="set-install-ios" class="set-install-ios" hidden>
+                    Tap <span class="set-install-share" aria-label="Share"><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" focusable="false">
+                      <path d="M12 3v12M8 7l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M7 10H5.5v10.5h13V10H17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+                    </svg> Share</span>, then <b>Add to Home Screen</b>.
+                  </p>
+                </div>
+                <hr class="set-rule" />
+              </div>
+
               <div class="set-row">
                 <div class="set-row-text">
                   <span id="set-learn-label" class="set-label">Show Learn tab</span>
@@ -571,6 +596,7 @@
   <script src="js/learn-content.js" defer></script>
   <script src="js/learn-audio.js" defer></script>
   <script src="js/learn.js" defer></script>
+  <script src="js/install.js" defer></script>
   <script src="js/app.js" defer></script>
 </body>
 </html>
