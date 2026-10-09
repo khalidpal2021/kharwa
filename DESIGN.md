@@ -524,27 +524,58 @@ A guide to praying, Hanafi throughout since ISOT is Hanafi, with a short note
 where another school commonly differs. The note that it is a learning guide,
 to check with your local imam, is in the ⓘ at the end of the sub-tab bar.
 
-Five sub-tabs rather than one long page: Basics, Wudu, Steps, Prayers and
-Practice. The labels are kept short on purpose — all five measure 253px together
-at 10px with 0.08em tracking, so they fit a 390px phone with room to spare and
-still fit at 320px. The bar sits at the top of the section in small-caps mono,
-styled like the main navigation, with a gold underline under the active tab and
-a thin rule beneath. It is sticky once the masthead scrolls away. If the labels
+Five sub-tabs rather than one long page, in this order: How to pray, Prayers,
+Practice, Wudu and Basics. The labels are Source Sans at 14px, weight 500, with
+normal tracking, so they read easily and still fit a 390px phone without
+scrolling. The bar sits at the top of the section with a gold underline under
+the active tab and a thin rule beneath. It is sticky once the masthead scrolls away. If the labels
 ever do outgrow the screen it scrolls sideways rather than wrapping, with the
 scrollbar hidden and a soft fade on the right edge that appears only while there
 is more to reach.
 
-Each sub-tab is its own hash route — `#/learn/wudu`, `#/learn/steps` — so the
+Each sub-tab is its own hash route — `#/learn/how`, `#/learn/wudu` — so the
 back button works and a link can open one directly. `LEARN_ALIASES` keeps the
-older `positions` and `pray-along` routes working. The last one visited is
-remembered in `localStorage`, and a bare `#/learn` reopens it. What each covers is
-in the same ⓘ, which follows the open tab.
+older `steps`, `positions` and `pray-along` routes working, and an old link to a
+position opens How to pray on that step. A bare `#/learn` always opens How to
+pray. What each tab covers is in the same ⓘ, which follows the open tab.
 
 A sub-tab is one entry in `LEARN_TABS` — id, label, intro, render — and a render
 method on `Learn`; the bar, the routing and the remembering all follow from the
 list, so Surahs or Duas would be an entry and a method. Panels are built the
-first time their tab is opened, which is also what keeps the six Qur'an requests
-on the Positions tab from firing until someone goes there.
+first time their tab is opened, and a surah is fetched only when its step is
+first shown.
+
+### How to pray
+
+The most important page, so the simplest: one rakʿah, one step per screen, in
+prayer order — Takbīr, Thanāʾ, Al-Fātiḥah, a short surah, Rukūʿ, rising, Sujūd,
+Jalsa, the second sajdah, Tashahhud, Ṣalawāt, duʿā, Salām. The steps are
+`LEARN_STEPS` in `js/learn-content.js`; Practice still walks `LEARN_POSITIONS`.
+
+One card. At the top, "How to pray" in Playfair on the left, "Step 3 of 13" on
+the right and one ⓘ, then a row of small dots, the current one gold; any dot
+jumps to its step. Each step shows only the picture, large; the step name in
+Playfair with one line of what to do; and the words, which are the focus:
+Arabic centred in Amiri (36px for a short phrase, smaller as the text grows),
+the transliteration under it in a clear medium weight, and the meaning in
+Playfair italic, muted, with a small ×3 tag where a phrase is repeated. Then one
+64px round gold play button, and Hide words, which blurs the Arabic and the
+transliteration until a phrase is tapped. Everything else about a step — the
+detail, the madhhab differences, the notes on its words, where the voice comes
+from — is in the ⓘ, never on the page. No boxes or grey panels inside the card:
+spacing does the separating.
+
+Back and Next sit at the bottom of the card, 52px tall; on a phone they are
+pinned above the tab bar. Swipe left and right on a phone, the arrow keys on
+desktop. The step, the surah picked for the short-surah step and Hide words are
+remembered in `localStorage`.
+
+On a phone it stacks: the picture at 40% of the screen height, then the name and
+instruction, the words and the play button. From 900px it is two columns in a
+card sized to the screen (`100dvh` less the masthead and tab bar, 560–780px):
+the picture with the name and instruction under it on the left, the words and
+the play button on the right, vertically centred. Only the words scroll, when
+there are many, so the play button never leaves the screen.
 
 Where the words come from matters, and the split is deliberate:
 
@@ -562,11 +593,14 @@ Qur'an (and the basmala) is Mishary Alafasy ayah by ayah from
 `cdn.islamic.network`; the prayer phrases are human recordings from Hisn
 al-Muslim (hisnmuslim.com), clipped to the duʿā itself, since each file opens
 with its chapter title, with the start and end of every line taken from the
-pauses; the taʿawwudh is Alafasy from EveryAyah. Takbīr, Taḥmīd, Salām and
-Qunūt have no recording of the exact wording, so the device's Arabic
-text-to-speech reads them at 0.8 speed, on a button that says *Computer voice,
-check pronunciation*, or *No Arabic computer voice on this device* where there
-is none. An ⓘ by each button names the source. Under it: Loop, 0.75×, and Line
+pauses; the taʿawwudh is Alafasy from EveryAyah. The takbīr is the third
+"Allāhu akbar" at the start of Hisn al-Muslim's travel duʿā (207), which falls
+the way a single takbīr does. Taḥmīd, Salām and Qunūt have no human recording of
+the exact wording. How to pray gives them no play button (the step's button
+plays what does have one, and the ⓘ says what is missing); elsewhere the
+device's Arabic text-to-speech reads them at 0.8 speed, on a button that says
+*Computer voice, check pronunciation*, and the button is hidden on a device with
+no Arabic voice. An ⓘ by each button names the source. Under it: Loop, 0.75×, and Line
 by line for anything longer than a line, which pauses after each line for as
 long as the line took, to say it back. The line being recited is lit in the
 Arabic and the transliteration (a whole ayah for a surah), and a phrase said
@@ -576,8 +610,8 @@ so a sequence keeps playing on iOS after the first tap.
 The positions are pictures in `assets/learn/`, one file per position and named
 by it (takbir, qiyam, ruku, standing, sujood, jalsa, tashahhud, salam), so a
 photo can replace a drawing under the same name. `LEARN_PICTURES` maps them, and
-the Steps list and Practice use the same files, the full width of the card on a
-phone and up to 560px on desktop. Side on, facing the qibla to the left, so the
+How to pray and Practice use the same files, each fitted inside a fixed-height
+frame so the page does not jump between pictures of different shapes. Side on, facing the qibla to the left, so the
 right hand, the right foot and the raised right index are the ones in view; a
 realistic figure in a long shirt and trousers on a prayer mat, shaded in two or
 three warm tones, no face, with a dashed qibla arrow. Takbīr, qiyām and

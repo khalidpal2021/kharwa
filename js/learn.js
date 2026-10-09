@@ -9,8 +9,18 @@
    run time, app.js (el, esc) and times.js (PRAYERS).
    =========================================================================== */
 
-const LEARN_TAB_STORE = 'kharwa.learn.tab';
 const LEARN_SUNNAH_STORE = 'kharwa.learn.sunnah';
+const LEARN_STEP_STORE = 'kharwa.learn.step';
+const LEARN_SURAH_STORE = 'kharwa.learn.surah';
+const LEARN_HIDE_STORE = 'kharwa.learn.hide';
+
+function learnGet(key) {
+  try { return localStorage.getItem(key); } catch { return null; }   // private mode
+}
+
+function learnSet(key, value) {
+  try { localStorage.setItem(key, value); } catch { /* private mode */ }
+}
 
 const Learn = {
   panels: {},          // sub-tab id -> its element, built on first visit
@@ -19,6 +29,9 @@ const Learn = {
   surahs: {},          // surah number -> { ar: [], tr: [], en: [], basmala }
   guide: null,         // { prayer, steps, at } while pray-along is open
   wakeLock: null,
+  at: 0,               // the step shown on How to pray
+  pick: 112,           // the surah chosen for the "short surah" step
+  hideWords: false,    // How to pray blurs the words to test yourself
 
   /* ------------------------------------------------------------ qur'an --- */
 
@@ -91,45 +104,6 @@ const Learn = {
       </div>`;
   },
 
-  surahMarkup(s) {
-    return `
-      <div class="ln-surah" data-surah="${s.n}">
-        <div class="ln-recite-head">
-          <span class="ln-recite-label">${esc(s.name)}</span>
-          <span class="ln-surah-meaning">${esc(s.meaning)}</span>
-        </div>
-        ${LearnAudio.controls('human', 'quran', 2)}
-        ${s.note ? `<p class="ln-note">${esc(s.note)}</p>` : ''}
-        <div class="ln-surah-body" data-body="${s.n}">
-          <p class="ln-loading">Loading…</p>
-        </div>
-      </div>`;
-  },
-
-  /** Fills every surah body on the page, one request per surah, then cached. */
-  async fillSurahs(root) {
-    for (const node of root.querySelectorAll('[data-body]')) {
-      const n = Number(node.dataset.body);
-      try {
-        const s = await this.loadSurah(n);
-        const first = s.basmala ? 1 : 0;   // the basmala is line 0 when there is one
-        node.innerHTML = s.ar.map((ar, i) => `
-          <div class="ln-ayah" data-line="${i + first}">
-            <p class="ln-ar" lang="ar" dir="rtl">${esc(ar)}${
-              s.ar.length > 1 ? `<span class="ln-ayah-n">${i + 1}</span>` : ''}</p>
-            <p class="ln-tr">${esc(s.tr[i])}</p>
-            <p class="ln-en">${esc(s.en[i])}</p>
-          </div>`).join('');
-        if (s.basmala) {
-          node.insertAdjacentHTML('afterbegin',
-            `<p class="ln-ar ln-basmala" lang="ar" dir="rtl" data-line="0">${esc(s.basmala)}</p>`);
-        }
-      } catch {
-        node.innerHTML = '<p class="ln-note">Could not load the text. It will try again next time.</p>';
-      }
-    }
-  },
-
   /* -------------------------------------------------------------- tabs --- */
 
   /** The panel for a sub-tab, built the first time that tab is opened. */
@@ -141,7 +115,7 @@ const Learn = {
     LearnAudio.markVoices(panel);
     el('learn-panels').appendChild(panel);
     this.panels[tab.id] = panel;
-    if (tab.id === 'steps') this.fillSurahs(panel);
+    if (tab.id === 'how') this.renderStep();
     return panel;
   },
 
@@ -172,7 +146,6 @@ const Learn = {
 
     this.renderTabs(tab.id);
     this.tab = tab.id;
-    try { localStorage.setItem(LEARN_TAB_STORE, tab.id); } catch { /* private mode */ }
     return tab;
   },
 
@@ -212,31 +185,245 @@ const Learn = {
       <ul class="ln-bullets">${LEARN_WUDU.breaks.map((b) => `<li>${esc(b)}</li>`).join('')}</ul>`);
   },
 
-  renderPositions() {
-    return this.card('positions', 'The positions', `
-      <ol class="ln-positions">
-        ${LEARN_POSITIONS.map((p, i) => `
-          <li class="ln-pos" id="pos-${p.id}">
-            <div class="ln-pos-head">
-              <span class="ln-pos-n">${i + 1}</span>
-              <span class="ln-pos-names">
-                <span class="ln-pos-name">${esc(p.name)}</span>
-                <span class="ln-pos-sub">${esc(p.sub)}</span>
-              </span>
-            </div>
-            <div class="ln-pos-body">
-              <div class="ln-pos-fig">${this.figure(p.fig)}</div>
-              <div class="ln-pos-text">
-                <ul class="ln-bullets">${p.body.map((b) => `<li>${esc(b)}</li>`).join('')}</ul>
-                ${p.note ? `<p class="ln-note">${esc(p.note)}</p>` : ''}
-              </div>
-            </div>
-            ${p.says.map((k) => this.reciteMarkup(k)).join('')}
-            ${p.surah ? `
-              <p class="ln-lead">Then Al-Fātiḥah, and in the first two rakʿahs a surah after it.</p>
-              ${LEARN_SURAHS.map((s) => this.surahMarkup(s)).join('')}` : ''}
-          </li>`).join('')}
-      </ol>`);
+  /* -------------------------------------------------------- how to pray --- */
+
+  /** The frame: title, count and ⓘ, the dots, the step, Back and Next. The
+      step itself is drawn by renderStep, and redrawn as you move. */
+  renderHow() {
+    const dots = LEARN_STEPS.map((st, i) => `
+      <button class="ln-dot" type="button" data-step-to="${i}"
+              aria-label="Step ${i + 1}: ${esc(st.name)}"></button>`).join('');
+    return `
+      <section class="card ln-how" aria-labelledby="ln-how-title">
+        <div class="ln-how-head">
+          <h2 id="ln-how-title" class="ln-how-title">How to pray</h2>
+          <span id="ln-how-count" class="ln-how-count"></span>
+          ${infoButton('ln-step')}
+        </div>
+        <div class="ln-dots">${dots}</div>
+        <div id="ln-how-step" class="ln-how-step"></div>
+        <div class="ln-how-nav">
+          <button id="ln-how-back" class="btn btn--ghost ln-nav-btn" type="button">&lsaquo; Back</button>
+          <button id="ln-how-next" class="btn btn--primary ln-nav-btn" type="button">Next &rsaquo;</button>
+        </div>
+      </section>`;
+  },
+
+  /** The surah a step recites: Al-Fātiḥah, or the one picked. */
+  stepSurah(st) {
+    if (!st.surah) return null;
+    return st.surah === 'pick' ? this.pick : st.surah;
+  },
+
+  /** Whether a step has anything to play: a human recording, or the Qur'an. */
+  stepVoiced(st) {
+    return Boolean(st.surah) || (st.says || []).some((k) => LEARN_VOICES[k].kind === 'human');
+  },
+
+  /** The words of a step, phrase by phrase. Each line of Arabic carries a
+      number counted across the whole step, so playback can light it. */
+  wordsMarkup(st) {
+    let line = 0;
+    let arChars = 0;
+    let html = '';
+    const spans = (list, from) => list.map((t, i) =>
+      `<span class="ln-line" data-line="${from + i}">${esc(t)}</span>`).join(' ');
+    const phrase = (ar, tr, en, times = 1) => `
+      <div class="ln-w">
+        <p class="ln-w-ar" lang="ar" dir="rtl">${ar}</p>
+        <p class="ln-w-tr">${tr}${times > 1 ? ` <span class="ln-times">&times;${times}</span>` : ''}</p>
+        <p class="ln-w-en">${esc(en)}</p>
+      </div>`;
+
+    for (const key of st.says || []) {
+      const r = LEARN_RECITATIONS[key];
+      const lines = learnLines(key, r);
+      html += phrase(spans(lines.ar, line), lines.tr ? spans(lines.tr, line) : esc(r.tr), r.en, r.times);
+      line += lines.ar.length;
+      arChars += r.ar.length;
+    }
+
+    const n = this.stepSurah(st);
+    if (n) {
+      const s = this.surahs[n];
+      if (!s) {
+        html += `<p class="ln-loading" data-wait="${n}">Loading…</p>`;
+        arChars += 400;
+      } else {
+        if (s.basmala) {
+          html += `
+            <div class="ln-w ln-w--basmala">
+              <p class="ln-w-ar" lang="ar" dir="rtl"><span class="ln-line" data-line="${line}">${esc(s.basmala)}</span></p>
+            </div>`;
+          line += 1;
+        }
+        s.ar.forEach((ar, i) => {
+          html += phrase(
+            `<span class="ln-line" data-line="${line}">${esc(ar)}</span><span class="ln-ayah-n">${i + 1}</span>`,
+            esc(s.tr[i]), s.en[i]);
+          line += 1;
+          arChars += ar.length;
+        });
+      }
+    }
+
+    // The fewer the words, the larger they are set.
+    const size = arChars <= 60 ? 'is-short' : arChars <= 160 ? 'is-mid' : 'is-long';
+    return `<div class="ln-words ${size}${this.hideWords ? ' is-hidden' : ''}">${html}</div>`;
+  },
+
+  surahPickMarkup() {
+    return `
+      <div class="ln-pick" role="group" aria-label="Choose a surah">
+        ${LEARN_SURAHS.filter((x) => x.n !== 1).map((x) => `
+          <button class="ln-pick-btn" type="button" data-pick="${x.n}"
+                  aria-pressed="${x.n === this.pick}">${esc(x.name)}</button>`).join('')}
+      </div>`;
+  },
+
+  /** Draws the current step, and sets the count, dots and buttons around it. */
+  renderStep() {
+    const box = el('ln-how-step');
+    if (!box) return;
+    const st = LEARN_STEPS[this.at];
+    const total = LEARN_STEPS.length;
+
+    box.innerHTML = `
+      <div class="ln-how-left">
+        <div class="ln-how-fig">${this.figure(st.fig)}</div>
+        <h3 class="ln-how-name">${esc(st.name)}</h3>
+        <p class="ln-how-does">${esc(st.does)}</p>
+      </div>
+      <div class="ln-how-right" data-step="${st.id}">
+        <div class="ln-how-words">
+          ${st.surah === 'pick' ? this.surahPickMarkup() : ''}
+          ${this.wordsMarkup(st)}
+        </div>
+        <div class="ln-how-controls">
+          ${this.stepVoiced(st) ? `
+            <div class="ln-player">
+              <button class="ln-pbtn ln-pbtn--big" type="button" data-act="play"
+                      data-label="Play" aria-label="Play" aria-pressed="false">
+                ${PLAY_ICON}<span class="ln-pbtn-text sr-only">Play</span>
+              </button>
+            </div>` : ''}
+          <button class="ln-hide" type="button" aria-pressed="${this.hideWords}">${
+            this.hideWords ? 'Show words' : 'Hide words'}</button>
+        </div>
+      </div>`;
+
+    el('ln-how-count').textContent = `Step ${this.at + 1} of ${total}`;
+    for (const dot of document.querySelectorAll('.ln-dot')) {
+      const i = Number(dot.dataset.stepTo);
+      if (i === this.at) dot.setAttribute('aria-current', 'step');
+      else dot.removeAttribute('aria-current');
+    }
+    el('ln-how-back').disabled = this.at === 0;
+    el('ln-how-next').innerHTML = this.at === total - 1 ? 'Start again' : 'Next &rsaquo;';
+
+    // The Qur'an is fetched the first time, and the step drawn again once it is here.
+    const n = this.stepSurah(st);
+    if (n && !this.surahs[n]) {
+      const at = this.at;
+      this.loadSurah(n).then(
+        () => { if (this.at === at && this.stepSurah(LEARN_STEPS[at]) === n) this.renderStep(); },
+        () => {
+          const wait = box.querySelector(`[data-wait="${n}"]`);
+          if (wait) wait.textContent = 'Could not load the text. It will try again next time.';
+        });
+    }
+  },
+
+  /** Moves to step i; past the last it goes round to the first. */
+  goStep(i) {
+    const total = LEARN_STEPS.length;
+    const next = ((i % total) + total) % total;
+    if (next === this.at) return;
+    this.stopAudio();
+    this.at = next;
+    learnSet(LEARN_STEP_STORE, LEARN_STEPS[next].id);
+    this.renderStep();
+  },
+
+  /** What the play button plays: each phrase that has a recording, as many
+      times as it is said, then the surah ayah by ayah. Lines without a
+      recording keep their number, so the lighting still lines up. */
+  stepSegments(root) {
+    const st = LEARN_STEPS.find((x) => x.id === root.dataset.step);
+    const segs = [];
+    let line = 0;
+    const between = () => (segs.length ? 700 : 0);   // a breath between phrases
+
+    for (const key of st.says || []) {
+      const r = LEARN_RECITATIONS[key];
+      const v = LEARN_VOICES[key];
+      if (v.kind === 'human') {
+        for (let rep = 0; rep < r.times; rep += 1) {
+          const pause = rep ? 400 : between();
+          v.lines.forEach(([start, end], i) =>
+            segs.push({ src: v.src, start, end, line: line + i, pause: i ? 0 : pause }));
+        }
+      }
+      line += learnLines(key, r).ar.length;
+    }
+
+    const n = this.stepSurah(st);
+    if (n) {
+      const first = LEARN_SURAH_FIRST_AYAH[n];
+      const ayahs = LEARN_SURAHS.find((x) => x.n === n).ayahs;
+      const ayah = (src) => segs.push({ src, start: 0, end: null, line: line++, pause: between() });
+      if (n !== 1) ayah(`${QURAN_AYAH_AUDIO}1.mp3`);   // the basmala
+      for (let i = 0; i < ayahs; i += 1) ayah(`${QURAN_AYAH_AUDIO}${first + i}.mp3`);
+    }
+    return segs;
+  },
+
+  setHideWords(on) {
+    this.hideWords = on;
+    learnSet(LEARN_HIDE_STORE, on ? '1' : '0');
+    const box = el('ln-how-step');
+    const words = box?.querySelector('.ln-words');
+    if (words) {
+      words.classList.toggle('is-hidden', on);
+      for (const w of words.querySelectorAll('.ln-w.is-shown')) w.classList.remove('is-shown');
+    }
+    const btn = box?.querySelector('.ln-hide');
+    if (btn) {
+      btn.setAttribute('aria-pressed', String(on));
+      btn.textContent = on ? 'Show words' : 'Hide words';
+    }
+  },
+
+  setPick(n) {
+    if (n === this.pick) return;
+    this.stopAudio();
+    this.pick = n;
+    learnSet(LEARN_SURAH_STORE, String(n));
+    this.renderStep();
+  },
+
+  /** The ⓘ for the current step: its detail and madhhab notes, the notes on
+      its words, where the voice comes from, and the note to check with an imam. */
+  stepInfo() {
+    const st = LEARN_STEPS[this.at];
+    const notes = [...(st.more || [])];
+    const sources = new Set();
+    const silent = [];
+    for (const key of st.says || []) {
+      const note = LEARN_RECITATIONS[key].note;
+      if (note && !notes.includes(note)) notes.push(note);
+      const v = LEARN_VOICES[key];
+      if (v.kind === 'human') sources.add(v.source);
+      else silent.push(LEARN_RECITATIONS[key].tr);
+    }
+    if (st.surah) sources.add('quran');
+    return `
+      <p><b>${esc(st.name)}</b></p>
+      ${notes.map((x) => `<p>${esc(x)}</p>`).join('')}
+      ${[...sources].map((src) => Info.content[`ln-voice-${src}`]()).join('')}
+      ${silent.length ? `<p>No human recording of “${esc(silent.join('”, “'))}” has been
+        found yet, so it has no voice here.</p>` : ''}
+      <p>${esc(LEARN_DISCLAIMER)}</p>`;
   },
 
   renderPrayers() {
@@ -487,18 +674,21 @@ const Learn = {
     let scrollTo = null;
     if (target && !LEARN_TABS.some((t) => t.id === target)) {
       if (LEARN_PRAYERS[target]) { scrollTo = `learn-${target}`; target = 'prayers'; }
-      else if (LEARN_POSITIONS.some((p) => p.id === target)) { scrollTo = `pos-${target}`; target = 'positions'; }
-      else target = null;
+      else {
+        const step = LEARN_STEPS.findIndex((x) => x.id === (LEARN_STEP_ALIASES[target] || target));
+        if (step >= 0) { this.at = step; learnSet(LEARN_STEP_STORE, LEARN_STEPS[step].id); }
+        target = step >= 0 ? 'how' : null;
+      }
     }
 
+    // Learn always opens on How to pray.
     if (!target) {
-      let remembered = null;
-      try { remembered = localStorage.getItem(LEARN_TAB_STORE); } catch { /* private mode */ }
-      target = LEARN_TABS.some((t) => t.id === remembered) ? remembered : LEARN_TABS[0].id;
+      target = LEARN_TABS[0].id;
       history.replaceState(null, '', `#/learn/${target}`);
     }
 
     this.activate(target);
+    if (target === 'how') this.renderStep();
 
     if (scrollTo) {
       const node = document.getElementById(scrollTo);
@@ -512,26 +702,14 @@ const Learn = {
 /* ----------------------------------------------------------------- tabs --- */
 
 /* The sub-tabs, in order. Adding one means adding an entry here and a render
-   method on Learn: the bar, the routing and the remembered tab follow from it.
-   The id is the second hash segment, e.g. #/learn/wudu. */
+   method on Learn: the bar and the routing follow from it. The id is the
+   second hash segment, e.g. #/learn/wudu. Learn opens on the first. */
 const LEARN_TABS = [
   {
-    id: 'basics',
-    label: 'Basics',
-    intro: 'What needs to be in place before you begin.',
-    render: () => Learn.renderBasics(),
-  },
-  {
-    id: 'wudu',
-    label: 'Wudu',
-    intro: 'The washing before prayer, step by step, and what undoes it.',
-    render: () => Learn.renderWudu(),
-  },
-  {
-    id: 'steps',
-    label: 'Steps',
-    intro: 'One rakʿah, from the opening takbīr to the salām.',
-    render: () => Learn.renderPositions(),
+    id: 'how',
+    label: 'How to pray',
+    intro: 'One rakʿah, one step at a time, from the opening takbīr to the salām.',
+    render: () => Learn.renderHow(),
   },
   {
     id: 'prayers',
@@ -547,6 +725,18 @@ const LEARN_TABS = [
     render: () => Learn.renderPractice(),
     dynamic: true,            // the next prayer and the toggle change it
   },
+  {
+    id: 'wudu',
+    label: 'Wudu',
+    intro: 'The washing before prayer, step by step, and what undoes it.',
+    render: () => Learn.renderWudu(),
+  },
+  {
+    id: 'basics',
+    label: 'Basics',
+    intro: 'What needs to be in place before you begin.',
+    render: () => Learn.renderBasics(),
+  },
 ];
 
 /* The ⓘ on the sub-tab bar: what this tab covers, and the imam note. */
@@ -555,8 +745,14 @@ Info.add('learn', () => {
   return `<p>${esc(tab.intro)}</p><p>${esc(LEARN_DISCLAIMER)}</p>`;
 });
 
+/* The ⓘ beside "How to pray": everything about the step on screen. */
+Info.add('ln-step', () => Learn.stepInfo());
+
 /* Routes from before the tabs were renamed. */
-const LEARN_ALIASES = { positions: 'steps', 'pray-along': 'practice' };
+const LEARN_ALIASES = { positions: 'how', steps: 'how', 'pray-along': 'practice' };
+
+/* Old links to a position, by the step that now shows it. */
+const LEARN_STEP_ALIASES = { qiyam: 'thana' };
 
 /* --------------------------------------------------------------- events --- */
 
@@ -565,7 +761,47 @@ document.getElementById('section-learn').addEventListener('click', (event) => {
   if (act) { LearnAudio.handle(act); return; }
 
   const guide = event.target.closest('.ln-guide-btn');
-  if (guide) Learn.openGuide(guide.dataset.prayer);
+  if (guide) { Learn.openGuide(guide.dataset.prayer); return; }
+
+  if (event.target.closest('#ln-how-next')) { Learn.goStep(Learn.at + 1); return; }
+  if (event.target.closest('#ln-how-back')) { Learn.goStep(Learn.at - 1); return; }
+  const dot = event.target.closest('[data-step-to]');
+  if (dot) { Learn.goStep(Number(dot.dataset.stepTo)); return; }
+  const pick = event.target.closest('[data-pick]');
+  if (pick) { Learn.setPick(Number(pick.dataset.pick)); return; }
+  if (event.target.closest('.ln-hide')) { Learn.setHideWords(!Learn.hideWords); return; }
+
+  // With the words hidden, a tap on a phrase shows it, and a second hides it again.
+  const word = event.target.closest('.ln-words.is-hidden .ln-w');
+  if (word) word.classList.toggle('is-shown');
+});
+
+/* How to pray: swipe left for the next step, right for the one before. */
+{
+  let start = null;
+  const area = document.getElementById('learn-panels');
+  area.addEventListener('touchstart', (event) => {
+    const t = event.touches[0];
+    start = event.touches.length === 1 && event.target.closest('#ln-how-step')
+      ? { x: t.clientX, y: t.clientY } : null;
+  }, { passive: true });
+  area.addEventListener('touchend', (event) => {
+    if (!start) return;
+    const t = event.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    start = null;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) Learn.goStep(Learn.at + (dx < 0 ? 1 : -1));
+  }, { passive: true });
+}
+
+/* How to pray: the arrow keys step through, unless something else wants them. */
+document.addEventListener('keydown', (event) => {
+  if (Learn.guide || Learn.tab !== 'how' || el('section-learn').hidden) return;
+  if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+  if (event.target.closest('input, textarea, select, [contenteditable="true"], [role="dialog"]')) return;
+  if (event.key === 'ArrowRight') { event.preventDefault(); Learn.goStep(Learn.at + 1); }
+  else if (event.key === 'ArrowLeft') { event.preventDefault(); Learn.goStep(Learn.at - 1); }
 });
 
 document.getElementById('learn-tabs').addEventListener('scroll', () => Learn.updateTabFade());
@@ -596,9 +832,14 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && Learn.guide) Learn.requestWake();
 });
 
-try {
-  Learn.includeSunnah = localStorage.getItem(LEARN_SUNNAH_STORE) !== '0';
-} catch { /* private mode: leave it on */ }
+Learn.includeSunnah = learnGet(LEARN_SUNNAH_STORE) !== '0';
+Learn.hideWords = learnGet(LEARN_HIDE_STORE) === '1';
+{
+  const step = LEARN_STEPS.findIndex((x) => x.id === learnGet(LEARN_STEP_STORE));
+  if (step >= 0) Learn.at = step;
+  const pick = Number(learnGet(LEARN_SURAH_STORE));
+  if (LEARN_SURAHS.some((x) => x.n === pick && x.n !== 1)) Learn.pick = pick;
+}
 
 Sections.register({
   id: 'learn',

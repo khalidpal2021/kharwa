@@ -12,8 +12,13 @@
       the text as it is split on the page. Every clip below was checked by
       transcribing it, and the line breaks were taken from the pauses in the
       recitation. The taʿawwudh is Alafasy, from EveryAyah.
+      The takbīr is the third "Allāhu akbar" that opens the travel duʿā
+      (Hisn al-Muslim 207): the reciter says it three times there, the last
+      one with the falling close it has when said on its own.
    3. Where no recording of the exact wording was found, the browser's Arabic
-      text-to-speech reads it, slowed, and the button says so.
+      text-to-speech reads it, slowed, and the button says so. "How to pray"
+      never uses it: a phrase with no recording there has no play button,
+      and where the device has no Arabic voice the button is hidden.
 
    One <audio> element is shared and its source swapped, so iOS lets a
    sequence (ayah after ayah, or a clip repeated) keep playing after the
@@ -33,7 +38,7 @@ const LEARN_SURAH_FIRST_AYAH = { 1: 1, 103: 6177, 108: 6205, 112: 6222, 113: 622
    end of the file. `arSplit` / `trSplit` override where the text breaks into
    lines, so each line on the page matches a pause in the recording. */
 const LEARN_VOICES = {
-  takbir:       { kind: 'tts' },
+  takbir:       { kind: 'human', source: 'hisn', src: `${HISN}207.mp3`, lines: [[9.0, 10.7]] },
   thana:        { kind: 'human', source: 'hisn', src: `${HISN}28.mp3`,
                   lines: [[0.5, 3.9], [4.2, 6.6], [6.7, 9.4], [9.5, null]] },
   taawwudh:     { kind: 'human', source: 'everyayah', src: 'https://everyayah.com/data/Alafasy_128kbps/audhubillah.mp3',
@@ -42,7 +47,7 @@ const LEARN_VOICES = {
                   lines: [[0, null]] },
   rukuTasbih:   { kind: 'human', source: 'hisn', src: `${HISN}33.mp3`, lines: [[5.25, 8.14]] },
   tasmi:        { kind: 'human', source: 'hisn', src: `${HISN}38.mp3`, lines: [[5.3, null]] },
-  // Hisn al-Muslim has "Rabbanā wa laka-l-ḥamd, ḥamdan kathīran…": not this wording.
+  // Hisn al-Muslim has "Rabbanā wa laka-l-ḥamd, ḥamdan kathīran…" (39): not this wording.
   tahmid:       { kind: 'tts' },
   sujoodTasbih: { kind: 'human', source: 'hisn', src: `${HISN}41.mp3`, lines: [[4.8, 7.9]] },
   // The recording says it twice; the first is played.
@@ -56,6 +61,7 @@ const LEARN_VOICES = {
                   lines: [[0.9, 4.9], [5.4, 9.0], [9.3, 12.7], [13.0, null]],
                   arSplit: /(?<=،)\s+(?!إِنَّكَ)|\s+(?=وَارْحَمْنِي)/,
                   trSplit: /(?<=,)\s+(?!innaka)|\s+(?=wa-rḥamnī)/ },
+  // No human recording of the salām on its own was found.
   salam:        { kind: 'tts' },
   // Hisn al-Muslim's Qunūt is "Allāhumma-hdinī fīman hadayt", not this one.
   qunut:        { kind: 'tts' },
@@ -125,21 +131,15 @@ const LearnAudio = {
 
   /* ---------------------------------------------------------- segments --- */
 
-  /** What to play for a recitation or a surah: one entry per line. */
+  /** What to play for a recitation, or for a whole step of How to pray
+      (built by Learn.stepSegments): one entry per line. */
   segments(root) {
-    if (root.dataset.voice) {
-      const key = root.dataset.voice;
-      const v = LEARN_VOICES[key];
-      const r = LEARN_RECITATIONS[key];
-      if (v.kind === 'tts') return learnLines(key, r).ar.map((text) => ({ text }));
-      return v.lines.map(([start, end]) => ({ src: v.src, start, end }));
-    }
-    const n = Number(root.dataset.surah);
-    const first = LEARN_SURAH_FIRST_AYAH[n];
-    const segs = [...root.querySelectorAll('.ln-ayah')].map((_, i) => (
-      { src: `${QURAN_AYAH_AUDIO}${first + i}.mp3`, start: 0, end: null }));
-    if (root.querySelector('.ln-basmala')) segs.unshift({ src: `${QURAN_AYAH_AUDIO}1.mp3`, start: 0, end: null });
-    return segs;
+    if (root.dataset.step) return Learn.stepSegments(root);
+    const key = root.dataset.voice;
+    const v = LEARN_VOICES[key];
+    const r = LEARN_RECITATIONS[key];
+    if (v.kind === 'tts') return learnLines(key, r).ar.map((text) => ({ text }));
+    return v.lines.map(([start, end]) => ({ src: v.src, start, end }));
   },
 
   /* ----------------------------------------------------------- playing --- */
@@ -150,7 +150,7 @@ const LearnAudio = {
 
   /** Taps on a player: play / stop, or flip an option. */
   handle(btn) {
-    const root = btn.closest('[data-voice], [data-surah]');
+    const root = btn.closest('[data-voice], [data-step]');
     if (!root) return;
     const act = btn.dataset.act;
     if (act === 'play') {
@@ -172,6 +172,7 @@ const LearnAudio = {
     if (!segs.length) return;
     const play = root.querySelector('.ln-pbtn');
     play.querySelector('.ln-pbtn-text').textContent = 'Stop';
+    play.setAttribute('aria-label', 'Stop');
     play.setAttribute('aria-pressed', 'true');
     play.classList.add('is-playing');
     this.cur = { root, segs, i: 0, rep: 0, times: Number(root.dataset.times) || 1, timer: null, raf: null };
@@ -193,6 +194,7 @@ const LearnAudio = {
     this.highlight(cur.root, -1);
     const play = cur.root.querySelector('.ln-pbtn');
     play.querySelector('.ln-pbtn-text').textContent = play.dataset.label;
+    play.setAttribute('aria-label', play.dataset.label);
     play.setAttribute('aria-pressed', 'false');
     play.classList.remove('is-playing');
   },
@@ -207,7 +209,7 @@ const LearnAudio = {
   playSeg() {
     const cur = this.cur;
     const seg = cur.segs[cur.i];
-    this.highlight(cur.root, cur.i);
+    this.highlight(cur.root, seg.line ?? cur.i);
     if (seg.text !== undefined) this.speak(seg.text);
     else this.playClip(seg);
   },
@@ -282,6 +284,7 @@ const LearnAudio = {
     }
 
     cur.i += 1;
+    if (cur.i < cur.segs.length) gap = Math.max(gap, cur.segs[cur.i].pause || 0);
     if (cur.i >= cur.segs.length) {
       cur.i = 0;
       cur.rep += 1;
@@ -309,7 +312,7 @@ const LearnAudio = {
   /* ------------------------------------------------------------- voices --- */
 
   /** Finds an Arabic speech voice, once the browser has listed them. The
-      computer-voice buttons say so when there is none. */
+      computer-voice buttons are hidden when there is none. */
   findVoice() {
     if (!window.speechSynthesis) { this.voice = null; this.markVoices(); return; }
     const pick = () => {
@@ -329,13 +332,9 @@ const LearnAudio = {
 
   markVoices(scope = document) {
     if (this.voice === undefined) return;
+    // With no Arabic voice there is nothing to play: the player goes.
     for (const btn of scope.querySelectorAll('.ln-pbtn.is-tts')) {
-      btn.disabled = !this.voice;
-      btn.dataset.label = this.voice
-        ? 'Computer voice, check pronunciation'
-        : 'No Arabic computer voice on this device';
-      btn.querySelector('.ln-pbtn-text').textContent = btn.dataset.label;
-      btn.closest('.ln-player').querySelector('.ln-popts').hidden = !this.voice;
+      btn.closest('.ln-player').hidden = !this.voice;
     }
   },
 };

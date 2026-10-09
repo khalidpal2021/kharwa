@@ -155,12 +155,12 @@ const LEARN_RECITATIONS = {
 /* Short surahs commonly learnt first. The text is fetched from the Qur'an API
    by surah number — nothing of the Qur'an is written in this file. */
 const LEARN_SURAHS = [
-  { n: 1,   name: 'Al-Fātiḥah', meaning: 'The Opening',   note: 'In every rakʿah of every prayer.' },
-  { n: 112, name: 'Al-Ikhlāṣ',  meaning: 'Sincerity' },
-  { n: 113, name: 'Al-Falaq',   meaning: 'The Daybreak' },
-  { n: 114, name: 'An-Nās',     meaning: 'Mankind' },
-  { n: 108, name: 'Al-Kawthar', meaning: 'Abundance' },
-  { n: 103, name: 'Al-ʿAṣr',    meaning: 'The Declining Day' },
+  { n: 1,   name: 'Al-Fātiḥah', meaning: 'The Opening',       ayahs: 7, note: 'In every rakʿah of every prayer.' },
+  { n: 112, name: 'Al-Ikhlāṣ',  meaning: 'Sincerity',         ayahs: 4 },
+  { n: 113, name: 'Al-Falaq',   meaning: 'The Daybreak',      ayahs: 5 },
+  { n: 114, name: 'An-Nās',     meaning: 'Mankind',           ayahs: 6 },
+  { n: 108, name: 'Al-Kawthar', meaning: 'Abundance',         ayahs: 3 },
+  { n: 103, name: 'Al-ʿAṣr',    meaning: 'The Declining Day', ayahs: 3 },
 ];
 
 /* ----------------------------------------------------------------- wudu --- */
@@ -303,6 +303,131 @@ const LEARN_POSITIONS = [
       'Turn to the left and give salām again. The prayer is complete.',
     ],
     says: ['salam'],
+  },
+];
+
+/* ---------------------------------------------------------- how to pray --- */
+
+/* "How to pray": one rakʿah, one step per screen. `does` is the single line
+   of what to do; everything else about the step (the detail, the madhhab
+   note) is in `more`, shown in the ⓘ. `says` holds keys into
+   LEARN_RECITATIONS; `surah` is a surah number, or 'pick' for the one chosen
+   from LEARN_SURAHS. Pray-along still walks LEARN_POSITIONS. */
+const LEARN_STEPS = [
+  {
+    id: 'takbir', name: 'Takbīr', fig: 'takbir',
+    does: 'Raise your hands to your earlobes, palms facing forward.',
+    says: ['takbir'],
+    more: [
+      'Stand facing the qibla, feet about four fingers apart, eyes on the place of prostration.',
+      'Thumbs level with the earlobes. Say the takbīr, then fold the hands.',
+      'Hanafi: hands to the earlobes. Shāfiʿī and Ḥanbalī raise them to the shoulders.',
+    ],
+  },
+  {
+    id: 'thana', name: 'Thanāʾ', fig: 'qiyam',
+    does: 'Fold your right hand over your left, below the navel, and praise Allah quietly.',
+    says: ['thana'],
+    more: [
+      'Keep the eyes on the place of prostration.',
+      'Said in the first rakʿah only.',
+      'Hanafi: hands below the navel. Shāfiʿī and Ḥanbalī fold them on the chest; Mālikī commonly let them hang.',
+    ],
+  },
+  {
+    id: 'fatiha', name: 'Al-Fātiḥah', fig: 'qiyam',
+    does: 'Seek refuge quietly, then recite Al-Fātiḥah.',
+    says: ['taawwudh'],
+    surah: 1,
+    more: [
+      'The taʿawwudh is said in the first rakʿah only; Bismillah is said quietly before Al-Fātiḥah in every rakʿah.',
+      'Al-Fātiḥah is recited in every rakʿah of every prayer.',
+      'After it, say “Āmīn” quietly.',
+    ],
+  },
+  {
+    id: 'surah', name: 'A short surah', fig: 'qiyam',
+    does: 'In the first two rakʿahs, recite a short surah after Al-Fātiḥah.',
+    surah: 'pick',
+    more: [
+      'In the third and fourth rakʿahs of a fard prayer, Al-Fātiḥah alone is enough.',
+      'Any surah will do, or at least three short ayahs. These are the ones usually learnt first.',
+    ],
+  },
+  {
+    id: 'ruku', name: 'Rukūʿ', fig: 'ruku',
+    does: 'Say the takbīr and bow, hands gripping your knees, back flat.',
+    says: ['rukuTasbih'],
+    more: [
+      'Fingers spread, arms straight, the head level with the back, eyes on the feet.',
+      'Three times is the sunnah; more is good, in odd numbers.',
+      'Hanafi: the hands are not raised going into rukūʿ. Shāfiʿī and Ḥanbalī raise them.',
+    ],
+  },
+  {
+    id: 'qawmah', name: 'Rising', fig: 'standing',
+    does: 'Stand up straight, arms at your sides, and be still for a moment.',
+    says: ['tasmi', 'tahmid'],
+    more: [
+      'Samiʿa-llāhu li-man ḥamidah is said while rising; Rabbanā laka-l-ḥamd once standing.',
+      'Be still here before going down; do not rush through it.',
+    ],
+  },
+  {
+    id: 'sujood', name: 'Sujūd', fig: 'sujood',
+    does: 'Say the takbīr and go down: knees, then hands, then nose and forehead.',
+    says: ['sujoodTasbih'],
+    more: [
+      'Seven parts touch the ground: the forehead with the nose, both palms, both knees, and the toes of both feet.',
+      'Keep the arms off the ground and away from the sides, toes pointing towards the qibla.',
+      'Three times is the sunnah; more is good, in odd numbers.',
+    ],
+  },
+  {
+    id: 'jalsa', name: 'Jalsa', fig: 'jalsa',
+    does: 'Say the takbīr and sit up on your left foot, the right foot upright.',
+    says: ['jalsaDua'],
+    more: [
+      'Hands rest on the thighs, fingers towards the knees. Be still before the second sajdah.',
+      'The duʿā is recommended, not required, in the Hanafi school.',
+    ],
+  },
+  {
+    id: 'sujood2', name: 'Second sajdah', fig: 'sujood',
+    does: 'Say the takbīr and prostrate again, exactly as before.',
+    says: ['sujoodTasbih'],
+    more: [
+      'Rising from here begins the next rakʿah, or the sitting if the rakʿah was the second or the last.',
+    ],
+  },
+  {
+    id: 'tashahhud', name: 'Tashahhud', fig: 'tashahhud',
+    does: 'Sit as in jalsa, and raise your right index finger at “lā ilāha”.',
+    says: ['tashahhud'],
+    more: [
+      'Lower the finger again at “illa-llāh”.',
+      'Said in every sitting: after the second rakʿah, and in the last.',
+    ],
+  },
+  {
+    id: 'salawat', name: 'Ṣalawāt', fig: 'tashahhud',
+    does: 'In the last sitting, send blessings on the Prophet ﷺ.',
+    says: ['salawat'],
+    more: ['In the final sitting only. In a middle sitting, stand up after the tashahhud.'],
+  },
+  {
+    id: 'dua', name: 'Duʿā', fig: 'tashahhud',
+    does: 'Still sitting, ask Allah before you end the prayer.',
+    says: ['duaBeforeSalam'],
+    more: ['Any duʿā may be made here. This one is commonly taught.'],
+  },
+  {
+    id: 'salam', name: 'Salām', fig: 'salam',
+    does: 'Turn your head to the right and give salām, then to the left.',
+    says: ['salam'],
+    more: [
+      'Turn far enough to see the shoulder. After the second salām the prayer is complete.',
+    ],
   },
 ];
 

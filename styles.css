@@ -3236,49 +3236,12 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   padding: 1px 7px;
 }
 
-/* ----------------------------------------------------------- positions --- */
-
-.ln-positions { display: grid; gap: var(--s4); }
-
-.ln-pos { scroll-margin-top: var(--s3); }
-
-.ln-pos-head {
-  display: flex;
-  align-items: baseline;
-  gap: var(--s1);
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--border);
-}
-
-.ln-pos-n {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--accent-text);
-}
-
-.ln-pos-names { display: flex; align-items: baseline; gap: var(--s1); flex-wrap: wrap; }
-.ln-pos-name { font-family: var(--serif); font-size: 19px; letter-spacing: -0.01em; }
-.ln-pos-sub { font-size: 12.5px; color: var(--muted-foreground); }
-
-.ln-pos-body {
-  display: grid;
-  gap: var(--s2);
-  margin: var(--s2) 0;
-}
-
-/* the picture, the full width of the card */
-.ln-pos-fig {
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  background: var(--muted);
-}
-
+/* the position pictures */
 .ln-pic { display: block; width: 100%; height: auto; }
 
 /* --------------------------------------------------------- recitations --- */
 
-.ln-recite, .ln-surah {
+.ln-recite {
   margin-top: var(--s2);
   padding: var(--s2);
   border: 1px solid var(--border);
@@ -3303,8 +3266,6 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   color: var(--accent-text);
 }
 
-.ln-surah-meaning { font-size: 12px; color: var(--muted-foreground); }
-
 .ln-ar {
   font-family: "Amiri Quran", "Amiri", "Scheherazade New", serif;
   font-size: 1.5rem;
@@ -3312,8 +3273,6 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
   text-align: right;
   color: var(--foreground);
 }
-
-.ln-basmala { font-size: 1.25rem; text-align: center; color: var(--muted-foreground); }
 
 .ln-tr {
   margin-top: 6px;
@@ -3324,20 +3283,6 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 }
 
 .ln-en { margin-top: 4px; font-size: 13.5px; line-height: 1.65; }
-
-.ln-ayah + .ln-ayah {
-  margin-top: var(--s2);
-  padding-top: var(--s2);
-  border-top: 1px solid var(--border);
-}
-
-.ln-ayah-n {
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--accent-text);
-  margin-right: 8px;
-  vertical-align: 6px;
-}
 
 .ln-loading { font-size: 12.5px; color: var(--muted-foreground); }
 
@@ -3400,8 +3345,6 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 .ln-line.is-reciting { background: var(--accent-tint); }
 .ln-tr .ln-line.is-reciting { color: var(--foreground); }
 
-.ln-ayah, .ln-basmala { border-radius: var(--radius-btn); transition: background 200ms ease-out; }
-.ln-ayah.is-reciting, .ln-basmala.is-reciting { background: var(--accent-wash); box-shadow: 0 0 0 6px var(--accent-wash); }
 
 /* ------------------------------------------------------------- prayers --- */
 
@@ -3594,7 +3537,6 @@ body.is-guiding { overflow: hidden; }
 @media (min-width: 900px) {
   .learn { max-width: 760px; margin: 0 auto; }
   .ln-step { grid-template-columns: 64px minmax(0, 1fr); }
-  .ln-pos-fig { justify-self: center; width: 100%; max-width: 560px; }
   .ln-ar { font-size: 1.7rem; }
   .ln-guide .ln-ar { font-size: 2rem; }
   .ln-g-name { font-size: 36px; }
@@ -3602,8 +3544,8 @@ body.is-guiding { overflow: hidden; }
 
 /* ------------------------------------------------- learn sub-tabs, revised --- */
 
-/* Sized so all five labels fit a 390px phone without scrolling. The fade is
-   the fallback for anything narrower. */
+/* Sized so all five labels fit a 390px phone without scrolling, at 14px.
+   The fade is the fallback for anything narrower. */
 .ln-tabs-wrap {
   position: sticky;
   top: 0;
@@ -3648,13 +3590,12 @@ body.is-guiding { overflow: hidden; }
 
 .ln-tab {
   flex: none;
-  padding: 10px 0;
+  padding: 11px 0 10px;
   border-bottom: 2px solid transparent;
-  font-family: var(--mono);
-  font-size: 10px;
+  font-family: var(--sans);
+  font-size: 14px;
   font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: normal;
   color: var(--muted-foreground);
   text-decoration: none;
   transition: color var(--ease), border-color var(--ease);
@@ -3811,3 +3752,302 @@ body.is-guiding { overflow: hidden; }
 }
 
 .ln-row:hover .ln-row-chev { color: var(--accent); }
+
+/* ---------------------------------------------------------- how to pray --- */
+
+/* One step per screen: the picture, what to do, and the words, with Back and
+   Next pinned at the bottom. One card, no boxes inside it: spacing does the
+   separating. Stacked on a phone; two columns from 900px, sized to fit the
+   screen so nothing scrolls but the words, when there are many. */
+
+.ln-how {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  padding: 0;
+}
+
+.ln-how-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px 0;
+}
+
+.ln-how-title {
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.ln-how-count {
+  margin-left: auto;
+  font-size: 13.5px;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+/* the dots: small, with a full-size tap area each */
+.ln-dots {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 2px 6px 0;
+}
+
+.ln-dot {
+  width: 24px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.ln-dot::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border-hover);
+  transition: background var(--ease), transform var(--ease);
+}
+
+.ln-dot:hover::before { background: var(--mark-empty); }
+.ln-dot[aria-current="step"]::before { background: var(--accent); transform: scale(1.35); }
+
+.ln-how-step {
+  display: grid;
+  gap: var(--s3);
+  padding: var(--s2) 16px var(--s3);
+  min-height: 0;
+  touch-action: pan-y;
+}
+
+.ln-how-left { display: grid; gap: 4px; min-height: 0; }
+
+/* the pictures differ in shape, so the frame is fixed and the picture fits it */
+.ln-how-fig {
+  height: 40svh;
+  min-height: 0;
+  margin-bottom: var(--s1);
+  display: flex;
+  justify-content: center;
+}
+
+.ln-how-fig .ln-pic { width: 100%; height: 100%; object-fit: contain; }
+
+.ln-how-name {
+  font-family: var(--serif);
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.ln-how-does { font-size: 15.5px; line-height: 1.55; color: var(--foreground); }
+
+.ln-how-right {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  min-height: 0;
+}
+
+.ln-how-words { display: grid; gap: var(--s2); }
+
+/* the words: Arabic large, the transliteration under it, then the meaning */
+.ln-words { text-align: center; }
+
+.ln-w + .ln-w { margin-top: var(--s3); }
+
+.ln-w-ar {
+  font-family: "Amiri", "Amiri Quran", "Scheherazade New", "Geeza Pro", serif;
+  font-size: 36px;
+  line-height: 1.75;
+  color: var(--foreground);
+}
+
+.ln-w-tr {
+  margin-top: 4px;
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--foreground);
+}
+
+.ln-w-en {
+  margin-top: 4px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 15.5px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+
+.ln-words.is-mid .ln-w-ar { font-size: 30px; }
+.ln-words.is-long .ln-w-ar { font-size: 25px; line-height: 1.9; }
+.ln-words.is-long .ln-w-tr { font-size: 15px; }
+.ln-words.is-long .ln-w-en { font-size: 14px; }
+.ln-words.is-long .ln-w + .ln-w { margin-top: var(--s2); }
+
+.ln-w--basmala .ln-w-ar { color: var(--muted-foreground); font-size: 24px; }
+
+.ln-w-tr .ln-times { margin-left: 4px; vertical-align: 2px; }
+
+.ln-ayah-n {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--accent-text);
+  margin-right: 8px;
+  vertical-align: 8px;
+}
+
+/* Hide words: the Arabic and transliteration blur until a phrase is tapped */
+.ln-words.is-hidden .ln-w { cursor: pointer; }
+
+.ln-w-ar, .ln-w-tr { transition: filter 200ms ease-out; }
+
+.ln-words.is-hidden .ln-w:not(.is-shown) .ln-w-ar,
+.ln-words.is-hidden .ln-w:not(.is-shown) .ln-w-tr {
+  filter: blur(9px);
+  user-select: none;
+}
+
+/* the play button, and Hide words under it */
+.ln-how-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.ln-how-controls .ln-player { margin: 0; }
+
+.ln-pbtn--big {
+  width: 64px;
+  height: 64px;
+  min-height: 0;
+  padding: 0;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-foreground);
+  box-shadow: var(--shadow-md);
+  transition: background var(--ease), transform var(--ease);
+}
+
+.ln-pbtn--big:hover { background: var(--accent-secondary); }
+.ln-pbtn--big:active { transform: scale(0.96); }
+.ln-pbtn--big.is-playing { background: var(--accent-text); }
+.ln-pbtn--big svg { width: 26px; height: 26px; }
+.ln-pbtn--big .ln-play-icon { transform: translateX(1px); }
+
+.ln-hide {
+  min-height: var(--tap);
+  padding: 0 14px;
+  border: 0;
+  background: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  text-decoration: underline;
+  text-decoration-color: var(--border-hover);
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.ln-hide:hover { color: var(--foreground); }
+.ln-hide[aria-pressed="true"] { color: var(--accent-text); text-decoration-color: var(--accent); }
+
+/* the short surah: which one */
+.ln-pick {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.ln-pick-btn {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--border-hover);
+  border-radius: 999px;
+  background: none;
+  font-size: 13px;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.ln-pick-btn[aria-pressed="true"] {
+  color: var(--accent-text);
+  border-color: var(--accent);
+  background: var(--accent-faint);
+}
+
+/* Back and Next: pinned above the tab bar on a phone */
+.ln-how-nav {
+  position: sticky;
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 var(--radius-card) var(--radius-card);
+  background: var(--card);
+}
+
+.ln-how-nav .ln-nav-btn { min-height: 52px; font-size: 16px; }
+
+@media (min-width: 900px) {
+  .learn:has(> #learn-panel-how:not([hidden])) { max-width: 1040px; }
+
+  /* the whole card in one screen: what sits above and below it is about 220px */
+  .ln-how {
+    --how-h: clamp(560px, calc(100dvh - 220px), 780px);
+    height: var(--how-h);
+  }
+
+  .ln-how-head { padding: 20px 28px 0; }
+  .ln-how-title { font-size: 22px; }
+  .ln-dots { padding: 4px 18px 0; }
+
+  .ln-how-step {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    align-items: stretch;
+    gap: 40px;
+    padding: var(--s2) 28px var(--s3);
+    overflow: hidden;
+  }
+
+  .ln-how-left { align-content: center; }
+  .ln-how-fig { height: calc(var(--how-h) - 300px); }
+
+  /* the words scroll when there are many; the play button stays in view */
+  .ln-how-right { justify-content: center; }
+
+  .ln-how-words {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 4px 8px;
+    scrollbar-width: thin;
+  }
+
+  .ln-how-controls { flex: none; }
+
+  .ln-how-nav {
+    position: static;
+    border-top: 0;
+    padding: 0 28px 22px;
+    grid-template-columns: 180px 1fr 180px;
+  }
+
+  .ln-how-nav #ln-how-next { grid-column: 3; }
+}
