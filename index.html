@@ -389,6 +389,13 @@
         <div class="us-compose">
           <div id="us-chips" class="us-chips" role="group" aria-label="Quick messages"></div>
           <form id="us-form" class="us-form" autocomplete="off">
+            <button id="us-moments" class="us-book" type="button" aria-label="Ayahs for the moment">
+              <svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true" focusable="false">
+                <path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5z"
+                      fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+                <path d="M12 6.5v13" fill="none" stroke="currentColor" stroke-width="1.6"/>
+              </svg>
+            </button>
             <textarea id="us-input" class="us-input" rows="1" maxlength="500" enterkeyhint="send"></textarea>
             <button class="us-send" type="submit" aria-label="Send">
               <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
@@ -677,6 +684,22 @@
       </div>
     </div>
 
+    <!-- -------------------------------------------- ayahs for the moment --- -->
+    <!-- js/us.js (Moments): ayahs by feeling, to send; or, from the ayah
+         popup, choosing the mood to add an ayah to. -->
+    <div id="moments-pop" class="modal" hidden>
+      <div id="moments-scrim" class="modal-scrim"></div>
+      <div id="moments-panel" class="sheet moments-sheet" role="dialog" aria-modal="true" aria-labelledby="moments-title" tabindex="-1">
+        <div class="sheet-handle" aria-hidden="true"></div>
+        <div class="sheet-head">
+          <h2 id="moments-title" class="share-title">Ayahs for the moment</h2>
+          <button id="moments-close" class="modal-close" type="button" aria-label="Close">&times;</button>
+        </div>
+        <div id="moments-moods" class="mo-moods" role="group" aria-label="Moods"></div>
+        <div id="moments-body" class="mo-body"></div>
+      </div>
+    </div>
+
     <p id="banner" class="banner" hidden></p>
   </div>
 
@@ -700,6 +723,7 @@
   <script src="js/learn.js" defer></script>
   <script src="js/install.js" defer></script>
   <script src="js/reminders.js" defer></script>
+  <script src="js/us-presets.js" defer></script>
   <script src="js/us.js" defer></script>
   <script src="js/app.js" defer></script>
 </body>

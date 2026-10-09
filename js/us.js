@@ -16,7 +16,9 @@
 
    ShareSheet, at the bottom, is the "Send to Marwa" sheet for an ayah or a
    hadith, opened from the ayah popup, a long-press in the Quran reader, and
-   the send button on each hadith.
+   the send button on each hadith. Moments is "Ayahs for the moment": ayahs
+   by feeling (us-presets.js, plus any you added), opened from the "Send an
+   ayah" chip, the book beside the box, or a mood card in the thread.
 
    Depends on data.js, router.js, info.js, times.js and, at run time, app.js
    (esc, name, toast, State, showSheet, hideSheet, swipeToClose),
@@ -33,6 +35,16 @@ const US_ICONS = {
   heart: `<svg viewBox="0 0 24 24" width="22" height="22" focusable="false">
     <path d="M12 19.5s-7.5-4.6-7.5-10A4.2 4.2 0 0 1 12 7.1a4.2 4.2 0 0 1 7.5 2.4c0 5.4-7.5 10-7.5 10z"
           fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+  </svg>`,
+  book: `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+    <path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5z"
+          fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M12 6.5v13" fill="none" stroke="currentColor" stroke-width="1.6"/>
+  </svg>`,
+  moodAdd: `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+    <path d="M12 19.5s-7.5-4.6-7.5-10A4.2 4.2 0 0 1 12 7.1a4.2 4.2 0 0 1 7.5 2.4c0 1-.3 2-.7 2.9"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M18 14.5v6M15 17.5h6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
   </svg>`,
   send: `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
     <path d="M4.5 11.6 19.5 5l-4.6 14.5-3.4-5.9z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
@@ -227,8 +239,12 @@ const Us = {
     byId('us-title').innerHTML = `${esc(name(State.me))} &amp; ${other}`;
     byId('us-input').placeholder = `Write to ${name(this.other())}…`;
     byId('us-input').setAttribute('aria-label', `Message to ${name(this.other())}`);
-    byId('us-chips').innerHTML = this.quickSends().map((text, i) => `
-      <button class="us-chip" type="button" data-quick="${i}">${esc(text)}</button>`).join('');
+    byId('us-chips').innerHTML = `
+      <button class="us-chip us-chip--ayah" type="button" data-moments>${US_ICONS.book}Send an ayah</button>
+      ${US_MOODS.filter((m) => m.feeling).map((m) => `
+        <button class="us-chip us-chip--feel" type="button" data-feel="${m.id}">${esc(m.feeling)}</button>`).join('')}
+      ${this.quickSends().map((text, i) => `
+        <button class="us-chip" type="button" data-quick="${i}">${esc(text)}</button>`).join('')}`;
   },
 
   dayLabel(key) {
@@ -275,12 +291,20 @@ const Us = {
     let inner = '';
     if (m.type === 'text') {
       inner = `<p class="us-text">${esc(m.body)}</p>`;
+    } else if (m.type === 'mood') {
+      // "I'm stressed": the other can answer it with an ayah for that mood
+      const mood = US_MOOD[m.body];
+      inner = `
+        <p class="us-mood-label">Feeling</p>
+        <p class="us-mood-text">${esc(mood?.feeling || m.body)}</p>
+        ${!mine && mood ? `<button class="us-mood-btn" type="button" data-mood="${mood.id}">Send an ayah for this</button>` : ''}`;
     } else {
+      const range = ayahRange(m.ref?.ayah, m.ref?.ayah_to);
       const share = m.type === 'ayah'
         ? {
-          href: `#/quran/${m.ref?.surah}/${m.ref?.ayah}`,
+          href: `#/quran/${m.ref?.surah}/${range.replace('–', '-')}`,
           ar: m.ref?.arabic,
-          ref: `${m.ref?.name || 'Quran'} · ${m.ref?.surah}:${m.ref?.ayah}`,
+          ref: `${m.ref?.name || 'Quran'} · ${m.ref?.surah}:${range}`,
         }
         : {
           href: `#/hadith/${m.ref?.book}/n/${m.ref?.number}`,
@@ -303,7 +327,7 @@ const Us = {
 
     const selected = this.selected === m.id;
     return `
-      <div class="us-msg ${mine ? 'is-mine' : 'is-theirs'}${m.pending ? ' is-pending' : ''}${selected ? ' is-selected' : ''}"
+      <div class="us-msg ${mine ? 'is-mine' : 'is-theirs'}${m.type === 'mood' ? ' us-msg--mood' : ''}${m.pending ? ' is-pending' : ''}${selected ? ' is-selected' : ''}"
            id="us-m-${m.id}" data-id="${m.id}">
         <div class="us-bubble">${inner}</div>
         <p class="us-meta">${meta}</p>
@@ -374,11 +398,18 @@ byId('us-input').addEventListener('keydown', (event) => {
 });
 
 byId('us-chips').addEventListener('click', (event) => {
+  if (event.target.closest('[data-moments]')) { Moments.open(); return; }
+  const feel = event.target.closest('[data-feel]');
+  if (feel) { Us.send({ type: 'mood', body: feel.dataset.feel }); return; }
   const chip = event.target.closest('[data-quick]');
   if (chip) Us.send({ type: 'text', body: Us.quickSends()[Number(chip.dataset.quick)] });
 });
 
+byId('us-moments').addEventListener('click', () => Moments.open());
+
 byId('us-thread').addEventListener('click', (event) => {
+  const answer = event.target.closest('[data-mood]');
+  if (answer) { Moments.open(answer.dataset.mood); return; }
   const del = event.target.closest('[data-del]');
   if (del) { Us.remove(Number(del.dataset.del)); return; }
   const retry = event.target.closest('[data-retry]');
@@ -448,15 +479,19 @@ const ShareSheet = {
   returnFocus: null,
   openedAt: 0,
 
-  async openAyah(s, a) {
+  /** One ayah, or a range sent as one card (94:5–6), with an optional
+      note already filled in. */
+  async openAyah(s, a, to = a, { note = '' } = {}) {
     try {
-      const text = await AyahSheet.ayahText(s, a);
-      const nameOf = Quran.surahs?.[s - 1]?.englishName || `Surah ${s}`;
+      const text = await ayahRangeText(s, a, to);
+      const nameOf = await surahName(s);
+      const range = ayahRange(a, to);
       this.show({
         type: 'ayah',
         body: text.translation,
-        ref: { surah: s, ayah: a, name: nameOf, arabic: text.arabic },
-        preview: { ar: text.arabic, en: text.translation, ref: `${nameOf} · ${s}:${a}` },
+        ref: { surah: s, ayah: a, ...(to > a ? { ayah_to: to } : {}), name: nameOf, arabic: text.arabic },
+        preview: { ar: text.arabic, en: text.translation, ref: `${nameOf} · ${s}:${range}` },
+        note,
       });
     } catch {
       toast('That ayah could not be loaded. Check your connection and try again.', { error: true });
@@ -486,7 +521,7 @@ const ShareSheet = {
       ${item.preview.ar ? `<p class="us-share-ar" lang="ar" dir="rtl">${esc(item.preview.ar)}</p>` : ''}
       <p class="us-share-en">${esc(item.preview.en)}</p>
       <p class="us-share-ref">${esc(item.preview.ref)}</p>`;
-    byId('share-note').value = '';
+    byId('share-note').value = item.note || '';
     byId('share-send').disabled = false;
     if (!this.open) {
       this.open = true;
@@ -596,3 +631,285 @@ byId('set-quick-reset').addEventListener('click', () => {
   QuickSends.render();
   QuickSends.save(0);
 });
+
+/* ================================================ ayahs for the moment === */
+
+/** "5" or "5–6". */
+function ayahRange(a, to) {
+  return to && Number(to) !== Number(a) ? `${a}–${to}` : `${a}`;
+}
+
+const ARABIC_DIGITS = '٠١٢٣٤٥٦٧٨٩';
+const arabicNumber = (n) => String(n).replace(/\d/g, (d) => ARABIC_DIGITS[d]);
+
+/** The Arabic and translation of an ayah or a range, from the Quran API
+    (through the reader's cache). A range is one text, each ayah closed with
+    its number. */
+async function ayahRangeText(s, a, to = a) {
+  const parts = [];
+  for (let n = a; n <= to; n += 1) parts.push(await AyahSheet.ayahText(s, n));
+  if (parts.length === 1) return parts[0];
+  return {
+    arabic: parts.map((p, i) => `${p.arabic} ﴿${arabicNumber(a + i)}﴾`).join(' '),
+    translation: parts.map((p) => p.translation).join(' '),
+  };
+}
+
+async function surahName(s) {
+  try {
+    const list = await Quran.loadSurahList();
+    return list[s - 1]?.englishName || `Surah ${s}`;
+  } catch {
+    return `Surah ${s}`;
+  }
+}
+
+const US_MOOD_STORE = 'kharwa.us.mood';
+
+/* The sheet: mood chips across the top, the selected mood's ayahs below,
+   each a card that opens to its Arabic and sends through the share sheet
+   with the mood's note filled in. "Surprise me" picks one, preferring ones
+   not sent to them in the last 30 days (the thread keeps 30 days). Opened in
+   "add" mode from the ayah popup, the chips choose the mood to add it to. */
+const Moments = {
+  shown: false,
+  mood: 'stressed',
+  adding: null,         // { s, a } while adding an ayah from the Quran tab
+  custom: [],           // rows from us_presets
+  customLoaded: false,
+  texts: new Map(),     // "s:a-to" -> { arabic, translation }, or a promise of it
+  expanded: new Set(),  // keys showing their Arabic
+  returnFocus: null,
+  openedAt: 0,
+
+  key(x) {
+    return `${x.s}:${x.a}-${x.to}`;
+  },
+
+  /** The mood's ayahs: ours first, then ones added, without repeats. */
+  ayahs(moodId) {
+    const mood = US_MOOD[moodId];
+    const list = mood.ayahs.map((x) => ({ ...x, to: x.to || x.a, builtIn: true }));
+    for (const row of this.custom.filter((r) => r.mood === moodId)) {
+      const x = { s: row.surah, a: row.ayah_from, to: row.ayah_to, id: row.id, person: row.person };
+      if (!list.some((y) => this.key(y) === this.key(x))) list.push(x);
+    }
+    return list;
+  },
+
+  /** When it was last sent to the other person, from the thread, or null. */
+  sentAt(x) {
+    const hit = [...Us.list].reverse().find((m) => m.type === 'ayah' && m.from_person === State.me && !m.pending
+      && Number(m.ref?.surah) === x.s && Number(m.ref?.ayah) === x.a
+      && Number(m.ref?.ayah_to || m.ref?.ayah) === x.to);
+    return hit ? new Date(hit.created_at) : null;
+  },
+
+  async loadCustom() {
+    try {
+      this.custom = await Data.loadPresets();
+      this.customLoaded = true;
+    } catch { /* us_presets not there yet: only ours */ }
+  },
+
+  text(x) {
+    const k = this.key(x);
+    if (!this.texts.has(k)) {
+      const p = ayahRangeText(x.s, x.a, x.to).then((t) => { this.texts.set(k, t); return t; });
+      p.catch(() => this.texts.delete(k));
+      this.texts.set(k, p);
+    }
+    return this.texts.get(k);
+  },
+
+  /* ------------------------------------------------------- open, close --- */
+
+  show(moodId) {
+    if (moodId && US_MOOD[moodId]) this.mood = moodId;
+    if (!this.shown) {
+      this.shown = true;
+      this.openedAt = Date.now();
+      this.returnFocus = document.activeElement;
+      showSheet(byId('moments-pop'), byId('moments-panel'));
+    }
+    this.render();
+    byId('moments-panel').focus();
+    if (!this.customLoaded) this.loadCustom().then(() => this.shown && this.renderBody());
+  },
+
+  /** From the Us tab: send one. */
+  open(moodId) {
+    this.adding = null;
+    if (!moodId) {
+      try { moodId = localStorage.getItem(US_MOOD_STORE); } catch { /* the default */ }
+    }
+    this.show(moodId);
+  },
+
+  /** From the ayah popup: add this ayah to a mood. */
+  openAdd(s, a) {
+    this.adding = { s, a };
+    this.show(this.mood);
+  },
+
+  close() {
+    if (!this.shown) return;
+    this.shown = false;
+    hideSheet(byId('moments-pop'), byId('moments-panel'));
+    if (this.returnFocus?.isConnected) this.returnFocus.focus();
+  },
+
+  pick(moodId) {
+    this.mood = moodId;
+    if (!this.adding) {
+      try { localStorage.setItem(US_MOOD_STORE, moodId); } catch { /* this session */ }
+    }
+    this.render();
+  },
+
+  /* ---------------------------------------------------------- drawing --- */
+
+  render() {
+    byId('moments-title').textContent = this.adding ? 'Add to a mood' : 'Ayahs for the moment';
+    byId('moments-moods').innerHTML = US_MOODS.map((m) => `
+      <button class="mo-mood" type="button" data-pick="${m.id}" aria-pressed="${m.id === this.mood}">${esc(m.label)}</button>`).join('');
+    this.renderBody();
+  },
+
+  async renderBody() {
+    const body = byId('moments-body');
+    if (this.adding) {
+      const { s, a } = this.adding;
+      const nameOf = await surahName(s);
+      const label = US_MOOD[this.mood].label;
+      const there = this.ayahs(this.mood).some((x) => x.s === s && x.a <= a && a <= x.to);
+      body.innerHTML = `
+        <p class="mo-add-what">${esc(nameOf)} · ${s}:${a}</p>
+        <p class="mo-hint">Choose a mood above. It will be there for both of you.</p>
+        <button class="btn btn--primary mo-add-btn" type="button" data-add ${there ? 'disabled' : ''}>
+          ${there ? `Already in ${esc(label)}` : `Add to ${esc(label)}`}
+        </button>`;
+      return;
+    }
+
+    const mood = this.mood;
+    const list = this.ayahs(mood);
+    body.innerHTML = `
+      <button class="mo-surprise" type="button" data-surprise>Surprise me</button>
+      <div class="mo-list">${list.map((x) => this.cardMarkup(x)).join('')}</div>`;
+
+    // the texts come in one by one; each card fills when its arrives
+    for (const x of list) {
+      Promise.resolve(this.text(x)).then(async () => {
+        if (!this.shown || this.mood !== mood || this.adding) return;
+        const card = body.querySelector(`[data-key="${this.key(x)}"]`);
+        if (card) card.outerHTML = this.cardMarkup(x, await surahName(x.s));
+      }, () => {
+        const card = body.querySelector(`[data-key="${this.key(x)}"] .mo-en`);
+        if (card) card.textContent = 'Could not load this ayah. Check your connection.';
+      });
+    }
+  },
+
+  cardMarkup(x, nameOf = '') {
+    const k = this.key(x);
+    const t = this.texts.get(k);
+    const ready = t && !(t instanceof Promise);
+    const open = this.expanded.has(k);
+    const sent = this.sentAt(x);
+    const theme = x.theme || `Added by ${x.person === State.me ? 'you' : esc(name(x.person))}`;
+    return `
+      <article class="mo-card" data-key="${k}">
+        <button class="mo-main" type="button" data-expand="${k}" aria-expanded="${open}">
+          <span class="mo-theme">${esc(theme)}</span>
+          ${open && ready ? `<span class="us-share-ar mo-ar" lang="ar" dir="rtl">${esc(t.arabic)}</span>` : ''}
+          <span class="us-share-en mo-en${open ? ' is-open' : ''}">${ready ? esc(t.translation) : 'Loading…'}</span>
+          <span class="us-share-ref">${nameOf ? `${esc(nameOf)} · ` : ''}${x.s}:${ayahRange(x.a, x.to)}${
+            sent ? `<span class="mo-sent" title="Sent ${esc(fmtDayNav.format(sent))}">&check; Sent</span>` : ''}</span>
+        </button>
+        <span class="mo-acts">
+          ${x.id && x.person === State.me ? `<button class="mo-remove" type="button" data-remove-preset="${x.id}">Remove</button>` : ''}
+          <button class="mo-send" type="button" data-send="${k}">Send</button>
+        </span>
+      </article>`;
+  },
+
+  /* ---------------------------------------------------------- actions --- */
+
+  byKey(k) {
+    return this.ayahs(this.mood).find((x) => this.key(x) === k);
+  },
+
+  send(x) {
+    this.close();
+    ShareSheet.openAyah(x.s, x.a, x.to, { note: US_MOOD[this.mood].note });
+  },
+
+  surprise() {
+    const list = this.ayahs(this.mood);
+    const fresh = list.filter((x) => !this.sentAt(x));
+    const from = fresh.length ? fresh : list;
+    this.send(from[Math.floor(Math.random() * from.length)]);
+  },
+
+  async add() {
+    const { s, a } = this.adding;
+    const mood = this.mood;
+    try {
+      const row = await Data.addPreset(State.me, mood, s, a, a);
+      if (row) this.custom.push(row);
+      this.close();
+      toast(`Added to ${esc(US_MOOD[mood].label)}`);
+    } catch (err) {
+      toast(`Couldn’t add it: ${esc(err.message || err)}`, { error: true });
+    }
+  },
+
+  async removePreset(id) {
+    const before = this.custom;
+    this.custom = this.custom.filter((r) => r.id !== id);
+    this.renderBody();
+    try {
+      await Data.removePreset(id);
+    } catch (err) {
+      this.custom = before;
+      this.renderBody();
+      toast(`Couldn’t remove it: ${esc(err.message || err)}`, { error: true });
+    }
+  },
+};
+
+
+byId('moments-moods').addEventListener('click', (event) => {
+  const chip = event.target.closest('[data-pick]');
+  if (chip) Moments.pick(chip.dataset.pick);
+});
+
+byId('moments-body').addEventListener('click', (event) => {
+  const expand = event.target.closest('[data-expand]');
+  if (expand) {
+    const k = expand.dataset.expand;
+    if (Moments.expanded.has(k)) Moments.expanded.delete(k);
+    else Moments.expanded.add(k);
+    const x = Moments.byKey(k);
+    if (x) surahName(x.s).then((n) => { expand.closest('.mo-card').outerHTML = Moments.cardMarkup(x, n); });
+    return;
+  }
+  const send = event.target.closest('[data-send]');
+  if (send) { const x = Moments.byKey(send.dataset.send); if (x) Moments.send(x); return; }
+  if (event.target.closest('[data-surprise]')) { Moments.surprise(); return; }
+  if (event.target.closest('[data-add]')) { Moments.add(); return; }
+  const remove = event.target.closest('[data-remove-preset]');
+  if (remove) Moments.removePreset(Number(remove.dataset.removePreset));
+});
+
+byId('moments-close').addEventListener('click', () => Moments.close());
+byId('moments-scrim').addEventListener('click', () => {
+  if (Date.now() - Moments.openedAt > 500) Moments.close();
+});
+window.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape' || !Moments.shown) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  Moments.close();
+}, true);

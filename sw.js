@@ -18,7 +18,7 @@
    push does not need it, since the app files are network-first.
    =========================================================================== */
 
-const VERSION = 'v3';
+const VERSION = 'v4';
 const APP_CACHE = `kharwa-app-${VERSION}`;
 const STATIC_CACHE = `kharwa-static-${VERSION}`;
 
@@ -44,6 +44,7 @@ const APP_SHELL = [
   '/js/learn.js',
   '/js/install.js',
   '/js/reminders.js',
+  '/js/us-presets.js',
   '/js/us.js',
   '/js/app.js',
 ];

@@ -4583,3 +4583,234 @@ body.is-guiding { overflow: hidden; }
   text-underline-offset: 3px;
   cursor: pointer;
 }
+
+/* ------------------------------------------------- ayahs for the moment --- */
+
+/* the chips that open it, and the "I'm …" ones, before the quick sends */
+.us-chip--ayah {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 500;
+}
+
+.us-chip--ayah svg { width: 16px; height: 16px; }
+.us-chip--feel { background: var(--muted); border-color: var(--border); }
+
+/* the book beside the box */
+.us-book {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--tap);
+  height: var(--tap);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--accent-text);
+  cursor: pointer;
+  transition: background var(--ease);
+}
+
+.us-book:hover { background: var(--accent-faint); }
+
+/* a mood card in the thread: soft, with a way to answer it */
+.us-msg--mood .us-bubble {
+  padding: 10px 16px 12px;
+  border-style: dashed;
+  border-color: var(--accent-hairline);
+  background: var(--card-warm);
+  box-shadow: none;
+}
+
+.us-mood-label {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--accent-text);
+}
+
+.us-mood-text {
+  margin-top: 2px;
+  font-family: var(--serif);
+  font-size: 19px;
+  font-style: italic;
+  line-height: 1.3;
+}
+
+.us-mood-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  margin-top: 10px;
+  padding: 0 14px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--card);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--accent-text);
+  cursor: pointer;
+  transition: background var(--ease);
+}
+
+.us-mood-btn:hover { background: var(--accent-faint); }
+
+/* the sheet: moods across the top, the ayahs scrolling below */
+.moments-sheet { padding: 6px 0 0; }
+.moments-sheet .sheet-head { flex: none; padding: 14px 64px 0 20px; }
+.moments-sheet .sheet-head .modal-close { top: 10px; right: 10px; }
+
+.mo-moods {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px 20px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.mo-mood {
+  min-height: 32px;
+  padding: 0 11px;
+  border: 1px solid var(--border-hover);
+  border-radius: 999px;
+  background: none;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: color var(--ease), border-color var(--ease), background var(--ease);
+}
+
+.mo-mood:hover { color: var(--foreground); }
+
+.mo-mood[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.mo-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+}
+
+.mo-surprise {
+  width: 100%;
+  min-height: 40px;
+  margin-bottom: 6px;
+  border: 1px dashed var(--accent);
+  border-radius: var(--radius-btn);
+  background: var(--accent-faint);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--accent-text);
+  cursor: pointer;
+}
+
+.mo-surprise:hover { background: var(--accent-wash); }
+
+.mo-list { display: grid; }
+
+.mo-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.mo-card:last-child { border-bottom: 0; }
+
+/* the same quoted look as an ayah card in the thread */
+.mo-main {
+  display: grid;
+  gap: 2px;
+  padding: 0 0 0 12px;
+  border: 0;
+  border-left: 2px solid var(--accent);
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mo-theme {
+  font-family: var(--serif);
+  font-size: 16px;
+  line-height: 1.3;
+  color: var(--foreground);
+}
+
+.mo-ar { margin: 4px 0 2px; }
+
+.mo-en {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--muted-foreground);
+}
+
+.mo-en.is-open { display: block; color: var(--foreground); }
+
+.mo-sent {
+  margin-left: 8px;
+  color: var(--muted-foreground);
+  letter-spacing: 0.08em;
+}
+
+.mo-acts { display: grid; justify-items: end; gap: 4px; }
+
+.mo-send {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--accent-foreground);
+  cursor: pointer;
+  transition: background var(--ease);
+}
+
+.mo-send:hover { background: var(--accent-secondary); }
+
+.mo-remove {
+  padding: 4px 2px;
+  border: 0;
+  background: none;
+  font-size: 12px;
+  color: var(--muted-foreground);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* adding from the Quran tab */
+.mo-add-what {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: var(--accent-text);
+}
+
+.mo-hint { margin-top: 4px; font-size: 13.5px; color: var(--muted-foreground); }
+.mo-add-btn { width: 100%; margin-top: var(--s2); }

@@ -357,6 +357,34 @@ const Data = {
     return data;
   },
 
+  /** Ayahs either of you added to a mood in "Ayahs for the moment". */
+  async loadPresets() {
+    if (!this.configured) return [];
+    const { data, error } = await this.db
+      .from('us_presets')
+      .select('id, person, mood, surah, ayah_from, ayah_to, created_at')
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    return data || [];
+  },
+
+  async addPreset(person, mood, surah, ayahFrom, ayahTo = ayahFrom) {
+    if (!this.configured) throw new Error('Supabase is not configured yet.');
+    const { data, error } = await this.db
+      .from('us_presets')
+      .upsert({ person, mood, surah, ayah_from: ayahFrom, ayah_to: ayahTo },
+        { onConflict: 'mood,surah,ayah_from,ayah_to', ignoreDuplicates: true })
+      .select();
+    if (error) throw error;
+    return data?.[0] || null;
+  },
+
+  async removePreset(id) {
+    if (!this.configured) throw new Error('Supabase is not configured yet.');
+    const { error } = await this.db.from('us_presets').delete().eq('id', id);
+    if (error) throw error;
+  },
+
   /** Only your own: long-press in the thread. */
   async deleteMessage(person, id) {
     if (!this.configured) throw new Error('Supabase is not configured yet.');

@@ -5,7 +5,7 @@
    popup). A tab bar across the top, with the × at its end: Ayah, Tafsir,
    Revelation (only when there is an entry) and Words. A slim bar of actions
    along the bottom: previous, play, bookmark, copy, send (to the Us
-   thread, us.js), next.
+   thread, us.js), add to a mood in "Ayahs for the moment", next.
 
    Every word of explanation comes from a published work, fetched as is:
    - tafsir and Al-Wahidi's Asbab al-Nuzul from the spa5k/tafsir_api static
@@ -201,6 +201,7 @@ const AyahSheet = {
       } else if (act === 'copy') this.copy();
       else if (act === 'bookmark') this.toggleBookmark();
       else if (act === 'send') ShareSheet.openAyah(this.surah, this.ayah);
+      else if (act === 'mood') Moments.openAdd(this.surah, this.ayah);
     });
 
     // Esc closes it, and Tab stays inside it (and on any toast above it).
@@ -425,7 +426,7 @@ const AyahSheet = {
     }
   },
 
-  /** ‹ previous, play, bookmark, copy, send, next › */
+  /** ‹ previous, play, bookmark, copy, send, add to a mood, next › */
   renderActions() {
     if (this.surah === null) return;
     const { surah: s, ayah: a } = this;
@@ -440,6 +441,7 @@ const AyahSheet = {
       btn('bookmark', AYAH_ICONS.star, on ? 'Remove bookmark' : 'Bookmark ayah', ` aria-pressed="${on}"`),
       btn('copy', AYAH_ICONS.copy, 'Copy ayah'),
       btn('send', US_ICONS.send, `Send to ${esc(name(Us.other()))}`),
+      btn('mood', US_ICONS.moodAdd, 'Add to Ayahs for the moment'),
       btn('next', AYAH_ICONS.next, 'Next ayah', this.neighbour(s, a, 1) ? '' : ' disabled'),
     ].join('');
   },

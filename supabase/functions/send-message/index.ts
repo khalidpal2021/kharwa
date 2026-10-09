@@ -3,8 +3,10 @@
 //
 // POST { from, to, type, body, ref?, note? }
 //   type 'text'    body is the message, up to 500 characters
-//   type 'ayah'    body is the translation; ref { surah, ayah, name, arabic }
+//   type 'ayah'    body is the translation; ref { surah, ayah, ayah_to?, name, arabic }
+//                  (ayah_to for a range such as 94:5–6, sent as one card)
 //   type 'hadith'  body is the English; ref { book, number, name, arabic }
+//   type 'mood'    body is 'stressed', 'sad' or 'tired': "I'm stressed"
 //   note           optional, up to 200 characters, sent with an ayah or hadith
 //
 // Saves the message, then pushes a short notification to every device `to`
@@ -29,6 +31,16 @@ const TEXT_MAX = 500;
 const SHARED_MAX = 6000;
 const NOTE_MAX = 200;
 const PER_HOUR = 30;
+
+/** A range such as 2:155–157 is sent as one card; at most this many more. */
+const AYAH_RANGE_MAX = 9;
+
+/** The "I'm …" chips: a mood message carries one of these ids. */
+const MOOD_TEXT: Record<string, string> = {
+  stressed: 'I’m stressed',
+  sad: 'I’m sad',
+  tired: 'I’m tired',
+};
 
 /** A message is worth delivering for a day; after that the app has it anyway. */
 const PUSH_TTL_SECONDS = 24 * 3600;
@@ -222,9 +234,11 @@ export function notification(sender: string, m: { id: number; type: string; body
   const url = `/#/us/${m.id}`;
   const tag = `kharwa-msg-${m.id}`;
   if (m.type === 'text') return { title: sender, body: clip(m.body, 140), url, tag };
+  if (m.type === 'mood') return { title: sender, body: MOOD_TEXT[m.body] ?? m.body, url, tag };
   const what = m.type === 'ayah' ? 'an ayah' : 'a hadith';
+  const range = m.ref?.ayah_to && m.ref.ayah_to !== m.ref.ayah ? `${m.ref.ayah}–${m.ref.ayah_to}` : `${m.ref?.ayah}`;
   const where = m.type === 'ayah'
-    ? `${m.ref?.name ?? 'Quran'} ${m.ref?.surah}:${m.ref?.ayah}`
+    ? `${m.ref?.name ?? 'Quran'} ${m.ref?.surah}:${range}`
     : `${m.ref?.name ?? 'Hadith'} ${m.ref?.number}`;
   return {
     title: m.note ? `${sender}: ${clip(m.note, 60)}` : `${sender} shared ${what}`,
@@ -243,13 +257,22 @@ export function validate(m: Incoming) {
     if (!body || body.length > TEXT_MAX) return null;
     return { type: 'text', body, ref: null, note: null };
   }
+  if (m.type === 'mood') {
+    if (!MOOD_TEXT[body]) return null;
+    return { type: 'mood', body, ref: null, note: null };
+  }
   if (note.length > NOTE_MAX) return null;
   if (m.type === 'ayah') {
     const surah = Number(m.ref?.surah), ayah = Number(m.ref?.ayah);
+    const to = m.ref?.ayah_to == null ? ayah : Number(m.ref.ayah_to);
     if (!Number.isInteger(surah) || surah < 1 || surah > 114 || !Number.isInteger(ayah) || ayah < 1 || ayah > 286) return null;
+    if (!Number.isInteger(to) || to < ayah || to > ayah + AYAH_RANGE_MAX) return null;
     return {
       type: 'ayah', body: body.slice(0, SHARED_MAX), note: note || null,
-      ref: { surah, ayah, name: String(m.ref?.name ?? '').slice(0, 80), arabic: String(m.ref?.arabic ?? '').slice(0, 3000) },
+      ref: {
+        surah, ayah, ...(to > ayah ? { ayah_to: to } : {}),
+        name: String(m.ref?.name ?? '').slice(0, 80), arabic: String(m.ref?.arabic ?? '').slice(0, 3000),
+      },
     };
   }
   if (m.type === 'hadith') {

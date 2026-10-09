@@ -161,6 +161,25 @@ Setup, once:
 3. Redeploy `send-nudge` from the repo, so nudges also appear in the thread.
 4. Run `supabase/messages-cron.sql` for the 30-day cleanup.
 
+#### Ayahs for the moment
+
+In the Us tab, the "Send an ayah" chip (or the book beside the box) opens
+ayahs grouped by feeling: stressed, sad, tired, worried, patience,
+forgiveness, deciding, grateful, love. Each card has a one-line theme, the
+translation and the reference; tap it for the Arabic, or Send. Sending fills
+the note with a gentle line for that mood, which can be changed or cleared.
+"Surprise me" picks one, preferring ayahs not sent to them in the last 30
+days (those carry a small check). A range such as 94:5–6 goes as one card.
+
+The references, themes and notes are in `js/us-presets.js`; the Arabic and
+translation are always loaded from the Quran API. "I'm stressed", "I'm sad"
+and "I'm tired" chips send a mood card, and the other person can answer it
+with "Send an ayah for this". From the ayah popup on the Quran tab, the heart
+with a plus adds that ayah to a mood for both of you (`us_presets`).
+
+Setup: re-run `supabase/schema.sql` (adds `us_presets` and the `mood`
+message type) and redeploy `send-message` from the repo.
+
 ## How it works
 
 - **Who's this?** On first visit you pick Khalid or Marwa. The choice lives in
