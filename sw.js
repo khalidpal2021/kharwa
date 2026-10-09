@@ -18,7 +18,7 @@
    push does not need it, since the app files are network-first.
    =========================================================================== */
 
-const VERSION = 'v1';
+const VERSION = 'v2';
 const APP_CACHE = `kharwa-app-${VERSION}`;
 const STATIC_CACHE = `kharwa-static-${VERSION}`;
 
@@ -116,8 +116,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(self.registration.showNotification(data.title || 'Kharwa', {
     body: data.body || '',
     tag: data.tag || 'kharwa',
-    icon: '/icons/icon-192.png',
-    badge: '/icons/icon-192.png',
+    icon: '/icons/icon-192.png?v=2',
+    badge: '/icons/icon-192.png?v=2',
     data: { url: data.url || '/#/prayer' },
   }));
 });
