@@ -47,6 +47,23 @@ const PUSH_TTL_SECONDS = 15 * 60;
 
 const env = (name: string) => (globalThis as any).Deno?.env.get(name) ?? '';
 
+/**
+ * A VAPID key as pasted into the secrets, made safe to use: surrounding
+ * spaces, quotes or line breaks dropped, and standard base64 (+ / =) turned
+ * into the URL-safe base64 that Web Push and JWK expect.
+ */
+export function cleanKey(raw: string): string {
+  return raw.trim()
+    .replace(/^['"]+|['"]+$/g, '')
+    .replace(/\s+/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+const vapidPublic = () => cleanKey(env('VAPID_PUBLIC_KEY'));
+const vapidPrivate = () => cleanKey(env('VAPID_PRIVATE_KEY'));
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -261,9 +278,9 @@ export async function encryptPayload(
 
 /** The VAPID Authorization header for a push service's origin (RFC 8292). */
 export async function vapidAuth(audience: string): Promise<string> {
-  const publicKey = env('VAPID_PUBLIC_KEY');
-  const subject = env('VAPID_SUBJECT') || env('SITE_URL');
-  const key = await crypto.subtle.importKey('jwk', ecJwk(b64urlDecode(publicKey), env('VAPID_PRIVATE_KEY')),
+  const publicKey = vapidPublic();
+  const subject = env('VAPID_SUBJECT').trim() || env('SITE_URL').trim();
+  const key = await crypto.subtle.importKey('jwk', ecJwk(b64urlDecode(publicKey), vapidPrivate()),
     { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
   const header = b64urlEncode(utf8(JSON.stringify({ typ: 'JWT', alg: 'ES256' })));
   const claims = b64urlEncode(utf8(JSON.stringify({
@@ -370,7 +387,7 @@ async function handle(req: Request): Promise<Response> {
   const json = (body: object, status = 200) =>
     new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
   try {
-    if (!env('VAPID_PUBLIC_KEY') || !env('VAPID_PRIVATE_KEY')) {
+    if (!vapidPublic() || !vapidPrivate()) {
       return json({ ok: false, error: 'VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY secrets are not set.' }, 500);
     }
     const body = await req.json().catch(() => ({}));

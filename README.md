@@ -115,6 +115,24 @@ To replace the keys: generate a new pair (`npx web-push generate-vapid-keys`),
 put the public key in `config.js` and both in the secrets. Every device then
 has to turn reminders off and on again.
 
+### Nudges
+
+On Today, beside the other person's empty circle, a small bell appears while
+a prayer is in its time and they have not logged it. Tapping it pushes
+"Khalid nudged you / Time to pray Isha 🤲" to all of their devices. One nudge
+per prayer every 15 minutes; the bell then shows "nudged 3m ago". It only
+shows if they have turned on Prayer reminders on at least one device (an ⓘ
+says so otherwise), and never on past days.
+
+The bell calls the `send-nudge` Edge Function
+(`supabase/functions/send-nudge/index.ts`), which checks the prayer is still
+unlogged and the 15 minutes, records the nudge in the `nudges` table, and
+sends with the same VAPID secrets as the reminders. Setup: re-run
+`supabase/schema.sql` (for `nudges`), then deploy `send-nudge` the same way
+as `send-reminders` (dashboard editor, or
+`npx supabase functions deploy send-nudge --project-ref knnxeivkcazzowhorokt`).
+No cron job is needed.
+
 ## How it works
 
 - **Who's this?** On first visit you pick Khalid or Marwa. The choice lives in

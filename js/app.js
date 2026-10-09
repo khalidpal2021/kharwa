@@ -269,6 +269,7 @@ function markMarkup(person, prayer) {
   if (!mine) {
     return `<div class="markwrap">
       <span class="mark" role="img" aria-label="${label}">${markSvg(status)}</span>
+      ${nudgeMarkup(person, prayer)}
     </div>`;
   }
 
@@ -286,7 +287,110 @@ function markMarkup(person, prayer) {
   </div>`;
 }
 
+/* =============================================================== nudge === */
+
+/* The bell beside the other person's empty circle: a push asking them to
+   pray. Only today, only once the prayer has begun and while its window is
+   open, and only if they have a device signed up for pushes (otherwise an ⓘ
+   says so). One per prayer every 15 minutes, which send-nudge enforces too. */
+
+const NUDGE_GAP_MS = 15 * 60_000;
+const NUDGE_FLASH_MS = 2500;
+
+const Nudge = {
+  sending: new Set(),   // nudge keys waiting on the server
+  flashUntil: new Map(), // nudge key -> until when "Nudged" shows
+};
+
+const BELL_SVG = `<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" focusable="false">
+  <path d="M12 3.5a5.5 5.5 0 0 0-5.5 5.5v3.6L4.8 15.8h14.4l-1.7-3.2V9A5.5 5.5 0 0 0 12 3.5z"
+        fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+  <path d="M9.8 18.6a2.3 2.3 0 0 0 4.4 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+</svg>`;
+
+/** Whether the bell shows for someone's prayer, and how. Null when it does not. */
+function nudgeState(person, prayer, now = new Date()) {
+  const today = todayKey();
+  if (person === State.me || State.viewDate !== today) return null;
+  if (Data.status(person, today, prayer) !== 'none') return null;
+  const start = timesFor(today).times[prayer];
+  const end = windowEnd(today, prayer);
+  if (!(now >= start && now < end)) return null;
+  if (!Data.pushPeople.has(person)) return { off: true };
+
+  const key = Data.nudgeKey(State.me, person, today, prayer);
+  const last = Data.lastNudge(State.me, person, today, prayer);
+  return {
+    key,
+    last,
+    sending: Nudge.sending.has(key),
+    flash: (Nudge.flashUntil.get(key) || 0) > now.getTime(),
+    waiting: Boolean(last) && now.getTime() - last < NUDGE_GAP_MS,
+  };
+}
+
+function nudgeMarkup(person, prayer) {
+  const st = nudgeState(person, prayer);
+  if (!st) return '';
+  if (st.off) return `<span class="nudge nudge--off">${infoButton('nudge-off')}</span>`;
+
+  const mins = Math.floor((Date.now() - st.last) / 60_000);
+  const note = st.flash ? 'Nudged'
+    : st.waiting ? `nudged ${mins < 1 ? 'just now' : `${mins}m ago`}` : '';
+  const who = esc(name(person));
+  const label = st.waiting
+    ? `${who} was ${note} about ${PRAYER_LABEL[prayer]}`
+    : `Nudge ${who} to pray ${PRAYER_LABEL[prayer]}`;
+  return `<span class="nudge">
+      <button class="nudge-btn${st.flash ? ' is-sent' : ''}" type="button"
+              data-nudge="${person}" data-prayer="${prayer}" aria-label="${label}"
+              ${st.waiting || st.sending ? 'disabled' : ''}>${BELL_SVG}</button>
+    </span>
+    ${note ? `<span class="nudge-note${st.flash ? ' is-sent' : ''}" aria-hidden="true">${note}</span>` : ''}`;
+}
+
+async function sendNudge(person, prayer) {
+  const today = todayKey();
+  const key = Data.nudgeKey(State.me, person, today, prayer);
+  if (Nudge.sending.has(key)) return;
+  Nudge.sending.add(key);
+  renderTimetable();
+
+  try {
+    const res = await Data.sendNudge(State.me, person, prayer, today);
+    if (res.ok) {
+      Data.noteNudge(State.me, person, today, prayer, Date.parse(res.sent_at) || Date.now());
+      Nudge.flashUntil.set(key, Date.now() + NUDGE_FLASH_MS);
+      setTimeout(renderTimetable, NUDGE_FLASH_MS + 50);
+      toast(`Nudge sent to ${esc(name(person))}`);
+    } else if (res.reason === 'too_soon') {
+      // sent from another device a moment ago
+      Data.noteNudge(State.me, person, today, prayer, Date.parse(res.last_at));
+      toast(`You nudged ${esc(name(person))} about ${PRAYER_LABEL[prayer]} a moment ago`);
+    } else if (res.reason === 'logged') {
+      toast(`${esc(name(person))} has already prayed ${PRAYER_LABEL[prayer]}`);
+      await Data.loadRecent().catch(() => {});
+    } else if (res.reason === 'no_devices') {
+      Data.pushPeople.delete(person);
+      toast(`${esc(name(person))} hasn’t turned on reminders yet`, { error: true });
+    } else {
+      toast('Couldn’t send the nudge', { error: true });
+    }
+  } catch (err) {
+    toast(`Couldn’t send the nudge: ${esc(err.message || err)}`, { error: true });
+  } finally {
+    Nudge.sending.delete(key);
+    renderStatuses();
+  }
+}
+
 /* ================================================================ info === */
+
+Info.add('nudge-off', () => {
+  const other = PEOPLE_IDS.find((p) => p !== State.me);
+  return `<p>${esc(name(other))} hasn&rsquo;t turned on reminders yet.</p>
+    <p>A nudge needs them on, in Settings &rarr; App &rarr; Prayer reminders.</p>`;
+});
 
 /* What the ⓘ buttons on the Prayer tab say. */
 
@@ -974,6 +1078,11 @@ async function setStatus(person, prayer, next, date = State.viewDate) {
 }
 
 el('timetable').addEventListener('click', (event) => {
+  const bell = event.target.closest('.nudge-btn');
+  if (bell) {
+    sendNudge(bell.dataset.nudge, bell.dataset.prayer);
+    return;
+  }
   const item = event.target.closest('.markmenu-btn');
   if (item) {
     setStatus(item.dataset.person, item.dataset.prayer, item.dataset.set);
@@ -1407,6 +1516,8 @@ async function start() {
     Sections.refresh(); // show_learn may differ from the default
     await Data.loadQada();
     await Data.loadRecent();
+    await Data.loadPushPeople();
+    await Data.loadNudges(todayKey());
     render();
     openQadaPop();
   } catch (err) {
@@ -1424,6 +1535,8 @@ async function start() {
       Sections.refresh(); // show_learn may differ from the default
       await Data.loadQada();
       await Data.loadRecent();
+      await Data.loadPushPeople();
+      await Data.loadNudges(todayKey());
       render();
     } catch { /* stay with what we have */ }
   });
@@ -1456,6 +1569,7 @@ function startClock() {
     } else if (now.getMinutes() !== lastMinute) {
       lastMinute = now.getMinutes();
       renderTimeline();
+      renderTimetable(); // the nudge bell: "nudged 3m ago", and when it may ring again
     }
   }, 1000);
 }

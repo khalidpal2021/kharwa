@@ -4136,3 +4136,69 @@ body.is-guiding { overflow: hidden; }
 .set-rem-test { justify-self: start; }
 
 #set-rem-test-msg:empty { display: none; }
+
+/* --------------------------------------------------------------- nudge --- */
+
+/* The bell beside the other person's empty circle, out to its right, and
+   under the circle a word on when it last rang ("Nudged", "nudged 3m ago"). */
+.nudge {
+  position: absolute;
+  top: 50%;
+  left: calc(50% + 13px);
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+}
+
+.nudge-btn {
+  position: relative;
+  width: 22px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--ease), transform var(--ease);
+}
+
+/* a 36px tap area */
+.nudge-btn::after { content: ""; position: absolute; inset: -5px -7px; }
+
+.nudge-btn:hover { color: var(--accent); }
+.nudge-btn:active { transform: scale(0.9); }
+.nudge-btn:disabled { cursor: default; color: var(--border-hover); }
+.nudge-btn:disabled:hover { color: var(--border-hover); }
+
+.nudge-btn.is-sent,
+.nudge-btn.is-sent:disabled { color: var(--accent); }
+.nudge-btn.is-sent svg { animation: nudge-ring 600ms ease-out; transform-origin: 50% 15%; }
+
+@keyframes nudge-ring {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(14deg); }
+  40% { transform: rotate(-12deg); }
+  60% { transform: rotate(8deg); }
+  80% { transform: rotate(-4deg); }
+}
+
+/* under the circle, centred on its column */
+.nudge-note {
+  position: absolute;
+  top: calc(50% + 14px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+
+.nudge-note.is-sent { color: var(--accent-text); font-weight: 600; }
+
+/* No reminders on their side: just the ⓘ, where the bell would be. */
+.nudge--off { width: 22px; height: 26px; }

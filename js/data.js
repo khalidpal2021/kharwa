@@ -38,6 +38,12 @@ const Data = {
   /** person id -> { fajr: 3, witr: 1, ... }, prayers owed from before Kharwa */
   backlog: {},
 
+  /** Who can be nudged: people with a device signed up for pushes. */
+  pushPeople: new Set(),
+
+  /** "from|to|date|prayer" -> when that nudge was last sent, in ms */
+  nudgedAt: new Map(),
+
   /** False until the qada_backlog table exists (schema.sql has been re-run). */
   backlogReady: false,
 
@@ -269,6 +275,56 @@ const Data = {
     if (!this.configured) throw new Error('Supabase is not configured yet.');
     const { error } = await this.db.from('push_subscriptions').delete().eq('endpoint', endpoint);
     if (error) throw error;
+  },
+
+  /** Who has at least one device signed up for pushes. False until the
+      push_subscriptions table exists. */
+  async loadPushPeople() {
+    if (!this.configured) return;
+    const { data, error } = await this.db.from('push_subscriptions').select('person');
+    if (error) return; // schema.sql not re-run yet: nobody can be nudged
+    this.pushPeople = new Set(data.map((r) => r.person));
+  },
+
+  /** A day's nudges, so a bell knows when it was last rung. */
+  async loadNudges(date) {
+    if (!this.configured) return;
+    const { data, error } = await this.db
+      .from('nudges')
+      .select('from_person, to_person, prayer, log_date, sent_at')
+      .eq('log_date', date);
+    if (error) return;
+    for (const r of data) this.noteNudge(r.from_person, r.to_person, r.log_date, r.prayer, Date.parse(r.sent_at));
+  },
+
+  nudgeKey(from, to, date, prayer) {
+    return `${from}|${to}|${date}|${prayer}`;
+  },
+
+  noteNudge(from, to, date, prayer, at) {
+    const k = this.nudgeKey(from, to, date, prayer);
+    if (!(this.nudgedAt.get(k) >= at)) this.nudgedAt.set(k, at);
+  },
+
+  /** When `from` last nudged `to` about a prayer, in ms, or 0. */
+  lastNudge(from, to, date, prayer) {
+    return this.nudgedAt.get(this.nudgeKey(from, to, date, prayer)) || 0;
+  },
+
+  /** Asks the send-nudge Edge Function to push to all of `to`'s devices.
+      Resolves to { ok, sent_at } or { ok: false, reason, last_at }. */
+  async sendNudge(from, to, prayer, date) {
+    if (!this.configured) throw new Error('Supabase is not configured yet.');
+    const { data, error } = await this.db.functions.invoke('send-nudge', {
+      body: { from, to, prayer, date },
+    });
+    if (error) {
+      throw new Error(error.context?.status === 404
+        ? 'the send-nudge function is not deployed yet.'
+        : error.message);
+    }
+    if (!data?.ok && !data?.reason) throw new Error(data?.error || 'the nudge could not be sent.');
+    return data;
   },
 
   /** Asks the send-reminders Edge Function for a test notification now. */
