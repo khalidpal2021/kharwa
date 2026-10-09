@@ -4107,3 +4107,32 @@ body.is-guiding { overflow: hidden; }
   html, body { overscroll-behavior-y: none; }
   .tabbar, .navtab, .btn { -webkit-touch-callout: none; }
 }
+
+/* ----------------------------------------------------- prayer reminders --- */
+
+/* Settings → App: the switch, then which prayers and when, then a test. */
+.set-rem-options { display: grid; gap: var(--s2); margin-top: var(--s2); }
+
+.set-rem-prayers { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.set-rem-prayer {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--border-hover);
+  border-radius: 999px;
+  background: none;
+  font-size: 14px;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: color var(--ease), border-color var(--ease), background var(--ease);
+}
+
+.set-rem-prayer[aria-pressed="true"] {
+  color: var(--accent-text);
+  border-color: var(--accent);
+  background: var(--accent-faint);
+}
+
+.set-rem-test { justify-self: start; }
+
+#set-rem-test-msg:empty { display: none; }

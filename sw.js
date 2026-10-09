@@ -11,6 +11,9 @@
    - Offline, a page load gets the cached app, or failing that a short
      "You're offline" page.
 
+   It also shows the prayer reminders pushed by the send-reminders Edge
+   Function, and opens Kharwa on the Prayer tab when one is tapped.
+
    Bump VERSION to drop every cache when the strategy itself changes; a normal
    push does not need it, since the app files are network-first.
    =========================================================================== */
@@ -40,6 +43,7 @@ const APP_SHELL = [
   '/js/learn-audio.js',
   '/js/learn.js',
   '/js/install.js',
+  '/js/reminders.js',
   '/js/app.js',
 ];
 
@@ -101,6 +105,40 @@ self.addEventListener('fetch', (event) => {
   if (STATIC_HOSTS.includes(url.hostname)) event.respondWith(cacheFirst(req));
   // everything else: not ours to cache
 });
+
+/* --------------------------------------------------------- reminders --- */
+
+/* A prayer reminder from the send-reminders Edge Function:
+   { title, body, url, tag }. */
+self.addEventListener('push', (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch { data = { body: event.data?.text() }; }
+  event.waitUntil(self.registration.showNotification(data.title || 'Kharwa', {
+    body: data.body || '',
+    tag: data.tag || 'kharwa',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    data: { url: data.url || '/#/prayer' },
+  }));
+});
+
+/* A tap opens Kharwa on the Prayer tab: an open window if there is one. */
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = new URL(event.notification.data?.url || '/#/prayer', self.location.origin).href;
+  event.waitUntil((async () => {
+    const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const win of wins) {
+      if (new URL(win.url).origin !== self.location.origin) continue;
+      await win.focus();
+      if ('navigate' in win) await win.navigate(url).catch(() => {});
+      return;
+    }
+    await self.clients.openWindow(url);
+  })());
+});
+
+/* ---------------------------------------------------------- strategies --- */
 
 /** The network, revalidated past the browser cache; the cached copy offline. */
 async function networkFirst(req) {

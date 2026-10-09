@@ -66,6 +66,55 @@ APIs are never cached. A new file under `js/` should be added to `APP_SHELL`
 in `sw.js` so it is there offline; bump `VERSION` only when the caching
 itself changes, which clears the old caches.
 
+### Prayer reminders
+
+Push notifications at each prayer time, even with Kharwa closed. Each person
+turns them on per device in *Settings → App → Prayer reminders*, picks which
+prayers, and whether to be told at the start time or 5, 10 or 15 minutes
+before. A prayer already logged is skipped. On an iPhone, Kharwa has to be on
+the Home Screen first (Apple only allows Web Push for installed apps).
+
+How it fits together:
+
+- The browser subscribes with the **VAPID public key** in `config.js` and the
+  subscription is saved in `push_subscriptions` (`supabase/schema.sql`).
+- The **Edge Function** `supabase/functions/send-reminders/index.ts` works out
+  Tracy's prayer times the same way the app does (the ISOT month from
+  `js/timetable.js`, read from the live site, otherwise adhan with ISOT's
+  settings), and sends whatever is due. Subscriptions the push service reports
+  as gone (404/410) are deleted.
+- **pg_cron** calls the function every minute (`supabase/cron.sql`).
+- `sw.js` shows the notification and opens the Prayer tab when it is tapped.
+
+The **VAPID private key** is only ever a Supabase secret. It is not in this
+repo and must never be committed.
+
+One-time setup:
+
+1. **Run the schema.** Supabase → SQL Editor → paste all of
+   `supabase/schema.sql` → Run. (Safe to re-run; it adds `push_subscriptions`.)
+2. **Add the secrets.** Supabase → Edge Functions → Secrets → add:
+   - `VAPID_PUBLIC_KEY`: the same value as in `config.js`
+   - `VAPID_PRIVATE_KEY`: the private key (kept outside the repo)
+   - `SITE_URL`: where Kharwa is hosted, e.g. `https://your-app.vercel.app`
+     (no trailing slash)
+   - `VAPID_SUBJECT` (optional): a contact for the push services, such as
+     `mailto:you@example.com`; defaults to `SITE_URL`
+3. **Deploy the function**, either way:
+   - Dashboard: Edge Functions → Deploy a new function → Via Editor → name it
+     `send-reminders` → paste `supabase/functions/send-reminders/index.ts` →
+     Deploy. Leave *Verify JWT* on.
+   - Or from this folder: `npx supabase login`, then
+     `npx supabase functions deploy send-reminders --project-ref knnxeivkcazzowhorokt`
+4. **Start the every-minute job.** SQL Editor → paste `supabase/cron.sql` →
+   Run. To stop it: `select cron.unschedule('kharwa-send-reminders');`
+5. **Try it.** Settings → App → turn on Prayer reminders → *Send test
+   notification*.
+
+To replace the keys: generate a new pair (`npx web-push generate-vapid-keys`),
+put the public key in `config.js` and both in the secrets. Every device then
+has to turn reminders off and on again.
+
 ## How it works
 
 - **Who's this?** On first visit you pick Khalid or Marwa. The choice lives in

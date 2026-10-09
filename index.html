@@ -491,6 +491,44 @@
                 <hr class="set-rule" />
               </div>
 
+              <!-- Prayer reminders: js/reminders.js. Per device; the switch
+                   subscribes this browser to Web Push. -->
+              <div id="set-rem" class="set-rem">
+                <div class="set-row">
+                  <div class="set-row-text">
+                    <span id="set-rem-label" class="set-label">Prayer reminders</span>
+                    <span class="set-saved" data-for="reminders" aria-live="polite"></span>
+                  </div>
+                  <button id="set-rem-switch" class="switch" type="button" role="switch" aria-checked="false"
+                          aria-labelledby="set-rem-label" hidden><span class="switch-thumb"></span></button>
+                </div>
+                <p id="set-rem-note" class="set-hint" hidden></p>
+                <p class="set-error" data-for="reminders" role="alert" hidden></p>
+
+                <div id="set-rem-options" class="set-rem-options" hidden>
+                  <div class="set-rem-prayers" role="group" aria-label="Which prayers">
+                    <button class="set-rem-prayer" type="button" data-prayer="fajr" aria-pressed="true">Fajr</button>
+                    <button class="set-rem-prayer" type="button" data-prayer="dhuhr" aria-pressed="true">Dhuhr</button>
+                    <button class="set-rem-prayer" type="button" data-prayer="asr" aria-pressed="true">Asr</button>
+                    <button class="set-rem-prayer" type="button" data-prayer="maghrib" aria-pressed="true">Maghrib</button>
+                    <button class="set-rem-prayer" type="button" data-prayer="isha" aria-pressed="true">Isha</button>
+                  </div>
+                  <div class="set-field">
+                    <label class="set-label" for="set-rem-when">When</label>
+                    <select id="set-rem-when" class="input set-select">
+                      <option value="0">At the start time</option>
+                      <option value="5">5 minutes before</option>
+                      <option value="10">10 minutes before</option>
+                      <option value="15">15 minutes before</option>
+                    </select>
+                  </div>
+                  <button id="set-rem-test" class="btn btn--ghost set-rem-test" type="button">Send test notification</button>
+                  <p id="set-rem-test-msg" class="set-hint" aria-live="polite"></p>
+                </div>
+              </div>
+
+              <hr class="set-rule" />
+
               <div class="set-row">
                 <div class="set-row-text">
                   <span id="set-learn-label" class="set-label">Show Learn tab</span>
@@ -597,6 +635,7 @@
   <script src="js/learn-audio.js" defer></script>
   <script src="js/learn.js" defer></script>
   <script src="js/install.js" defer></script>
+  <script src="js/reminders.js" defer></script>
   <script src="js/app.js" defer></script>
 </body>
 </html>

@@ -241,6 +241,50 @@ const Data = {
     this.people[person] = { ...this.people[person], ...patch };
   },
 
+  /* -------------------------------------------------- prayer reminders --- */
+
+  /** This device's reminder row, by its push endpoint, or null. */
+  async loadPushSubscription(endpoint) {
+    if (!this.configured) return null;
+    const { data, error } = await this.db
+      .from('push_subscriptions')
+      .select('person, settings')
+      .eq('endpoint', endpoint)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  },
+
+  /** Saves this device's subscription for a person, with its settings. */
+  async savePushSubscription(person, subscription, settings) {
+    if (!this.configured) throw new Error('Supabase is not configured yet.');
+    const { endpoint, keys } = subscription.toJSON();
+    const { error } = await this.db
+      .from('push_subscriptions')
+      .upsert({ person, endpoint, keys, settings }, { onConflict: 'endpoint' });
+    if (error) throw error;
+  },
+
+  async deletePushSubscription(endpoint) {
+    if (!this.configured) throw new Error('Supabase is not configured yet.');
+    const { error } = await this.db.from('push_subscriptions').delete().eq('endpoint', endpoint);
+    if (error) throw error;
+  },
+
+  /** Asks the send-reminders Edge Function for a test notification now. */
+  async sendTestPush(endpoint) {
+    if (!this.configured) throw new Error('Supabase is not configured yet.');
+    const { data, error } = await this.db.functions.invoke('send-reminders', {
+      body: { test: true, endpoint },
+    });
+    if (error) {
+      throw new Error(error.context?.status === 404
+        ? 'the send-reminders function is not deployed yet.'
+        : error.message);
+    }
+    if (!data?.ok) throw new Error(data?.error || 'the test could not be sent.');
+  },
+
   /* ----------------------------------------------------- quran reading --- */
 
   /** Both people's last reading position: { khalid: { surah, ayah, updated_at }, ... } */
