@@ -236,6 +236,8 @@ const Hadith = {
     el('hd-search').addEventListener('input', () => this.renderChapterList());
 
     el('hd-text').addEventListener('click', (event) => {
+      const send = event.target.closest('.hd-send');
+      if (send) { ShareSheet.openHadith(this.chapter.book, Number(send.dataset.number)); return; }
       const btn = event.target.closest('.hd-bm');
       if (btn) this.toggleBookmark(Number(btn.dataset.number));
     });
@@ -481,12 +483,16 @@ const Hadith = {
       <article class="hd-item" id="hd-${h.n}" data-number="${h.n}">
         <header class="hd-item-head">
           <span class="hd-num">Hadith ${h.n}</span>
-          <button class="hd-bm${on ? ' is-bookmarked' : ''}" type="button" data-number="${h.n}"
-                  aria-pressed="${on}" aria-label="Hadith ${h.n}, ${on ? 'bookmarked' : 'bookmark'}">
-            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
-              <path d="M7 3.5h10a1 1 0 0 1 1 1v16l-6-4-6 4v-16a1 1 0 0 1 1-1z"/>
-            </svg>
-          </button>
+          <span class="hd-acts">
+            ${h.en ? `<button class="hd-send" type="button" data-number="${h.n}"
+                    aria-label="Send hadith ${h.n} to ${esc(name(Us.other()))}">${US_ICONS.send}</button>` : ''}
+            <button class="hd-bm${on ? ' is-bookmarked' : ''}" type="button" data-number="${h.n}"
+                    aria-pressed="${on}" aria-label="Hadith ${h.n}, ${on ? 'bookmarked' : 'bookmark'}">
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+                <path d="M7 3.5h10a1 1 0 0 1 1 1v16l-6-4-6 4v-16a1 1 0 0 1 1-1z"/>
+              </svg>
+            </button>
+          </span>
         </header>
         ${arabic && h.ar ? `<p class="hd-ar" lang="ar" dir="rtl">${esc(h.ar)}</p>` : ''}
         ${h.en ? `<p class="hd-en">${esc(h.en)}</p>` : ''}

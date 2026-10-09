@@ -4202,3 +4202,384 @@ body.is-guiding { overflow: hidden; }
 
 /* No reminders on their side: just the ⓘ, where the bell would be. */
 .nudge--off { width: 22px; height: 26px; }
+
+/* ===========================================================================
+   Us — the thread between the two of you.
+   =========================================================================== */
+
+/* the gold dot on the nav for unread messages */
+.navtab.has-dot .navtab-icon,
+.navtab.has-dot .navtab-label { position: relative; }
+
+.tabbar .navtab.has-dot .navtab-icon::after,
+.navtabs .navtab.has-dot .navtab-label::after {
+  content: "";
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.tabbar .navtab.has-dot .navtab-icon::after { top: -1px; right: -3px; box-shadow: 0 0 0 2px var(--card); }
+.navtabs .navtab.has-dot .navtab-label::after { top: 0; right: -9px; }
+
+.us-card {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding-bottom: 0;
+}
+
+/* tall enough that the box sits at the bottom even with a few messages */
+.us-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: calc(100dvh - 330px);
+  padding: 4px 0 var(--s2);
+}
+
+.us-empty {
+  margin: auto;
+  padding: var(--s4) 0;
+  font-size: 14px;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+.us-empty code { font-family: var(--mono); font-size: 12px; }
+
+/* "Today", "Fri, Oct 9": small caps between thin rules */
+.us-day {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  margin: var(--s2) 0 2px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--muted-foreground);
+}
+
+.us-day::before,
+.us-day::after { content: ""; height: 1px; background: var(--border); }
+
+/* a message: mine on the right, on a faint gold; theirs on the left, on white */
+.us-msg {
+  display: flex;
+  flex-direction: column;
+  max-width: min(82%, 520px);
+  scroll-margin: 80px 0 160px;
+}
+
+.us-msg.is-theirs { align-self: flex-start; align-items: flex-start; }
+.us-msg.is-mine { align-self: flex-end; align-items: flex-end; }
+
+.us-bubble {
+  padding: 9px 13px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+  box-shadow: var(--shadow-sm);
+  transition: background var(--ease), border-color var(--ease);
+}
+
+.us-msg.is-theirs .us-bubble { border-bottom-left-radius: 4px; }
+
+.us-msg.is-mine .us-bubble {
+  border-color: var(--accent-hairline);
+  border-bottom-right-radius: 4px;
+  background: var(--accent-faint);
+  box-shadow: none;
+}
+
+.us-msg.is-pending .us-bubble { opacity: 0.6; }
+.us-msg.is-selected .us-bubble { border-color: var(--accent); background: var(--accent-wash); }
+.us-msg.is-target .us-bubble { background: var(--accent-tint); }
+
+/* a long-press should not start a text selection on a phone */
+@media (pointer: coarse) {
+  .us-msg.is-mine { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+}
+
+.us-text {
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.us-meta {
+  margin-top: 3px;
+  padding: 0 4px;
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+.us-retry,
+.us-del {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.us-retry { color: var(--accent-text); }
+
+.us-del {
+  margin-top: 4px;
+  min-height: 32px;
+  padding: 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--foreground);
+  text-decoration-color: var(--accent);
+}
+
+/* a nudge: one muted line across the middle */
+.us-nudge {
+  align-self: center;
+  max-width: 90%;
+  font-size: 12.5px;
+  font-style: italic;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+/* an ayah or hadith: a quiet quotation with a gold rule; tap to open it */
+.us-share {
+  display: block;
+  margin: 2px 0;
+  padding: 2px 0 2px 12px;
+  border-left: 2px solid var(--accent);
+  color: inherit;
+  text-decoration: none;
+}
+
+.us-text + .us-share { margin-top: 8px; }
+
+.us-share-ar {
+  font-family: var(--quran);
+  font-size: 21px;
+  line-height: 1.9;
+  color: var(--foreground);
+  text-align: right;
+}
+
+.us-share-en {
+  margin-top: 2px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--foreground);
+}
+
+.us-share--hadith .us-share-en {
+  display: -webkit-box;
+  -webkit-line-clamp: 7;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.us-share-ref {
+  margin-top: 6px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: var(--accent-text);
+}
+
+.us-share:hover .us-share-ref { text-decoration: underline; text-underline-offset: 3px; }
+
+/* the box: quick sends, then the text and Send, pinned above the tab bar */
+.us-compose {
+  position: sticky;
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
+  z-index: 3;
+  margin: 0 -16px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 var(--radius-card) var(--radius-card);
+  background: var(--card);
+}
+
+.us-chips {
+  display: flex;
+  gap: 6px;
+  margin: 0 -16px 8px;
+  padding: 0 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.us-chips::-webkit-scrollbar { display: none; }
+
+.us-chip {
+  flex: none;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--border-hover);
+  border-radius: 999px;
+  background: var(--card);
+  font-size: 13.5px;
+  color: var(--foreground);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color var(--ease), background var(--ease);
+}
+
+.us-chip:hover { border-color: var(--accent); }
+.us-chip:active { background: var(--accent-faint); }
+
+.us-form { display: flex; align-items: flex-end; gap: 8px; }
+
+.us-input {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--tap);
+  max-height: 132px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: var(--background);
+  font-size: 16px; /* iOS does not zoom */
+  line-height: 1.45;
+  resize: none;
+  transition: border-color var(--ease), box-shadow var(--ease);
+}
+
+.us-input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 2px var(--accent-wash); }
+
+.us-send {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--tap);
+  height: var(--tap);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-foreground);
+  cursor: pointer;
+  transition: background var(--ease), transform var(--ease);
+}
+
+.us-send:hover { background: var(--accent-secondary); }
+.us-send:active { transform: scale(0.94); }
+
+.us-hint {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+  text-align: right;
+}
+
+.us-hint:empty { display: none; }
+
+@media (min-width: 900px) {
+  .us-compose { bottom: 0; margin: 0 -26px; padding: 12px 26px 14px; }
+  .us-chips { margin: 0 -26px 10px; padding: 0 26px; flex-wrap: wrap; }
+  .us-thread { min-height: calc(100dvh - 300px); }
+}
+
+/* ------------------------------------------------- send to the other one --- */
+
+.share-sheet { padding: 6px 24px calc(20px + env(safe-area-inset-bottom, 0px)); }
+
+/* the sheet's own padding lines the title up with the preview */
+.share-sheet .sheet-head { padding: 14px 40px 0 0; }
+
+.share-title {
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.share-sheet .sheet-head .modal-close { top: 4px; right: -12px; }
+
+.share-preview {
+  max-height: 34vh;
+  overflow-y: auto;
+  margin: var(--s2) 0;
+  padding-left: 12px;
+  border-left: 2px solid var(--accent);
+}
+
+.share-preview .us-share-en {
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.share-label { display: block; margin-bottom: 6px; }
+.share-optional { font-weight: 400; color: var(--muted-foreground); }
+.share-send { width: 100%; margin-top: var(--s2); }
+
+/* the send button beside each hadith's bookmark */
+.hd-acts { display: inline-flex; align-items: center; gap: 2px; }
+
+.hd-send {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: color var(--ease);
+}
+
+.hd-send::after { content: ""; position: absolute; inset: -6px -2px; }
+.hd-send:hover { color: var(--accent-text); }
+.hd-send svg { width: 18px; height: 18px; }
+
+/* Settings → App: the quick messages */
+.set-quick { display: grid; gap: 6px; margin-top: var(--s1); }
+
+.set-quick-row { display: flex; gap: 6px; align-items: center; }
+
+.set-quick-remove {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: var(--radius-btn);
+  background: none;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.set-quick-remove:hover { color: var(--foreground); background: var(--muted); }
+
+.set-quick-actions { display: flex; align-items: center; gap: var(--s2); margin-top: var(--s1); }
+
+.set-quick-reset {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 13px;
+  color: var(--muted-foreground);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}

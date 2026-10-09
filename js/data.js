@@ -327,6 +327,66 @@ const Data = {
     return data;
   },
 
+  /* ------------------------------------------------------------ messages --- */
+
+  /** The Us thread, oldest first: the last 30 days (older ones are deleted). */
+  async loadMessages() {
+    if (!this.configured) return [];
+    const since = new Date(Date.now() - 31 * 86400_000).toISOString();
+    const { data, error } = await this.db
+      .from('messages')
+      .select('*')
+      .gte('created_at', since)
+      .order('created_at', { ascending: true })
+      .limit(2000);
+    if (error) throw error;
+    return data || [];
+  },
+
+  /** Through the send-message Edge Function, which saves it and pushes it.
+      Resolves to { ok, message, devices } or { ok: false, reason }. */
+  async sendMessage(fields) {
+    if (!this.configured) throw new Error('Supabase is not configured yet.');
+    const { data, error } = await this.db.functions.invoke('send-message', { body: fields });
+    if (error) {
+      throw new Error(error.context?.status === 404
+        ? 'the send-message function is not deployed yet.'
+        : error.message);
+    }
+    if (!data?.ok && !data?.reason) throw new Error(data?.error || 'the message could not be sent.');
+    return data;
+  },
+
+  /** Only your own: long-press in the thread. */
+  async deleteMessage(person, id) {
+    if (!this.configured) throw new Error('Supabase is not configured yet.');
+    const { error } = await this.db.from('messages').delete().eq('id', id).eq('from_person', person);
+    if (error) throw error;
+  },
+
+  /** Everything sent to `person` is read now. */
+  async markMessagesRead(person) {
+    if (!this.configured) return;
+    const { error } = await this.db
+      .from('messages')
+      .update({ read_at: new Date().toISOString() })
+      .eq('to_person', person)
+      .is('read_at', null);
+    if (error) throw error;
+  },
+
+  /** New, read and deleted messages, live: onChange({ event, row }). */
+  subscribeMessages(onChange) {
+    if (!this.configured || this.messageChannel) return;
+    this.messageChannel = this.db
+      .channel('kharwa-messages')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
+        const row = payload.eventType === 'DELETE' ? payload.old : payload.new;
+        if (row?.id) onChange({ event: payload.eventType, row });
+      })
+      .subscribe();
+  },
+
   /** Asks the send-reminders Edge Function for a test notification now. */
   async sendTestPush(endpoint) {
     if (!this.configured) throw new Error('Supabase is not configured yet.');

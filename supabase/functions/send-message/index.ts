@@ -1,39 +1,37 @@
 // =============================================================================
-// send-nudge — one of you reminds the other to pray.
+// send-message — the Us tab: a message from one of you to the other.
 //
-// POST { from, to, prayer, date }
+// POST { from, to, type, body, ref?, note? }
+//   type 'text'    body is the message, up to 500 characters
+//   type 'ayah'    body is the translation; ref { surah, ayah, name, arabic }
+//   type 'hadith'  body is the English; ref { book, number, name, arabic }
+//   note           optional, up to 200 characters, sent with an ayah or hadith
 //
-// Called from the Today table when someone taps the bell beside the other
-// person's empty circle. Checks that the prayer is still unlogged and that
-// `from` has not nudged `to` about it in the last 15 minutes, records the
-// nudge, then pushes "Khalid nudged you / Time to pray Isha 🤲" to every
-// device `to` has turned reminders on for, and leaves a line in the Us tab's
-// thread. Subscriptions the push service reports gone (404/410) are deleted.
+// Saves the message, then pushes a short notification to every device `to`
+// has turned reminders on for; subscriptions that answer 404/410 are
+// deleted. The push carries only a title, a line and the message's link:
+// the app loads the message itself. At most 30 messages an hour from one
+// person, so a stuck button cannot flood the other phone.
 //
-// Answers 200 with { ok: true, sent, sent_at }, or { ok: false, reason, ... }
-// where reason is 'logged', 'too_soon' (with last_at and retry_at),
-// 'no_devices' or 'bad_request'.
+// Answers 200 with { ok: true, message, devices, delivered }, or
+// { ok: false, reason } where reason is 'bad_request' or 'rate_limited'.
 //
-// Uses the same secrets as send-reminders: VAPID_PUBLIC_KEY,
+// Uses the same secrets as send-reminders and send-nudge: VAPID_PUBLIC_KEY,
 // VAPID_PRIVATE_KEY and optionally VAPID_SUBJECT (else SITE_URL).
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided by Supabase.
 //
 // One self-contained file, so it can be pasted into the dashboard editor.
-// The Web Push section is the same code as in send-reminders: keep the two
-// in step.
+// The Web Push section is the same code as in send-reminders: keep them in
+// step.
 // =============================================================================
 
-const TZ = 'America/Los_Angeles';
+const TEXT_MAX = 500;
+const SHARED_MAX = 6000;
+const NOTE_MAX = 200;
+const PER_HOUR = 30;
 
-const PRAYER_LABEL: Record<string, string> = {
-  fajr: 'Fajr', dhuhr: 'Dhuhr', asr: 'Asr', maghrib: 'Maghrib', isha: 'Isha',
-};
-
-/** One nudge per prayer, per person, this often. */
-const NUDGE_GAP_MS = 15 * 60_000;
-
-/** A nudge is about now: not worth delivering after 15 minutes. */
-const PUSH_TTL_SECONDS = 15 * 60;
+/** A message is worth delivering for a day; after that the app has it anyway. */
+const PUSH_TTL_SECONDS = 24 * 3600;
 
 const env = (name: string) => (globalThis as any).Deno?.env.get(name) ?? '';
 
@@ -207,93 +205,101 @@ async function forget(sub: Subscription) {
   await rest(`push_subscriptions?id=eq.${sub.id}`, { method: 'DELETE' });
 }
 
-// ------------------------------------------------------------------ time ---
+// --------------------------------------------------------------- message ---
 
-/** YYYY-MM-DD in Tracy at instant t. */
-export function tracyDayKey(t: number): string {
-  const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', {
-    timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit',
-  }).formatToParts(new Date(t)).map((x) => [x.type, x.value]));
-  return `${p.year}-${p.month}-${p.day}`;
+type Incoming = { from: string; to: string; type: string; body: string; ref: any; note: string };
+
+/** The first `n` characters, on a word boundary, with an ellipsis if cut. */
+export function clip(text: string, n: number): string {
+  const t = text.replace(/\s+/g, ' ').trim();
+  if (t.length <= n) return t;
+  const cut = t.slice(0, n);
+  return `${cut.slice(0, Math.max(cut.lastIndexOf(' '), n - 15)).trim()}…`;
 }
 
-// ----------------------------------------------------------------- nudge ---
+/** What the notification says. Small on purpose: the app loads the rest. */
+export function notification(sender: string, m: { id: number; type: string; body: string; ref: any; note: string | null }) {
+  const url = `/#/us/${m.id}`;
+  const tag = `kharwa-msg-${m.id}`;
+  if (m.type === 'text') return { title: sender, body: clip(m.body, 140), url, tag };
+  const what = m.type === 'ayah' ? 'an ayah' : 'a hadith';
+  const where = m.type === 'ayah'
+    ? `${m.ref?.name ?? 'Quran'} ${m.ref?.surah}:${m.ref?.ayah}`
+    : `${m.ref?.name ?? 'Hadith'} ${m.ref?.number}`;
+  return {
+    title: m.note ? `${sender}: ${clip(m.note, 60)}` : `${sender} shared ${what}`,
+    body: `${clip(m.body, 90)} (${where})`,
+    url,
+    tag,
+  };
+}
 
-type Nudge = { from: string; to: string; prayer: string; date: string };
-
-async function nudge({ from, to, prayer, date }: Nudge) {
-  // Today in Tracy only (yesterday too, for a phone a moment behind at midnight).
-  const now = Date.now();
-  const days = [tracyDayKey(now), tracyDayKey(now - 6 * 3600_000)];
-  if (!PRAYER_LABEL[prayer] || !from || !to || from === to || !days.includes(date)) {
-    return { ok: false, reason: 'bad_request' };
+/** Checks and tidies what the app sent; null when it is not a message. */
+export function validate(m: Incoming) {
+  const body = String(m.body ?? '').trim();
+  const note = String(m.note ?? '').trim();
+  if (!m.from || !m.to || m.from === m.to) return null;
+  if (m.type === 'text') {
+    if (!body || body.length > TEXT_MAX) return null;
+    return { type: 'text', body, ref: null, note: null };
   }
+  if (note.length > NOTE_MAX) return null;
+  if (m.type === 'ayah') {
+    const surah = Number(m.ref?.surah), ayah = Number(m.ref?.ayah);
+    if (!Number.isInteger(surah) || surah < 1 || surah > 114 || !Number.isInteger(ayah) || ayah < 1 || ayah > 286) return null;
+    return {
+      type: 'ayah', body: body.slice(0, SHARED_MAX), note: note || null,
+      ref: { surah, ayah, name: String(m.ref?.name ?? '').slice(0, 80), arabic: String(m.ref?.arabic ?? '').slice(0, 3000) },
+    };
+  }
+  if (m.type === 'hadith') {
+    const book = String(m.ref?.book ?? ''), number = Number(m.ref?.number);
+    if (!/^[a-z0-9]{1,32}$/.test(book) || !(number > 0)) return null;
+    return {
+      type: 'hadith', body: body.slice(0, SHARED_MAX), note: note || null,
+      ref: { book, number, name: String(m.ref?.name ?? '').slice(0, 80), arabic: String(m.ref?.arabic ?? '').slice(0, 3000) },
+    };
+  }
+  return null;
+}
+
+async function send(input: Incoming) {
+  const clean = validate(input);
+  if (!clean) return { ok: false, reason: 'bad_request' };
+  const { from, to } = input;
 
   const people = await restJson<{ id: string; display_name: string }[]>(
     `people?select=id,display_name&id=in.(${encodeURIComponent(from)},${encodeURIComponent(to)})`);
   const sender = people.find((p) => p.id === from);
   if (!sender || !people.some((p) => p.id === to)) return { ok: false, reason: 'bad_request' };
 
-  const logged = await restJson<unknown[]>(
-    `prayer_logs?select=id&person=eq.${encodeURIComponent(to)}&log_date=eq.${date}`
-    + `&prayer=eq.${prayer}&status=in.(on_time,late)`);
-  if (logged.length) return { ok: false, reason: 'logged' };
+  const since = new Date(Date.now() - 3600_000).toISOString();
+  const recent = await restJson<unknown[]>(
+    `messages?select=id&from_person=eq.${encodeURIComponent(from)}&type=neq.nudge`
+    + `&created_at=gt.${encodeURIComponent(since)}&limit=${PER_HOUR}`);
+  if (recent.length >= PER_HOUR) return { ok: false, reason: 'rate_limited' };
 
-  const since = new Date(now - NUDGE_GAP_MS).toISOString();
-  const [recent] = await restJson<{ sent_at: string }[]>(
-    `nudges?select=sent_at&from_person=eq.${encodeURIComponent(from)}&to_person=eq.${encodeURIComponent(to)}`
-    + `&log_date=eq.${date}&prayer=eq.${prayer}&sent_at=gt.${encodeURIComponent(since)}`
-    + '&order=sent_at.desc&limit=1');
-  if (recent) {
-    const last = Date.parse(recent.sent_at);
-    return {
-      ok: false, reason: 'too_soon',
-      last_at: recent.sent_at, retry_at: new Date(last + NUDGE_GAP_MS).toISOString(),
-    };
-  }
-
-  const subs = await restJson<Subscription[]>(`push_subscriptions?select=*&person=eq.${encodeURIComponent(to)}`);
-  if (!subs.length) return { ok: false, reason: 'no_devices' };
-
-  // Recorded before sending, so a double tap cannot send two.
-  const res = await rest('nudges?select=id,sent_at', {
+  const res = await rest('messages?select=*', {
     method: 'POST',
     headers: { Prefer: 'return=representation' },
-    body: JSON.stringify({ from_person: from, to_person: to, prayer, log_date: date }),
+    body: JSON.stringify({ from_person: from, to_person: to, ...clean }),
   });
-  if (!res.ok) throw new Error(`nudges: ${res.status} ${await res.text()}`);
-  const [row] = await res.json();
+  if (!res.ok) throw new Error(`messages: ${res.status} ${await res.text()}`);
+  const [message] = await res.json();
 
-  const label = PRAYER_LABEL[prayer];
-  const payload = {
-    title: `${sender.display_name || from} nudged you`,
-    body: `Time to pray ${label} 🤲`,
-    url: '/#/prayer',
-    tag: `kharwa-nudge-${date}-${prayer}`,
-  };
-
-  let sent = 0;
+  const subs = await restJson<Subscription[]>(`push_subscriptions?select=*&person=eq.${encodeURIComponent(to)}`);
+  const payload = notification(sender.display_name || from, message);
+  let delivered = 0;
   for (const sub of subs) {
-    const status = await push(sub, payload);
-    if (status === 404 || status === 410) await forget(sub);
-    else if (status < 300) sent += 1;
+    try {
+      const status = await push(sub, payload);
+      if (status === 404 || status === 410) await forget(sub);
+      else if (status < 300) delivered += 1;
+    } catch (err) {
+      console.warn(`push failed for subscription ${sub.id}:`, String(err)); // saved all the same
+    }
   }
-
-  if (!sent) {
-    // nothing went out, so it does not count against the 15 minutes
-    await rest(`nudges?id=eq.${row.id}`, { method: 'DELETE' });
-    return { ok: false, reason: 'no_devices' };
-  }
-
-  // A quiet line in the Us tab: "Khalid nudged you to pray Isha". Without the
-  // messages table (schema.sql not re-run yet) the nudge has still gone out.
-  const line = await rest('messages', {
-    method: 'POST',
-    body: JSON.stringify({ from_person: from, to_person: to, type: 'nudge', body: label, ref: { prayer, date } }),
-  });
-  if (!line.ok) console.warn(`messages: ${line.status} ${await line.text()}`);
-
-  return { ok: true, sent, sent_at: row.sent_at };
+  return { ok: true, message, devices: subs.length, delivered };
 }
 
 async function handle(req: Request): Promise<Response> {
@@ -304,10 +310,10 @@ async function handle(req: Request): Promise<Response> {
     if (!vapidPublic() || !vapidPrivate()) {
       return json({ ok: false, error: 'VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY secrets are not set.' }, 500);
     }
-    const body = await req.json().catch(() => ({}));
-    return json(await nudge({
-      from: String(body?.from || ''), to: String(body?.to || ''),
-      prayer: String(body?.prayer || ''), date: String(body?.date || ''),
+    const b = await req.json().catch(() => ({}));
+    return json(await send({
+      from: String(b?.from || ''), to: String(b?.to || ''), type: String(b?.type || ''),
+      body: b?.body, ref: b?.ref, note: b?.note,
     }));
   } catch (err) {
     console.error(err);

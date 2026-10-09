@@ -18,7 +18,7 @@
    push does not need it, since the app files are network-first.
    =========================================================================== */
 
-const VERSION = 'v2';
+const VERSION = 'v3';
 const APP_CACHE = `kharwa-app-${VERSION}`;
 const STATIC_CACHE = `kharwa-static-${VERSION}`;
 
@@ -44,6 +44,7 @@ const APP_SHELL = [
   '/js/learn.js',
   '/js/install.js',
   '/js/reminders.js',
+  '/js/us.js',
   '/js/app.js',
 ];
 
@@ -122,7 +123,10 @@ self.addEventListener('push', (event) => {
   }));
 });
 
-/* A tap opens Kharwa on the Prayer tab: an open window if there is one. */
+/* A tap opens Kharwa where the notification points: the Prayer tab for a
+   reminder or a nudge, the Us tab at that message for a message. An open
+   window is brought forward and told where to go (install.js), rather than
+   reloaded. */
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const url = new URL(event.notification.data?.url || '/#/prayer', self.location.origin).href;
@@ -131,7 +135,7 @@ self.addEventListener('notificationclick', (event) => {
     for (const win of wins) {
       if (new URL(win.url).origin !== self.location.origin) continue;
       await win.focus();
-      if ('navigate' in win) await win.navigate(url).catch(() => {});
+      win.postMessage({ type: 'kharwa-open', url });
       return;
     }
     await self.clients.openWindow(url);

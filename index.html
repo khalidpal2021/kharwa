@@ -372,6 +372,36 @@
     <!-- Mobile section tabs; drawn by js/router.js -->
     <nav id="nav-bottom" class="tabbar" aria-label="Sections"></nav>
 
+    <!-- -------------------------------------------------------------- us --- -->
+    <!-- Messages between the two of you: js/us.js. The page scrolls; the box
+         to write in stays at the bottom. -->
+    <div id="section-us" class="section" hidden>
+      <section class="card us-card" aria-labelledby="us-title">
+        <div class="cardhead">
+          <span class="rule" aria-hidden="true"></span>
+          <div class="cardhead-label">
+            <h2 id="us-title" class="cardhead-text">Us</h2>
+            <span data-info-slot="us"></span>
+          </div>
+          <span class="rule" aria-hidden="true"></span>
+        </div>
+        <div id="us-thread" class="us-thread" aria-live="polite"></div>
+        <div class="us-compose">
+          <div id="us-chips" class="us-chips" role="group" aria-label="Quick messages"></div>
+          <form id="us-form" class="us-form" autocomplete="off">
+            <textarea id="us-input" class="us-input" rows="1" maxlength="500" enterkeyhint="send"></textarea>
+            <button class="us-send" type="submit" aria-label="Send">
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+                <path d="M4.5 11.6 19.5 5l-4.6 14.5-3.4-5.9z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+                <path d="M11.5 13.6 19.5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </form>
+          <p id="us-hint" class="us-hint" aria-live="polite"></p>
+        </div>
+      </section>
+    </div>
+
     <!-- ----------------------------------------------------------- learn --- -->
     <div id="section-learn" class="section" hidden>
       <div id="learn-tabs-wrap" class="ln-tabs-wrap">
@@ -553,6 +583,22 @@
 
               <hr class="set-rule" />
 
+              <!-- Quick messages: the chips above the box in the Us tab. -->
+              <div class="set-field">
+                <div class="set-label-row">
+                  <span id="set-quick-label" class="set-label">Quick messages</span>
+                  <span class="set-saved" data-for="quick" aria-live="polite"></span>
+                </div>
+                <div id="set-quick" class="set-quick" role="group" aria-labelledby="set-quick-label"></div>
+                <div class="set-quick-actions">
+                  <button id="set-quick-add" class="btn btn--ghost" type="button">Add</button>
+                  <button id="set-quick-reset" class="set-quick-reset" type="button">Reset to the usual five</button>
+                </div>
+                <p class="set-error" data-for="quick" role="alert" hidden></p>
+              </div>
+
+              <hr class="set-rule" />
+
               <div class="set-row">
                 <div class="set-row-text">
                   <span class="set-label">Prayer times</span>
@@ -613,6 +659,24 @@
       </div>
     </div>
 
+    <!-- --------------------------------------------------- share sheet --- -->
+    <!-- "Send to Marwa" for an ayah or a hadith: js/us.js (ShareSheet). After
+         the ayah popup, so it opens over it. -->
+    <div id="share-pop" class="modal" hidden>
+      <div id="share-scrim" class="modal-scrim"></div>
+      <div id="share-panel" class="sheet share-sheet" role="dialog" aria-modal="true" aria-labelledby="share-title" tabindex="-1">
+        <div class="sheet-handle" aria-hidden="true"></div>
+        <div class="sheet-head">
+          <h2 id="share-title" class="share-title">Send</h2>
+          <button id="share-close" class="modal-close" type="button" aria-label="Close">&times;</button>
+        </div>
+        <div id="share-preview" class="share-preview"></div>
+        <label class="set-label share-label" for="share-note">Add a note <span class="share-optional">optional</span></label>
+        <input id="share-note" class="input" type="text" maxlength="200" autocomplete="off" enterkeyhint="send" />
+        <button id="share-send" class="btn btn--primary share-send" type="button">Send</button>
+      </div>
+    </div>
+
     <p id="banner" class="banner" hidden></p>
   </div>
 
@@ -636,6 +700,7 @@
   <script src="js/learn.js" defer></script>
   <script src="js/install.js" defer></script>
   <script src="js/reminders.js" defer></script>
+  <script src="js/us.js" defer></script>
   <script src="js/app.js" defer></script>
 </body>
 </html>

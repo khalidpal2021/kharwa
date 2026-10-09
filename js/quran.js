@@ -333,9 +333,41 @@ const Quran = {
         return;
       }
       const ayah = event.target.closest('.qr-ayah');
+      if (this.longPressed) { this.longPressed = false; return; } // it opened the send sheet
       if (!ayah || String(window.getSelection?.() || '').trim()) return; // selecting text, not tapping
       AyahSheet.openAt(this.surah.number, Number(ayah.dataset.ayah));
     });
+
+    // Long-press an ayah (or right-click it) to send it to the Us thread.
+    {
+      let timer = null;
+      let start = null;
+      const cancel = () => { clearTimeout(timer); timer = null; };
+      const send = (ayah) => {
+        this.longPressed = true;
+        window.getSelection?.().removeAllRanges();
+        ShareSheet.openAyah(this.surah.number, Number(ayah.dataset.ayah));
+      };
+      el('qr-text').addEventListener('pointerdown', (event) => {
+        const ayah = event.target.closest('.qr-ayah');
+        if (!ayah || event.button > 0 || event.target.closest('.qr-num')) return;
+        start = { x: event.clientX, y: event.clientY };
+        this.longPressed = false;
+        timer = setTimeout(() => { timer = null; send(ayah); }, 550);
+      });
+      el('qr-text').addEventListener('pointermove', (event) => {
+        if (timer && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 10) cancel();
+      });
+      for (const type of ['pointerup', 'pointercancel', 'pointerleave']) el('qr-text').addEventListener(type, cancel);
+      el('qr-text').addEventListener('contextmenu', (event) => {
+        const ayah = event.target.closest('.qr-ayah');
+        if (!ayah) return;
+        event.preventDefault();
+        cancel();
+        send(ayah);
+        this.longPressed = false; // no click follows a right-click
+      });
+    }
     el('qr-text').addEventListener('keydown', (event) => {
       if (event.key !== 'Enter' || !event.target.matches('.qr-ayah')) return;
       event.preventDefault();

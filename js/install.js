@@ -63,6 +63,13 @@ document.getElementById('set-install-btn').addEventListener('click', () => Insta
 Install.render();
 
 if ('serviceWorker' in navigator) {
+  // A notification tapped while Kharwa is open: go where it points.
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data?.type !== 'kharwa-open') return;
+    const to = new URL(event.data.url, location.origin);
+    if (to.origin === location.origin) location.hash = to.hash;
+  });
+
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => { /* the app works without it */ });
   });

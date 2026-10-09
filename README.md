@@ -133,6 +133,34 @@ as `send-reminders` (dashboard editor, or
 `npx supabase functions deploy send-nudge --project-ref knnxeivkcazzowhorokt`).
 No cron job is needed.
 
+### Us
+
+A private thread between the two of you, in its own tab. Text (up to 500
+characters), quick sends (the chips above the box, edited in *Settings → App*),
+an ayah shared from the Quran tab (the send icon in the ayah popup, or a
+long-press on an ayah), a hadith shared from the Hadith tab (the send icon
+beside its bookmark), and a quiet line for each nudge. New, read and deleted
+messages arrive live; "Seen" shows under your last message once it has been
+read; long-press one of yours to delete it. A gold dot on the tab means
+something unread.
+
+Every message goes through the `send-message` Edge Function
+(`supabase/functions/send-message/index.ts`), which saves it and pushes a
+short notification to the other person's devices (tap it to open the Us tab
+at that message). At most 30 messages an hour each. If they have no device
+signed up, the message is still saved and waits in Kharwa. Messages delete
+themselves after 30 days, by a nightly pg_cron job.
+
+Setup, once:
+
+1. Re-run `supabase/schema.sql` (adds `messages`, `people.quick_sends`, and
+   puts `messages` in the realtime publication).
+2. Deploy `send-message` like the others: dashboard → Edge Functions → Deploy
+   a new function → Via Editor, name `send-message`, paste the file, keep
+   *Verify JWT* on. It uses the VAPID secrets already set.
+3. Redeploy `send-nudge` from the repo, so nudges also appear in the thread.
+4. Run `supabase/messages-cron.sql` for the 30-day cleanup.
+
 ## How it works
 
 - **Who's this?** On first visit you pick Khalid or Marwa. The choice lives in

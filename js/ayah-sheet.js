@@ -4,7 +4,8 @@
    A bottom sheet on a phone, a modal on desktop (the same sheet as the qada
    popup). A tab bar across the top, with the × at its end: Ayah, Tafsir,
    Revelation (only when there is an entry) and Words. A slim bar of actions
-   along the bottom: previous, play, bookmark, copy, next.
+   along the bottom: previous, play, bookmark, copy, send (to the Us
+   thread, us.js), next.
 
    Every word of explanation comes from a published work, fetched as is:
    - tafsir and Al-Wahidi's Asbab al-Nuzul from the spa5k/tafsir_api static
@@ -199,6 +200,7 @@ const AyahSheet = {
         if (to) this.show(to.s, to.a);
       } else if (act === 'copy') this.copy();
       else if (act === 'bookmark') this.toggleBookmark();
+      else if (act === 'send') ShareSheet.openAyah(this.surah, this.ayah);
     });
 
     // Esc closes it, and Tab stays inside it (and on any toast above it).
@@ -423,7 +425,7 @@ const AyahSheet = {
     }
   },
 
-  /** ‹ previous, play, bookmark, copy, next › */
+  /** ‹ previous, play, bookmark, copy, send, next › */
   renderActions() {
     if (this.surah === null) return;
     const { surah: s, ayah: a } = this;
@@ -437,6 +439,7 @@ const AyahSheet = {
         ` aria-pressed="${playing}"`),
       btn('bookmark', AYAH_ICONS.star, on ? 'Remove bookmark' : 'Bookmark ayah', ` aria-pressed="${on}"`),
       btn('copy', AYAH_ICONS.copy, 'Copy ayah'),
+      btn('send', US_ICONS.send, `Send to ${esc(name(Us.other()))}`),
       btn('next', AYAH_ICONS.next, 'Next ayah', this.neighbour(s, a, 1) ? '' : ' disabled'),
     ].join('');
   },

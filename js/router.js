@@ -18,6 +18,7 @@
 const Sections = {
   list: [],
   current: null,
+  badges: {},   // section id -> true while it has something new (a gold dot)
 
   register(section) {
     this.list.push(section);
@@ -74,9 +75,17 @@ const Sections = {
     section.show(params);
   },
 
+  /** A small gold dot on a section's nav items, e.g. unread messages. */
+  setBadge(id, on) {
+    this.badges[id] = Boolean(on);
+    for (const link of document.querySelectorAll(`.navtab[data-section="${id}"]`)) {
+      link.classList.toggle('has-dot', this.badges[id]);
+    }
+  },
+
   renderNav() {
     const item = (s, withIcon) => `
-      <a class="navtab" href="#/${s.id}" data-section="${s.id}">
+      <a class="navtab${this.badges[s.id] ? ' has-dot' : ''}" href="#/${s.id}" data-section="${s.id}">
         ${withIcon ? `<span class="navtab-icon" aria-hidden="true">${s.icon}</span>` : ''}
         <span class="navtab-label">${s.label}</span>
       </a>`;
