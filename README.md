@@ -63,7 +63,8 @@ browser's install prompt; on iPhone it explains Share → Add to Home Screen.
 from two versions (the tabs' code loaded later included). Each open checks
 behind the scenes for changed files; when there are some, the whole new set
 is downloaded alongside, the app shows "Updated, tap to refresh", and the next
-load switches to it. A new `sw.js` likewise waits for that tap. Fonts, icons, pictures and the pinned CDN
+load switches to it. A new `sw.js` takes over at once and reloads open pages
+once, so none keeps running an older worker's files. Fonts, icons, pictures and the pinned CDN
 libraries are cache-first. Supabase and the Qur'an, hadith and audio APIs are
 never cached. A new file under `js/` should be added to `APP_SHELL` in `sw.js`
 so it is there offline; bump `VERSION` only when the caching itself changes,

@@ -9,8 +9,11 @@
      tap to refresh" (install.js), and the next page load switches to it.
      Files were once refreshed one by one, which could pair new code with an
      old stylesheet; this is why they are not.
-   - A new sw.js waits until it is told to take over (the same "Updated, tap
-     to refresh"), rather than taking over a page mid-session.
+   - A new sw.js takes over at once and reloads any open Kharwa page once,
+     so no page goes on with the old worker's files beside the new worker's.
+     (Waiting for a tap did not work: pages from before that change cannot
+     show the tap, and stayed on the old worker, mixing files.) A first
+     install, with no older version, reloads nothing.
    - Fonts, icons, the position pictures and the pinned CDN libraries are
      cache-first: they never change under the same URL.
    - Anything else — Supabase, the Qur'an, hadith and audio APIs — is left
@@ -26,7 +29,7 @@
    app file must be in APP_SHELL, which is what a snapshot holds.
    =========================================================================== */
 
-const VERSION = 'v10';
+const VERSION = 'v11';
 const APP_CACHE = `kharwa-app-${VERSION}`;     // the snapshot pages are served from
 const NEXT_CACHE = `kharwa-next-${VERSION}`;    // a newer one, used from the next page load
 const NEXT_READY = '/__kharwa-next-complete';    // marks NEXT_CACHE as whole
@@ -86,24 +89,28 @@ self.addEventListener('install', (event) => {
       fetch(url, { cache: 'no-cache' })
         .then((res) => (res.ok ? cache.put(url, res) : null))
         .catch(() => null)));
-    // No skipWaiting: an open page keeps the worker (and the files) it began
-    // with until "Updated, tap to refresh" says to switch. The very first
-    // install has no page to wait for, and takes over at once.
+    await self.skipWaiting();
   })());
-});
-
-/* "Updated, tap to refresh" on a page with a new sw.js waiting. */
-self.addEventListener('message', (event) => {
-  if (event.data?.type === 'kharwa-skip-waiting') self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const keep = new Set([APP_CACHE, NEXT_CACHE, STATIC_CACHE]);
+    let upgraded = false;
     for (const key of await caches.keys()) {
-      if (key.startsWith('kharwa-') && !keep.has(key)) await caches.delete(key);
+      if (key.startsWith('kharwa-') && !keep.has(key)) {
+        if (key.startsWith('kharwa-app-')) upgraded = true;
+        await caches.delete(key);
+      }
     }
     await self.clients.claim();
+    // An older version was here: its open pages may hold its files. Load them
+    // again, once, so every page runs one matching set.
+    if (upgraded) {
+      for (const win of await self.clients.matchAll({ type: 'window' })) {
+        win.navigate(win.url).catch(() => {});
+      }
+    }
   })());
 });
 

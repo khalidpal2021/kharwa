@@ -271,7 +271,7 @@ const MonthView = {
     const pct = (n, of) => (of ? (n / of) * 100 : 0).toFixed(1);
     return `
       <div class="mv-by">
-        <p class="mv-by-label">By prayer</p>
+        <p class="mv-by-label"><span>By prayer</span></p>
         <div class="mv-by-cols">
           ${PRAYERS.map((p) => `
             <div class="mv-by-col" role="img"

@@ -75,28 +75,8 @@ if ('serviceWorker' in navigator) {
     if (to.origin === location.origin) location.hash = to.hash;
   });
 
-  window.addEventListener('load', async () => {
-    let reg;
-    try { reg = await navigator.serviceWorker.register('/sw.js'); } catch { return; } // the app works without it
-
-    // A new sw.js waits rather than taking over this page; the toast lets it.
-    const offer = (worker) => toast('Updated, tap to refresh', {
-      action: { label: 'Refresh', run: () => worker.postMessage({ type: 'kharwa-skip-waiting' }) },
-    });
-    if (reg.waiting && navigator.serviceWorker.controller) offer(reg.waiting);
-    reg.addEventListener('updatefound', () => {
-      const worker = reg.installing;
-      worker?.addEventListener('statechange', () => {
-        if (worker.state === 'installed' && navigator.serviceWorker.controller) offer(worker);
-      });
-    });
-  });
-
-  // Once the new worker has taken over, load the page from it.
-  let reloaded = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (reloaded || !navigator.serviceWorker.controller) return;
-    reloaded = true;
-    location.reload();
+  // A new sw.js reloads open pages itself when it takes over (sw.js).
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => { /* the app works without it */ });
   });
 }
