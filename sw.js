@@ -21,7 +21,7 @@
    push does not need it, since every open checks for new app files.
    =========================================================================== */
 
-const VERSION = 'v8';
+const VERSION = 'v9';
 const APP_CACHE = `kharwa-app-${VERSION}`;
 const STATIC_CACHE = `kharwa-static-${VERSION}`;
 
@@ -40,6 +40,7 @@ const APP_SHELL = [
   '/js/info.js',
   '/js/router.js',
   '/js/lazy.js',
+  '/js/month.js',
   '/js/quran.js',
   '/js/ayah-sheet.js',
   '/js/hadith.js',

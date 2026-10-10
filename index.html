@@ -164,7 +164,11 @@
             <h2 id="streaks-label" class="cardhead-text">Streaks</h2>
             <span data-info-slot="streaks"></span>
           </div>
-          <span class="rule" aria-hidden="true"></span>
+          <!-- the right-hand rule makes room for "Month ›", so the label stays centred -->
+          <span class="cardhead-end">
+            <span class="rule" aria-hidden="true"></span>
+            <button id="month-open" class="cardhead-link" type="button">Month &rsaquo;</button>
+          </span>
         </div>
 
         <div id="streaks" class="streaks"></div>
@@ -728,6 +732,30 @@
           <button id="test-all" class="btn btn--ghost ts-all" type="button">Send all prayer reminders</button>
           <p id="test-all-msg" class="ts-status ts-all-msg" aria-live="polite"></p>
           <div id="test-list" class="ts-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---------------------------------------------------- month view --- -->
+    <!-- js/month.js, opened from "Month ›" on the Streaks card. -->
+    <div id="month-pop" class="modal" hidden>
+      <div id="month-scrim" class="modal-scrim"></div>
+      <div id="month-panel" class="sheet month-sheet" role="dialog" aria-modal="true" aria-labelledby="month-title" tabindex="-1">
+        <div class="sheet-handle" aria-hidden="true"></div>
+        <div class="mv-head">
+          <button id="mv-prev" class="mv-arrow" type="button" aria-label="Previous month">&lsaquo;</button>
+          <div class="mv-titles">
+            <h2 id="month-title" class="mv-title"></h2>
+            <p id="mv-hijri" class="mv-hijri"></p>
+          </div>
+          <button id="mv-next" class="mv-arrow" type="button" aria-label="Next month">&rsaquo;</button>
+          <button id="month-close" class="modal-close mv-close" type="button" aria-label="Close">&times;</button>
+        </div>
+        <div id="mv-who" class="mv-who" role="group" aria-label="Whose month"></div>
+        <div id="mv-body" class="mv-body">
+          <div class="mv-wds" aria-hidden="true"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+          <div id="mv-grid" class="mv-grid"></div>
+          <div id="mv-sum" class="mv-sum"></div>
         </div>
       </div>
     </div>

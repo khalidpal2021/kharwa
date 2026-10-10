@@ -73,6 +73,14 @@ const Data = {
   /** Unread notes for this person, before the Us tab's code has loaded. */
   unreadCount: 0,
 
+  /** Months ("2026-10") whose logs have been loaded on their own, for the
+      month view; kept with the cache. */
+  monthsLoaded: new Set(),
+
+  /** The span the cached logs covered when they were saved. */
+  cacheFrom: null,
+  cacheTo: null,
+
   messageListeners: [],
 
   channel: null,
@@ -320,6 +328,9 @@ const Data = {
     this.pushPeople = new Set(saved.pushPeople || []);
     for (const [k, at] of saved.nudgedAt || []) this.nudgedAt.set(k, at);
     this.unreadCount = saved.unread?.[saved.me] ?? 0;
+    this.monthsLoaded = new Set(saved.months || []);
+    this.cacheFrom = saved.from || null;
+    this.cacheTo = saved.to || null;
     this.logsReady = true;
     this.cacheQada = Boolean(saved.full);
     return true;
@@ -344,6 +355,9 @@ const Data = {
           pushPeople: [...this.pushPeople],
           nudgedAt: [...this.nudgedAt].filter(([k]) => k.includes(`|${todayKey()}|`)),
           unread: { [me]: this.unreadCount },
+          months: [...this.monthsLoaded],
+          from: this.loadedFrom || this.recentFrom || this.cacheFrom,
+          to: this.loadedTo || this.cacheTo,
         }));
       } catch { /* storage full or private mode: open without it */ }
     }, 400);
@@ -385,6 +399,32 @@ const Data = {
     if (from < recent) await this.loadLogs(from, addDays(recent, -1));
     this.loadedFrom = from;
     this.qadaReady = true;
+  },
+
+  /* ------------------------------------------------------------ months --- */
+
+  /** A month's first and last day: "2026-10" -> ["2026-10-01", "2026-10-31"]. */
+  monthRange(ym) {
+    const [y, m] = ym.split('-').map(Number);
+    const last = new Date(y, m, 0).getDate();
+    return [`${ym}-01`, `${ym}-${String(last).padStart(2, '0')}`];
+  },
+
+  /** Whether a month's logs are here: in the window loaded this session, in
+      the one the cache held, or loaded on their own. */
+  monthKnown(ym) {
+    const [from, to] = this.monthRange(ym);
+    const inside = (a, b) => a && b && from >= a && to <= b;
+    return this.monthsLoaded.has(ym)
+      || inside(this.loadedFrom || this.recentFrom, this.loadedTo)
+      || inside(this.cacheFrom, this.cacheTo);
+  },
+
+  /** Loads one month's logs (for the month view), merging them in. */
+  async loadMonth(ym) {
+    const [from, to] = this.monthRange(ym);
+    await this.loadLogs(from, to);
+    this.monthsLoaded.add(ym);
   },
 
   /** How many notes to `person` are unread: enough for the nav dot without

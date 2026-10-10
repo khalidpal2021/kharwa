@@ -9,7 +9,7 @@
 
    Lazy.need(bundle) is also how the Prayer tab and Settings reach code from
    these tabs: the ayah sheet ("Read in context") and the test-notification
-   sheet.
+   sheet; and how the Streaks card loads its month view.
 
    Depends on router.js and, at run time, data.js and app.js (State).
    =========================================================================== */
@@ -24,6 +24,7 @@ const LAZY_BUNDLES = {
   us: LAZY_SHARE,
   hadith: [...LAZY_SHARE, 'js/hadith.js'],
   learn: ['js/quran.js', 'js/learn-content.js', 'js/learn-audio.js', 'js/learn.js'],
+  month: ['js/month.js'],
 };
 
 const LAZY_FONTS = 'https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Noto+Nastaliq+Urdu&display=swap';

@@ -4891,3 +4891,224 @@ body.is-guiding { overflow: hidden; }
 
 /* Before any logs exist (the very first open): a faint circle, never a cross. */
 .mark-ring--loading { stroke: var(--mark-empty); opacity: 0.35; }
+
+/* ===========================================================================
+   The month view: "Month ›" on the Streaks card.
+   =========================================================================== */
+
+/* the link sits at the end of the right-hand rule, so the label stays centred */
+.cardhead-end { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.cardhead-end .rule { flex: 1; }
+
+.cardhead-link {
+  position: relative;
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--ease);
+}
+
+.cardhead-link::after { content: ""; position: absolute; inset: -12px -8px; }
+.cardhead-link:hover { color: var(--accent-text); }
+
+/* full height on a phone; a modal on desktop (below) */
+.month-sheet {
+  height: calc(100dvh - 16px - env(safe-area-inset-top, 0px));
+  max-height: none;
+}
+
+.mv-head {
+  flex: none;
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--tap) minmax(0, 1fr) var(--tap);
+  align-items: center;
+  padding: 12px 52px 4px 12px;
+}
+
+.mv-titles { text-align: center; min-width: 0; }
+
+.mv-title {
+  font-family: var(--serif);
+  font-size: 24px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.mv-hijri {
+  margin-top: 2px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: var(--accent-text);
+}
+
+.mv-hijri:empty { display: none; }
+
+.mv-arrow {
+  width: var(--tap);
+  height: var(--tap);
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--foreground);
+  cursor: pointer;
+  transition: background var(--ease), color var(--ease);
+}
+
+.mv-arrow:hover { background: var(--muted); }
+.mv-arrow:disabled { color: var(--border-hover); cursor: default; background: none; }
+
+.mv-close { position: absolute; top: 12px; right: 8px; }
+
+/* Khalid · Marwa · Together */
+.mv-who {
+  flex: none;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 2px;
+  margin: 8px 16px 4px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--muted);
+}
+
+.mv-who-btn {
+  min-height: 36px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: background var(--ease), color var(--ease), box-shadow var(--ease);
+}
+
+.mv-who-btn[aria-pressed="true"] {
+  background: var(--card);
+  color: var(--accent-text);
+  box-shadow: var(--shadow-sm);
+}
+
+.mv-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+  --bar: 4px;
+}
+
+.mv-wds,
+.mv-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.mv-wds span {
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--muted-foreground);
+}
+
+.mv-grid { margin-top: 6px; row-gap: 6px; }
+
+.mv-day {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 54px;
+  padding: 5px 5px 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--ease);
+}
+
+.mv-day:hover { background: var(--muted); }
+.mv-day.is-blank { cursor: default; }
+.mv-day.is-complete { background: var(--accent-faint); }
+.mv-day.is-complete:hover { background: var(--accent-wash); }
+.mv-day.is-today { border-color: var(--accent); }
+.mv-day.is-future { opacity: 0.4; cursor: default; }
+.mv-day.is-future:hover { background: none; }
+
+.mv-n {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  line-height: 1;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+.mv-day.is-today .mv-n { color: var(--accent-text); font-weight: 600; }
+
+.mv-bars { display: flex; flex-direction: column; gap: 2px; }
+
+/* the summary: three figures in a row */
+.mv-sum {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: var(--s3);
+  padding-top: var(--s2);
+  border-top: 1px solid var(--border);
+}
+
+.mv-stat {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 2px;
+  padding: 0 4px;
+  text-align: center;
+}
+
+.mv-stat + .mv-stat { border-left: 1px solid var(--border); }
+
+.mv-stat-n {
+  font-family: var(--serif);
+  font-size: 22px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.mv-of { font-size: 14px; color: var(--muted-foreground); }
+
+.mv-stat-l {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted-foreground);
+}
+
+@media (min-width: 900px) {
+  .month-sheet { max-width: 640px; height: auto; max-height: min(90dvh, 820px); }
+  .mv-head { padding: 18px 56px 4px 16px; }
+  .mv-who { margin: 8px 24px 4px; }
+  .mv-body { padding: 14px 24px 24px; --bar: 5px; }
+  .mv-grid { gap: 6px; row-gap: 8px; }
+  .mv-day { min-height: 64px; padding: 6px 8px 8px; }
+  .mv-stat-n { font-size: 26px; }
+}

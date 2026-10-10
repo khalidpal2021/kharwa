@@ -1155,10 +1155,18 @@ el('streaks').addEventListener('click', (event) => {
   if (day) goToDay(day.dataset.date);
 });
 
+/* "Month ›": the month view, loaded the first time (month.js). */
+el('month-open').addEventListener('click', () => {
+  Lazy.need('month').then(() => MonthView.open(), () => {
+    toast('The month view could not be loaded. Check your connection and try again.', { error: true });
+  });
+});
+
 /* keyboard: arrows change day, T jumps to today */
 document.addEventListener('keydown', (event) => {
   if (event.metaKey || event.ctrlKey || event.altKey) return;
   if (Settings.open || QadaPop.open) return;
+  if (typeof MonthView !== 'undefined' && MonthView.shown) return; // its arrows move the month
   if (Sections.current !== 'prayer') return;
 
   const t = event.target;
