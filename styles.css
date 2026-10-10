@@ -5137,3 +5137,69 @@ body.is-guiding { overflow: hidden; }
   .mv-grid { gap: 6px; row-gap: 8px; }
   .mv-day { min-height: 64px; padding: 6px 8px 8px; }
 }
+
+/* By prayer: five short bars under the stats */
+.mv-by {
+  margin-top: var(--s2);
+  padding-top: var(--s2);
+  border-top: 1px solid var(--border);
+}
+
+.mv-by-label {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+.mv-by-cols {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin-top: 10px;
+}
+
+.mv-by-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.mv-by-name {
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--muted-foreground);
+}
+
+.mv-by-name.is-low { color: var(--foreground); }
+
+/* gold for prayed from the bottom, warm grey for missed above it; the
+   outline shows what is still open */
+.mv-by-bar {
+  display: flex;
+  flex-direction: column-reverse;
+  width: 10px;
+  height: 40px;
+  overflow: hidden;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--border-hover);
+}
+
+.mv-by-done { display: block; flex: none; background: var(--accent); }
+.mv-by-missed { display: block; flex: none; background: var(--mark-empty); }
+
+.mv-by-n {
+  font-family: var(--serif);
+  font-size: 16px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mv-by-n .mv-of { font-size: 12px; }
+
+.mv-madeup { margin-top: var(--s2); }

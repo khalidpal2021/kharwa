@@ -9,8 +9,9 @@
    complete day has a faint gold tint, today a thin gold ring; a future day,
    or one before the first log, is just its faint number. Tap a day to
    open it in the Today table. Under it: complete days, the longest run of
-   them, and prayers on time out of those prayed; and, only when something
-   was missed, a quiet line naming the prayer missed most.
+   them, and prayers on time out of those prayed; only when something was
+   missed, a quiet line naming the prayer missed most; each prayer's count
+   as a short bar ("By prayer"); and, if any, how many were made up.
 
    What counts as prayed, missed or complete is the week view's own
    (cellState, dayComplete in app.js); Together needs both. A month's logs
@@ -206,6 +207,9 @@ const MonthView = {
     let onTime = 0;
     let prayed = 0;
     const missed = Object.fromEntries(PRAYERS.map((p) => [p.key, 0]));
+    const done = Object.fromEntries(PRAYERS.map((p) => [p.key, 0]));   // prayed, by prayer
+    const total = Object.fromEntries(PRAYERS.map((p) => [p.key, 0]));  // due, by prayer
+    let madeUp = 0;
 
     for (let d = 1; d <= days; d += 1) {
       const key = `${this.ym}-${String(d).padStart(2, '0')}`;
@@ -221,14 +225,24 @@ const MonthView = {
       if (complete) longest = Math.max(longest, (run += 1));
       else if (key < today) run = 0;
 
+      const { times } = timesFor(key);
       for (const p of PRAYERS) {
-        // On time out of prayed: for Together, both of you counted together.
+        // On time out of prayed, and made up (logged late): for Together,
+        // both of you counted together.
         for (const person of people) {
           const s = Data.status(person, key, p.key);
           if (s === 'on_time' || s === 'late') prayed += 1;
           if (s === 'on_time') onTime += 1;
+          if (s === 'late') madeUp += 1;
         }
-        if (this.state(key, p.key) === 'missed') missed[p.key] += 1;
+        const st = this.state(key, p.key);
+        if (st === 'missed') missed[p.key] += 1;
+        // By prayer: every day that has happened, and today once the prayer
+        // has begun. Together counts a prayer only when both prayed it.
+        if (key < today || times[p.key] <= now) {
+          total[p.key] += 1;
+          if (st === 'prayed') done[p.key] += 1;
+        }
       }
     }
 
@@ -241,7 +255,36 @@ const MonthView = {
       + stat(longest, longest === 1 ? 'day' : 'days', 'Longest streak')
       + (prayed ? stat(onTime, `of ${prayed}`, 'On time') : stat('–', '', 'On time')),
       note,
-    );
+    ) + this.byPrayer(done, missed, total) + (madeUp
+      ? `<p class="mv-note mv-madeup">${madeUp} ${madeUp === 1 ? 'prayer' : 'prayers'} made up this month</p>`
+      : '');
+  },
+
+  /** "By prayer": a short bar for each, gold from the bottom for prayed, warm
+      grey above it for missed, the rest still open; "9/9" under it. The
+      prayer with the fewest prayed has its name darker, when they differ. */
+  byPrayer(done, missed, total) {
+    if (!PRAYERS.some((p) => total[p.key])) return '';
+    const counts = PRAYERS.map((p) => done[p.key]);
+    const low = Math.min(...counts);
+    const differ = low < Math.max(...counts);
+    const pct = (n, of) => (of ? (n / of) * 100 : 0).toFixed(1);
+    return `
+      <div class="mv-by">
+        <p class="mv-by-label">By prayer</p>
+        <div class="mv-by-cols">
+          ${PRAYERS.map((p) => `
+            <div class="mv-by-col" role="img"
+                 aria-label="${p.label}: ${done[p.key]} of ${total[p.key]} prayed${missed[p.key] ? `, ${missed[p.key]} missed` : ''}">
+              <span class="mv-by-name${differ && done[p.key] === low ? ' is-low' : ''}">${p.label}</span>
+              <span class="mv-by-bar" aria-hidden="true">
+                <i class="mv-by-done" style="height: ${pct(done[p.key], total[p.key])}%"></i>
+                <i class="mv-by-missed" style="height: ${pct(missed[p.key], total[p.key])}%"></i>
+              </span>
+              <span class="mv-by-n">${done[p.key]}<span class="mv-of">/${total[p.key]}</span></span>
+            </div>`).join('')}
+        </div>
+      </div>`;
   },
 };
 
