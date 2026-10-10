@@ -416,10 +416,14 @@ const Data = {
   },
 
   /** Asks the send-reminders Edge Function for a test notification now. */
-  async sendTestPush(endpoint) {
+  /** A test from the Settings menu: `kind` is what it imitates (a prayer
+      reminder, a nudge, a note), `delay` seconds before it is sent. Only to
+      this person's own devices; nothing is written. Resolves to the
+      function's answer, or throws with the reason in words. */
+  async sendTestPush(endpoint, kind = 'basic', delay = 0) {
     if (!this.configured) throw new Error('Supabase is not configured yet.');
     const { data, error } = await this.db.functions.invoke('send-reminders', {
-      body: { test: true, endpoint },
+      body: { test: true, endpoint, kind, delay },
     });
     if (error) {
       // A non-2xx answer: say what the function said, not just its status.
@@ -438,7 +442,7 @@ const Data = {
       throw new Error(`send-reminders is running the ${wrong} code. `
         + 'Redeploy it from supabase/functions/send-reminders/index.ts.');
     }
-    if (data?.ok) return;
+    if (data?.ok) return data;
     if (data?.error) throw new Error(data.error);
     throw new Error(`send-reminders answered ${JSON.stringify(data)}.`);
   },

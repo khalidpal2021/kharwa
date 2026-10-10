@@ -168,25 +168,109 @@ const Reminders = {
     this.changed();
   },
 
-  async test() {
+  /** "Send test notification" opens the test menu. */
+  test() {
     const msg = el('set-rem-test-msg');
-    const btn = el('set-rem-test');
     if (!this.sub) {
       msg.textContent = 'Couldn’t send: no device signed up. Turn reminders off and on.';
       return;
     }
-    btn.disabled = true;
-    msg.textContent = 'Sending…';
+    msg.textContent = '';
+    TestSheet.open();
+  },
+};
+
+/* ------------------------------------------------------------ test menu --- */
+
+/* Every kind of notification, sent to your own devices only, so you can see
+   how each looks (and, with the delay, how it arrives on a locked screen).
+   send-reminders builds each from the same template as the real one and
+   writes nothing. */
+const TEST_DELAY_S = 10;
+
+const TestSheet = {
+  sheet: null,
+  delay: true,
+
+  groups() {
+    const { times } = timesFor(todayKey());
+    const other = name(PEOPLE_IDS.find((p) => p !== State.me));
+    const at = (key) => timeText(times[key]);
+    return [
+      {
+        label: 'Prayer reminders',
+        rows: [
+          ...PRAYERS.map((p) => ({ kind: `prayer:${p.key}`, label: p.label, hint: `${p.label} · ${at(p.key)} — Time for ${p.label}.` })),
+          { kind: 'prayer:asr:10', label: '10 minutes before', hint: `Asr · ${at('asr')} — Asr in 10 minutes.` },
+        ],
+      },
+      { label: 'Nudge', rows: [{ kind: 'nudge', label: `${other} nudged you`, hint: 'Time to pray Isha 🤲' }] },
+      {
+        label: 'Notes',
+        rows: [
+          { kind: 'note:love', label: 'I love you', hint: `From ${other}` },
+          { kind: 'note:ayah', label: 'An ayah', hint: 'Ash-Sharh 94:5–6, with a note' },
+          { kind: 'note:dua', label: 'Make dua for me', hint: `From ${other}` },
+          { kind: 'note:feeling', label: `${other} is feeling stressed`, hint: 'A feeling' },
+        ],
+      },
+    ];
+  },
+
+  open() {
+    // made on first use: the sheet helper lives in us.js
+    if (!this.sheet) this.sheet = usSheet('test-pop', 'test-panel', 'test-scrim', 'test-close');
+    el('test-delay').setAttribute('aria-checked', String(this.delay));
+    el('test-all-msg').textContent = '';
+    el('test-list').innerHTML = this.groups().map((g) => `
+      <h3 class="ts-group">${esc(g.label)}</h3>
+      <ul class="ts-rows">
+        ${g.rows.map((r) => `
+          <li class="ts-row">
+            <span class="ts-text">
+              <span class="ts-label">${esc(r.label)}</span>
+              <span class="ts-hint">${esc(r.hint)}</span>
+              <span class="ts-status" data-status="${r.kind}" aria-live="polite"></span>
+            </span>
+            <button class="ts-send" type="button" data-kind="${r.kind}">Send</button>
+          </li>`).join('')}
+      </ul>`).join('');
+    this.sheet.show();
+  },
+
+  /** Sends one test; `status` is where to say how it went. */
+  async send(kind, status, button) {
+    const delay = this.delay ? TEST_DELAY_S : 0;
+    status.className = 'ts-status';
+    status.textContent = delay ? `Sending in ${delay} s…` : 'Sending…';
+    if (button) button.disabled = true;
     try {
-      await Data.sendTestPush(this.sub.endpoint);
-      msg.textContent = 'Sent. It should arrive in a few seconds.';
+      const res = await Data.sendTestPush(Reminders.sub.endpoint, kind, delay);
+      status.classList.add('is-ok');
+      status.textContent = res.scheduled
+        ? (delay ? `Sent ✓ · arrives in about ${delay} s` : 'Sent ✓ · a few seconds apart')
+        : 'Sent ✓';
     } catch (err) {
-      msg.textContent = `Couldn’t send: ${err.message || err}`;
+      status.classList.add('is-error');
+      status.textContent = err.message || String(err);
     } finally {
-      btn.disabled = false;
+      if (button) button.disabled = false;
     }
   },
 };
+
+document.getElementById('test-list').addEventListener('click', (event) => {
+  const btn = event.target.closest('[data-kind]');
+  if (!btn) return;
+  TestSheet.send(btn.dataset.kind, el('test-list').querySelector(`[data-status="${btn.dataset.kind}"]`), btn);
+});
+
+document.getElementById('test-delay').addEventListener('click', () => {
+  TestSheet.delay = !TestSheet.delay;
+  el('test-delay').setAttribute('aria-checked', String(TestSheet.delay));
+});
+
+document.getElementById('test-all').addEventListener('click', () => TestSheet.send('prayers', el('test-all-msg'), el('test-all')));
 
 /** A VAPID key as bytes, from the URL-safe base64 it is written in. */
 function base64UrlBytes(text) {

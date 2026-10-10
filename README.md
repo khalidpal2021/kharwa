@@ -111,6 +111,18 @@ One-time setup:
 5. **Try it.** Settings → App → turn on Prayer reminders → *Send test
    notification*.
 
+**Testing.** *Send test notification* opens a menu of every kind of
+notification (each prayer reminder, "10 minutes before", a nudge, and the
+notes), sent through send-reminders' test mode to your own devices only. Tests
+write nothing and never count toward a limit; "Delay 10 seconds" leaves time to
+lock the phone.
+
+**One template.** What every notification says lives in
+`supabase/functions/_shared/notify.ts`. Each function keeps a copy between
+`// >>> shared: notify` and `// <<< shared: notify` so it stays one pasteable
+file: after editing the shared file, run `node supabase/functions/sync-shared.mjs`
+(add `--check` to just verify), then redeploy the functions.
+
 To replace the keys: generate a new pair (`npx web-push generate-vapid-keys`),
 put the public key in `config.js` and both in the secrets. Every device then
 has to turn reminders off and on again.

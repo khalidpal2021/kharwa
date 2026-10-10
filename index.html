@@ -704,6 +704,34 @@
       </div>
     </div>
 
+    <!-- ---------------------------------------------- test notifications --- -->
+    <!-- Settings → App → Send test notification: js/reminders.js (TestSheet).
+         Every kind of notification, to your own devices only. -->
+    <div id="test-pop" class="modal" hidden>
+      <div id="test-scrim" class="modal-scrim"></div>
+      <div id="test-panel" class="sheet share-sheet test-sheet" role="dialog" aria-modal="true" aria-labelledby="test-title" tabindex="-1">
+        <div class="sheet-handle" aria-hidden="true"></div>
+        <div class="sheet-head">
+          <h2 id="test-title" class="share-title">Test notifications</h2>
+          <button id="test-close" class="modal-close" type="button" aria-label="Close">&times;</button>
+        </div>
+        <div class="ts-scroll">
+          <p class="ts-intro">Sent to your own devices only. Nothing is saved, and the other person sees nothing.</p>
+          <div class="set-row ts-delay">
+            <div class="set-row-text ts-delay-text">
+              <span id="test-delay-label" class="set-label">Delay 10 seconds</span>
+              <span class="ts-hint">Time to lock your phone and watch it arrive.</span>
+            </div>
+            <button id="test-delay" class="switch" type="button" role="switch" aria-checked="true"
+                    aria-labelledby="test-delay-label"><span class="switch-thumb"></span></button>
+          </div>
+          <button id="test-all" class="btn btn--ghost ts-all" type="button">Send all prayer reminders</button>
+          <p id="test-all-msg" class="ts-status ts-all-msg" aria-live="polite"></p>
+          <div id="test-list" class="ts-list"></div>
+        </div>
+      </div>
+    </div>
+
     <p id="banner" class="banner" hidden></p>
   </div>
 
