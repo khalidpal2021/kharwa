@@ -171,7 +171,10 @@ const Reminders = {
   async test() {
     const msg = el('set-rem-test-msg');
     const btn = el('set-rem-test');
-    if (!this.sub) return;
+    if (!this.sub) {
+      msg.textContent = 'Couldn’t send: no device signed up. Turn reminders off and on.';
+      return;
+    }
     btn.disabled = true;
     msg.textContent = 'Sending…';
     try {

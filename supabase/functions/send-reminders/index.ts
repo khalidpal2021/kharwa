@@ -364,28 +364,51 @@ async function runMinute() {
   return { day: dayKey, subscriptions: subs.length, sent };
 }
 
+/** A test notification to one device. Every failure says why, in words the
+    Settings screen can show as they are, with a `reason` code beside it. */
 async function runTest(endpoint: string) {
+  if (!endpoint) {
+    return { ok: false, reason: 'not_subscribed', error: 'No device signed up. Turn reminders off and on.' };
+  }
   const [sub] = await restJson<Subscription[]>(
     `push_subscriptions?select=*&endpoint=eq.${encodeURIComponent(endpoint)}`);
-  if (!sub) return { ok: false, error: 'This device is not subscribed.' };
+  if (!sub) {
+    return { ok: false, reason: 'not_subscribed', error: 'No device signed up. Turn reminders off and on.' };
+  }
   const now = new Date();
-  const status = await push(sub, {
-    title: `Kharwa · ${clockFmt.format(now)}`,
-    body: 'Test notification: prayer reminders are working.',
-    url: '/#/prayer',
-    tag: 'kharwa-test',
-  });
+  let status: number;
+  try {
+    status = await push(sub, {
+      title: `Kharwa · ${clockFmt.format(now)}`,
+      body: 'Test notification: prayer reminders are working.',
+      url: '/#/prayer',
+      tag: 'kharwa-test',
+    });
+  } catch (err) {
+    return { ok: false, reason: 'push_failed', error: `Couldn’t reach the push service: ${String((err as Error)?.message || err)}` };
+  }
   if (status === 404 || status === 410) {
     await forget(sub);
-    return { ok: false, error: 'This subscription has expired. Turn reminders off and on again.' };
+    return {
+      ok: false, reason: 'expired',
+      error: 'Push service rejected the subscription: it has expired. Turn reminders off and on.',
+    };
   }
-  return status < 300 ? { ok: true } : { ok: false, error: `The push service answered ${status}.` };
+  if (status === 401 || status === 403) {
+    return {
+      ok: false, reason: 'push_rejected',
+      error: `Push service rejected the subscription (${status}): the VAPID keys in the secrets don’t match the key in config.js.`,
+    };
+  }
+  return status < 300
+    ? { ok: true }
+    : { ok: false, reason: 'push_rejected', error: `Push service rejected the subscription (${status}).` };
 }
 
 async function handle(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   const json = (body: object, status = 200) =>
-    new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    new Response(JSON.stringify({ fn: 'send-reminders', ...body }), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
   try {
     if (!vapidPublic() || !vapidPrivate()) {
       return json({ ok: false, error: 'VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY secrets are not set.' }, 500);

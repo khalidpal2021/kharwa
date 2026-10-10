@@ -422,11 +422,25 @@ const Data = {
       body: { test: true, endpoint },
     });
     if (error) {
-      throw new Error(error.context?.status === 404
-        ? 'the send-reminders function is not deployed yet.'
-        : error.message);
+      // A non-2xx answer: say what the function said, not just its status.
+      const status = error.context?.status;
+      if (status === 404) throw new Error('the send-reminders function is not deployed.');
+      let said = '';
+      try { said = (await error.context.json())?.error || ''; } catch { /* not JSON */ }
+      throw new Error(said || `send-reminders answered ${status || error.message}.`);
     }
-    if (!data?.ok) throw new Error(data?.error || 'the test could not be sent.');
+    // Each function names itself; a bare `reason` with no name is how the
+    // other functions answered before they did. Either way, what is deployed
+    // under this name is not the reminders code.
+    const wrong = (data?.fn && data.fn !== 'send-reminders') ? data.fn
+      : (!data?.fn && data?.reason === 'bad_request') ? 'send-message' : null;
+    if (wrong) {
+      throw new Error(`send-reminders is running the ${wrong} code. `
+        + 'Redeploy it from supabase/functions/send-reminders/index.ts.');
+    }
+    if (data?.ok) return;
+    if (data?.error) throw new Error(data.error);
+    throw new Error(`send-reminders answered ${JSON.stringify(data)}.`);
   },
 
   /* ----------------------------------------------------- quran reading --- */

@@ -299,7 +299,7 @@ async function nudge({ from, to, prayer, date }: Nudge) {
 async function handle(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   const json = (body: object, status = 200) =>
-    new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    new Response(JSON.stringify({ fn: 'send-nudge', ...body }), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
   try {
     if (!vapidPublic() || !vapidPrivate()) {
       return json({ ok: false, error: 'VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY secrets are not set.' }, 500);
