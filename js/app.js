@@ -1054,6 +1054,17 @@ function render() {
 
 /* ========================================================= interaction === */
 
+/** A prayer is logged: its reminder or nudge on this device has done its job.
+    The tag is the one send-reminders and send-nudge give it (the shared
+    template's kharwaPrayerTag). Quietly does nothing where unsupported. */
+async function closePrayerNotifications(date, prayer) {
+  try {
+    const reg = await navigator.serviceWorker?.getRegistration();
+    const open = await reg?.getNotifications({ tag: `kharwa-prayer-${date}-${prayer}` });
+    for (const n of open || []) n.close();
+  } catch { /* no notifications here */ }
+}
+
 /** The one place a status is written. The Qada card passes its own date.
     Resolves to whether the status is now `next`. */
 async function setStatus(person, prayer, next, date = State.viewDate) {
@@ -1068,6 +1079,7 @@ async function setStatus(person, prayer, next, date = State.viewDate) {
 
   try {
     await Data.writeStatus(person, date, prayer, next);
+    if (next === 'on_time' || next === 'late') closePrayerNotifications(date, prayer);
     return true;
   } catch (err) {
     Data.setLocal(person, date, prayer, before);
@@ -1458,8 +1470,10 @@ el('switch-person').addEventListener('click', () => {
 /* =============================================================== realtime = */
 
 function onRemoteChange(change) {
-  // My own edits already rendered optimistically.
+  // My own edits already rendered optimistically. One from my other device
+  // still clears that prayer's reminder or nudge here.
   if (change.person === State.me) {
+    if (change.status === 'on_time' || change.status === 'late') closePrayerNotifications(change.date, change.prayer);
     renderStatuses();
     return;
   }

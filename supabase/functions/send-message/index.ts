@@ -66,6 +66,15 @@ const vapidPrivate = () => cleanKey(env('VAPID_PRIVATE_KEY'));
 // only, then run `node supabase/functions/sync-shared.mjs` to copy it into the
 // three functions (`--check` fails if a copy has drifted). Each function stays
 // one file, so it can still be pasted into the dashboard editor.
+//
+// Every notification is title-only: everything is in the title and the body
+// is empty, so iOS shows one bold line with "from Kharwa" under it. Titles
+// are kept short enough not to be cut off.
+//
+// Tags: a prayer's reminder and a nudge for it share one tag per day
+// (kharwaPrayerTag), so a later one replaces the earlier instead of piling
+// up, and logging the prayer can close it. `renotify` makes a replacement
+// alert again.
 // -----------------------------------------------------------------------------
 
 const NOTIFY_TZ = 'America/Los_Angeles';
@@ -80,6 +89,9 @@ const MOOD_TEXT: Record<string, string> = {
   grateful: 'I’m grateful',
 };
 
+/** The longest a title is let run before it is trimmed, on a word, with "…". */
+const NOTIFY_TITLE_MAX = 90;
+
 /** The first `n` characters, on a word boundary, with an ellipsis if cut. */
 function notifyClip(text: string, n: number): string {
   const t = String(text ?? '').replace(/\s+/g, ' ').trim();
@@ -88,7 +100,12 @@ function notifyClip(text: string, n: number): string {
   return `${cut.slice(0, Math.max(cut.lastIndexOf(' '), n - 15)).trim()}…`;
 }
 
-type NotifyPayload = { title: string; body: string; url: string; tag: string };
+/** One tag per prayer per day, shared by its reminder and any nudge. */
+function kharwaPrayerTag(day: string, prayer: string): string {
+  return `kharwa-prayer-${day}-${prayer}`;
+}
+
+type NotifyPayload = { title: string; body: string; url: string; tag: string; renotify?: boolean; badge?: number };
 
 type NotifyNote = {
   id?: number | null; type: string; body: string;
@@ -97,38 +114,45 @@ type NotifyNote = {
 };
 
 const Notify = {
-  /** "Asr · 4:55 PM" / "Time for Asr." (or "Asr in 10 minutes."). Opens Prayer. */
+  /** "Asr · 4:55 PM", or "Asr in 10 minutes · 4:55 PM". Opens Prayer. */
   reminder(label: string, time: Date, before: number, tag: string): NotifyPayload {
+    const at = notifyClock.format(time);
     return {
-      title: `${label} · ${notifyClock.format(time)}`,
-      body: before ? `${label} in ${before} minutes.` : `Time for ${label}.`,
+      title: before ? `${label} in ${before} minutes · ${at}` : `${label} · ${at}`,
+      body: '',
       url: '/#/prayer',
       tag,
+      renotify: true,
     };
   },
 
-  /** "Khalid nudged you" / "Time to pray Isha 🤲". Opens Prayer. */
+  /** "Marwa nudged you to pray Isha". Opens Prayer. */
   nudge(sender: string, label: string, tag: string): NotifyPayload {
-    return { title: `${sender} nudged you`, body: `Time to pray ${label} 🤲`, url: '/#/prayer', tag };
+    return { title: `${sender} nudged you to pray ${label}`, body: '', url: '/#/prayer', tag, renotify: true };
   },
 
-  /** A note in the Us tab. Opens Us, at the note when it has an id. Small on
-      purpose: the app loads the rest. */
+  /** A note in the Us tab, as one line. Opens Us, at the note when it has an id.
+      "Marwa: I love you ❤️", "Marwa is feeling stressed",
+      "Marwa: <note> (94:5–6)" or "Marwa shared an ayah (94:5–6)". */
   note(sender: string, m: NotifyNote, tag: string): NotifyPayload {
     const url = m.id ? `/#/us/${m.id}` : '/#/us';
-    if (m.type === 'text') return { title: sender, body: notifyClip(m.body, 140), url, tag };
-    if (m.type === 'mood') return { title: sender, body: MOOD_TEXT[m.body] ?? m.body, url, tag };
-    const what = m.type === 'ayah' ? 'an ayah' : 'a hadith';
-    const range = m.ref?.ayah_to && m.ref.ayah_to !== m.ref.ayah ? `${m.ref.ayah}–${m.ref.ayah_to}` : `${m.ref?.ayah}`;
+    const line = (title: string) => ({ title: notifyClip(title, NOTIFY_TITLE_MAX), body: '', url, tag });
+
+    if (m.type === 'text') return line(`${sender}: ${notifyClip(m.body, Math.max(30, NOTIFY_TITLE_MAX - sender.length - 2))}`);
+    if (m.type === 'mood') {
+      const word = (MOOD_TEXT[m.body] ?? '').replace(/^I’m /, '') || m.body;
+      return line(`${sender} is feeling ${word}`);
+    }
     const where = m.type === 'ayah'
-      ? `${m.ref?.name ?? 'Quran'} ${m.ref?.surah}:${range}`
+      ? (m.ref?.ayah_to && m.ref.ayah_to !== m.ref.ayah
+        ? `${m.ref?.surah}:${m.ref?.ayah}–${m.ref.ayah_to}`
+        : `${m.ref?.surah}:${m.ref?.ayah}`)
       : `${m.ref?.name ?? 'Hadith'} ${m.ref?.number}`;
-    return {
-      title: m.note ? `${sender}: ${notifyClip(m.note, 60)}` : `${sender} shared ${what}`,
-      body: `${notifyClip(m.body, 90)} (${where})`,
-      url,
-      tag,
-    };
+    const what = m.type === 'ayah' ? 'an ayah' : 'a hadith';
+    if (!m.note) return line(`${sender} shared ${what} (${where})`);
+    // the note is what gives way, so the reference always shows
+    const room = Math.max(20, NOTIFY_TITLE_MAX - sender.length - where.length - 5);
+    return line(`${sender}: ${notifyClip(m.note, room)} (${where})`);
   },
 };
 // <<< shared: notify
@@ -295,6 +319,17 @@ export function notification(sender: string, m: NotifyNote & { id: number }) {
   return Notify.note(sender, m, `kharwa-msg-${m.id}`);
 }
 
+/** How many notes `person` has not read yet, for the app-icon badge. */
+async function unreadFor(person: string): Promise<number> {
+  try {
+    const rows = await restJson<unknown[]>(
+      `messages?select=id&to_person=eq.${encodeURIComponent(person)}&read_at=is.null&limit=99`);
+    return rows.length;
+  } catch {
+    return 0; // no badge rather than no note
+  }
+}
+
 /** Checks and tidies what the app sent; null when it is not a message. */
 export function validate(m: Incoming) {
   const body = String(m.body ?? '').trim();
@@ -358,7 +393,7 @@ async function send(input: Incoming) {
   const [message] = await res.json();
 
   const subs = await restJson<Subscription[]>(`push_subscriptions?select=*&person=eq.${encodeURIComponent(to)}`);
-  const payload = notification(sender.display_name || from, message);
+  const payload = { ...notification(sender.display_name || from, message), badge: await unreadFor(to) };
   let delivered = 0;
   for (const sub of subs) {
     try {

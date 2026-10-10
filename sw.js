@@ -18,7 +18,7 @@
    push does not need it, since the app files are network-first.
    =========================================================================== */
 
-const VERSION = 'v6';
+const VERSION = 'v7';
 const APP_CACHE = `kharwa-app-${VERSION}`;
 const STATIC_CACHE = `kharwa-static-${VERSION}`;
 
@@ -112,16 +112,27 @@ self.addEventListener('fetch', (event) => {
 
 /* A prayer reminder from the send-reminders Edge Function:
    { title, body, url, tag }. */
+/* Title-only: everything is in the title and the body stays empty (no
+   fallback text is added here), so iOS shows one bold line with "from
+   Kharwa" under it. A tag replaces an earlier notification for the same
+   prayer or note; `renotify` makes the replacement alert again. A note
+   carries the unread count, shown on the app icon where that works. */
 self.addEventListener('push', (event) => {
   let data = {};
-  try { data = event.data ? event.data.json() : {}; } catch { data = { body: event.data?.text() }; }
-  event.waitUntil(self.registration.showNotification(data.title || 'Kharwa', {
-    body: data.body || '',
-    tag: data.tag || 'kharwa',
+  try { data = event.data ? event.data.json() : {}; } catch { data = { title: event.data?.text() }; }
+  const tag = data.tag || 'kharwa';
+  const shown = self.registration.showNotification(data.title || 'Kharwa', {
+    body: '',
+    tag,
+    renotify: Boolean(data.renotify) && tag !== 'kharwa',
     icon: '/icons/icon-192.png?v=2',
     badge: '/icons/icon-192.png?v=2',
     data: { url: data.url || '/#/prayer' },
-  }));
+  });
+  const badge = Number.isInteger(data.badge) && navigator.setAppBadge
+    ? navigator.setAppBadge(data.badge).catch(() => {})
+    : null;
+  event.waitUntil(Promise.all([shown, badge]));
 });
 
 /* A tap opens Kharwa where the notification points: the Prayer tab for a

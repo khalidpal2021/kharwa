@@ -188,8 +188,15 @@ const Us = {
     try { await Data.markMessagesRead(State.me); } catch { /* tried again next time */ }
   },
 
+  /** The gold dot on the nav, and the count on the app icon (cleared once
+      the tab is opened). The icon badge fails quietly where unsupported. */
   updateBadge() {
-    Sections.setBadge('us', this.unread() > 0);
+    const unread = this.unread();
+    Sections.setBadge('us', unread > 0);
+    try {
+      const done = unread ? navigator.setAppBadge?.(unread) : navigator.clearAppBadge?.();
+      done?.catch?.(() => {});
+    } catch { /* no badge here */ }
   },
 
   /** Redraws whatever of the tab is showing. */

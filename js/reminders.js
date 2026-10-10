@@ -196,21 +196,23 @@ const TestSheet = {
     const { times } = timesFor(todayKey());
     const other = name(PEOPLE_IDS.find((p) => p !== State.me));
     const at = (key) => timeText(times[key]);
+    // Each label is the notification's title, word for word: they are
+    // title-only, built by the shared template in send-reminders.
     return [
       {
         label: 'Prayer reminders',
         rows: [
-          ...PRAYERS.map((p) => ({ kind: `prayer:${p.key}`, label: p.label, hint: `${p.label} · ${at(p.key)} — Time for ${p.label}.` })),
-          { kind: 'prayer:asr:10', label: '10 minutes before', hint: `Asr · ${at('asr')} — Asr in 10 minutes.` },
+          ...PRAYERS.map((p) => ({ kind: `prayer:${p.key}`, label: `${p.label} · ${at(p.key)}`, hint: 'At the start time' })),
+          { kind: 'prayer:asr:10', label: `Asr in 10 minutes · ${at('asr')}`, hint: '10 minutes before' },
         ],
       },
-      { label: 'Nudge', rows: [{ kind: 'nudge', label: `${other} nudged you`, hint: 'Time to pray Isha 🤲' }] },
+      { label: 'Nudge', rows: [{ kind: 'nudge', label: `${other} nudged you to pray Isha`, hint: 'A nudge' }] },
       {
         label: 'Notes',
         rows: [
-          { kind: 'note:love', label: 'I love you', hint: `From ${other}` },
-          { kind: 'note:ayah', label: 'An ayah', hint: 'Ash-Sharh 94:5–6, with a note' },
-          { kind: 'note:dua', label: 'Make dua for me', hint: `From ${other}` },
+          { kind: 'note:love', label: `${other}: I love you ❤️`, hint: 'A note' },
+          { kind: 'note:ayah', label: `${other}: For when it feels like too much 🤍 (94:5–6)`, hint: 'An ayah, with a note' },
+          { kind: 'note:dua', label: `${other}: Make dua for me 🤲`, hint: 'A note' },
           { kind: 'note:feeling', label: `${other} is feeling stressed`, hint: 'A feeling' },
         ],
       },
