@@ -59,9 +59,11 @@ Android and desktop Chrome, *Settings → App → Install Kharwa* opens the
 browser's install prompt; on iPhone it explains Share → Add to Home Screen.
 
 `sw.js` is the service worker. The page, `js/`, `styles.css` and
-`config.js` are stale-while-revalidate: the app opens at once from the cache
-while a fresh copy is fetched behind it, and when that copy differs the app
-shows "Updated, tap to refresh". Fonts, icons, pictures and the pinned CDN
+`config.js` are served from one cached snapshot, so a page never mixes files
+from two versions (the tabs' code loaded later included). Each open checks
+behind the scenes for changed files; when there are some, the whole new set
+is downloaded alongside, the app shows "Updated, tap to refresh", and the next
+load switches to it. A new `sw.js` likewise waits for that tap. Fonts, icons, pictures and the pinned CDN
 libraries are cache-first. Supabase and the Qur'an, hadith and audio APIs are
 never cached. A new file under `js/` should be added to `APP_SHELL` in `sw.js`
 so it is there offline; bump `VERSION` only when the caching itself changes,

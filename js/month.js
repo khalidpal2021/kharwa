@@ -6,8 +6,8 @@
    before the first log), and Khalid · Marwa · Together. Then a Sunday-first
    calendar, each day the same five pill bars as the week view (Fajr at the
    top): gold prayed, grey missed, an outline not yet due or no data. A
-   complete day has a faint gold tint, today a thin gold ring, the future is
-   faint, and days before the first log show only their number. Tap a day to
+   complete day has a faint gold tint, today a thin gold ring; a future day,
+   or one before the first log, is just its faint number. Tap a day to
    open it in the Today table. Under it: complete days, the longest run of
    them, and prayers on time out of those prayed; and, only when something
    was missed, a quiet line naming the prayer missed most.
@@ -165,8 +165,9 @@ const MonthView = {
       const key = `${ym}-${String(d).padStart(2, '0')}`;
       const future = key > today;
       const before = !start || key < start;
-      const bars = before ? '' : PRAYERS.map((p) => {
-        const st = future || !known ? 'none' : this.state(key, p.key);
+      // Bars only for days that have happened (or today) since the first log.
+      const bars = before || future ? '' : PRAYERS.map((p) => {
+        const st = known ? this.state(key, p.key) : 'none';
         return `<i class="st-bar is-${st}"></i>`;
       }).join('');
       const done = known && !future && !before && this.complete(key);

@@ -5065,14 +5065,61 @@ body.is-guiding { overflow: hidden; }
 
 .mv-bars { display: flex; flex-direction: column; gap: 2px; }
 
-/* the summary: three figures in a row */
+/* the summary: three figures in one row, as on the Streaks card. Each is
+   centred in an equal column, the number and its small part ("of 9",
+   "days") on one baseline, the label under them, thin rules between. */
 .mv-sum {
   margin-top: var(--s3);
-  padding-top: var(--s2);
+  padding: var(--s2) 0 2px;
   border-top: 1px solid var(--border);
 }
 
-.mv-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.mv-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+}
+
+.mv-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 2px 6px;
+  text-align: center;
+}
+
+.mv-stat + .mv-stat { border-left: 1px solid var(--border); }
+
+.mv-stat-n {
+  display: block;
+  font-family: var(--serif);
+  font-size: 24px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--foreground);
+}
+
+.mv-of {
+  font-family: var(--sans);
+  font-size: 13px;
+  letter-spacing: 0;
+  color: var(--muted-foreground);
+}
+
+.mv-stat-l {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  line-height: 1.3;
+  color: var(--muted-foreground);
+}
 
 /* "Fajr missed most · 3 times": only when something was missed */
 .mv-note {
@@ -5082,35 +5129,6 @@ body.is-guiding { overflow: hidden; }
   text-align: center;
 }
 
-.mv-stat {
-  display: grid;
-  justify-items: center;
-  align-content: start;
-  gap: 2px;
-  padding: 0 4px;
-  text-align: center;
-}
-
-.mv-stat + .mv-stat { border-left: 1px solid var(--border); }
-
-.mv-stat-n {
-  font-family: var(--serif);
-  font-size: 22px;
-  line-height: 1.2;
-  white-space: nowrap;
-}
-
-.mv-of { font-family: var(--sans); font-size: 13px; color: var(--muted-foreground); }
-
-.mv-stat-l {
-  font-family: var(--mono);
-  font-size: 9.5px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--muted-foreground);
-}
-
 @media (min-width: 900px) {
   .month-sheet { max-width: 640px; height: auto; max-height: min(90dvh, 820px); }
   .mv-head { padding: 18px 56px 4px 16px; }
@@ -5118,5 +5136,4 @@ body.is-guiding { overflow: hidden; }
   .mv-body { padding: 14px 24px 24px; --bar: 5px; }
   .mv-grid { gap: 6px; row-gap: 8px; }
   .mv-day { min-height: 64px; padding: 6px 8px 8px; }
-  .mv-stat-n { font-size: 26px; }
 }

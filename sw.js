@@ -2,11 +2,15 @@
    sw.js — the service worker that makes Kharwa installable and usable offline.
 
    - The app itself (the page, js/, styles.css, config.js, the manifest) is
-     stale-while-revalidate: it opens at once from the cache while the
-     network is asked in the background. When what comes back differs from
-     what was shown, the open windows are told, and the app offers
-     "Updated, tap to refresh" (install.js). The first visit, with nothing
-     cached yet, goes to the network.
+     served from one complete snapshot, so a page always runs files of the
+     same version, including the tabs' code it loads later (lazy.js). Each
+     open checks behind the scenes whether any file has changed; if so, the
+     whole new set is fetched into a second cache, the app offers "Updated,
+     tap to refresh" (install.js), and the next page load switches to it.
+     Files were once refreshed one by one, which could pair new code with an
+     old stylesheet; this is why they are not.
+   - A new sw.js waits until it is told to take over (the same "Updated, tap
+     to refresh"), rather than taking over a page mid-session.
    - Fonts, icons, the position pictures and the pinned CDN libraries are
      cache-first: they never change under the same URL.
    - Anything else — Supabase, the Qur'an, hadith and audio APIs — is left
@@ -18,11 +22,14 @@
    Function, and opens Kharwa on the Prayer tab when one is tapped.
 
    Bump VERSION to drop every cache when the strategy itself changes; a normal
-   push does not need it, since every open checks for new app files.
+   push does not need it, since every open checks for new app files. Every
+   app file must be in APP_SHELL, which is what a snapshot holds.
    =========================================================================== */
 
-const VERSION = 'v9';
-const APP_CACHE = `kharwa-app-${VERSION}`;
+const VERSION = 'v10';
+const APP_CACHE = `kharwa-app-${VERSION}`;     // the snapshot pages are served from
+const NEXT_CACHE = `kharwa-next-${VERSION}`;    // a newer one, used from the next page load
+const NEXT_READY = '/__kharwa-next-complete';    // marks NEXT_CACHE as whole
 const STATIC_CACHE = `kharwa-static-${VERSION}`;
 
 /* Fetched on install, so the app opens offline after the first visit. */
@@ -79,13 +86,20 @@ self.addEventListener('install', (event) => {
       fetch(url, { cache: 'no-cache' })
         .then((res) => (res.ok ? cache.put(url, res) : null))
         .catch(() => null)));
-    await self.skipWaiting();
+    // No skipWaiting: an open page keeps the worker (and the files) it began
+    // with until "Updated, tap to refresh" says to switch. The very first
+    // install has no page to wait for, and takes over at once.
   })());
+});
+
+/* "Updated, tap to refresh" on a page with a new sw.js waiting. */
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'kharwa-skip-waiting') self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
-    const keep = new Set([APP_CACHE, STATIC_CACHE]);
+    const keep = new Set([APP_CACHE, NEXT_CACHE, STATIC_CACHE]);
     for (const key of await caches.keys()) {
       if (key.startsWith('kharwa-') && !keep.has(key)) await caches.delete(key);
     }
@@ -104,7 +118,7 @@ self.addEventListener('fetch', (event) => {
     } else if (url.pathname.startsWith('/icons/') || url.pathname.startsWith('/assets/')) {
       event.respondWith(cacheFirst(req));
     } else if (/\.(js|css|webmanifest|json)$/.test(url.pathname)) {
-      event.respondWith(staleWhileRevalidate(event, req));
+      event.respondWith(appFile(req));
     }
     return;
   }
@@ -168,53 +182,87 @@ function versionOf(res) {
   return h.get('etag') || `${h.get('last-modified') || ''}|${h.get('content-length') || ''}`;
 }
 
-let toldAt = 0;
-
-/** A newer app file has arrived: tell the open windows, once per burst
-    (one deploy changes several files at once). */
+/** A newer snapshot is ready: tell the open windows. */
 async function announceUpdate() {
-  if (Date.now() - toldAt < 30_000) return;
-  toldAt = Date.now();
   for (const win of await self.clients.matchAll({ type: 'window' })) win.postMessage({ type: 'kharwa-updated' });
 }
 
-/** Fetches a fresh copy past the browser cache and keeps it; announces it
-    when it differs from the copy that was served. */
-async function revalidate(req, key, served) {
+/** An app file, from the snapshot the page belongs to. Only a file the
+    snapshot lacks comes from the network, and is added to it. */
+async function appFile(req) {
   const cache = await caches.open(APP_CACHE);
-  const res = await fetch(req, { cache: 'no-cache' });
-  if (!res.ok) return res;
-  await cache.put(key, res.clone());
-  if (served && versionOf(served) !== versionOf(res)) announceUpdate();
+  const hit = await cache.match(req, { ignoreSearch: true });
+  if (hit) return hit;
+  const res = await fetch(req);
+  if (res.ok) cache.put(req, res.clone());
   return res;
 }
 
-/** The cached copy at once, a fresh one fetched behind it for next time.
-    Nothing cached yet: the network. */
-async function staleWhileRevalidate(event, req, key = req) {
-  const cache = await caches.open(APP_CACHE);
-  const hit = await cache.match(key, { ignoreSearch: true });
-  const fresh = revalidate(req, key, hit);
-  if (hit) {
-    event.waitUntil(fresh.catch(() => {}));
-    return hit;
-  }
-  return fresh;
+let checking = null;
+let checkedAt = 0;
+
+/**
+ * Whether any app file has changed since the snapshot. If one has, the whole
+ * new set goes into NEXT_CACHE, marked complete only once every file is in,
+ * and the open windows are told. Asks with no-cache, so an unchanged file
+ * costs only a small 304. At most once a minute.
+ */
+function checkForUpdate() {
+  if (checking || Date.now() - checkedAt < 60_000) return checking || Promise.resolve();
+  checkedAt = Date.now();
+  checking = (async () => {
+    const current = await caches.open(APP_CACHE);
+    const fresh = await Promise.all(APP_SHELL.map(async (url) => {
+      try {
+        const res = await fetch(url, { cache: 'no-cache' });
+        return res.ok ? { url, res } : null;
+      } catch { return null; }
+    }));
+    if (fresh.some((f) => !f)) return; // offline or a file missing: try another time
+    let changed = false;
+    for (const { url, res } of fresh) {
+      const had = await current.match(url);
+      if (!had || versionOf(had) !== versionOf(res)) { changed = true; break; }
+    }
+    if (!changed) return;
+    await caches.delete(NEXT_CACHE);
+    const next = await caches.open(NEXT_CACHE);
+    for (const { url, res } of fresh) await next.put(url, res);
+    await next.put(NEXT_READY, new Response('1'));
+    announceUpdate();
+  })().finally(() => { checking = null; });
+  return checking;
 }
 
-/** A page load: every route is the one page (routing is in the hash), served
-    from the cache at once and refreshed behind it; offline with nothing
-    cached, a short offline page. */
+/** A page load is where a waiting snapshot takes over, whole. */
+async function promoteNext() {
+  if (!(await caches.has(NEXT_CACHE))) return;
+  const next = await caches.open(NEXT_CACHE);
+  if (!(await next.match(NEXT_READY))) return;
+  const current = await caches.open(APP_CACHE);
+  for (const req of await next.keys()) {
+    if (new URL(req.url).pathname === NEXT_READY) continue;
+    await current.put(req, await next.match(req));
+  }
+  await caches.delete(NEXT_CACHE);
+}
+
+/** A page load: every route is the one page (routing is in the hash). A
+    complete newer snapshot takes over first; the page then comes from the
+    snapshot at once, and a check for changes runs behind it. With nothing
+    cached, the network; offline as well, a short offline page. */
 async function page(event) {
+  await promoteNext();
   const cache = await caches.open(APP_CACHE);
   const cached = (await cache.match('/', { ignoreSearch: true })) || (await cache.match('/index.html'));
-  const fresh = revalidate(event.request, '/', cached);
   if (cached) {
-    event.waitUntil(fresh.catch(() => {}));
+    event.waitUntil(checkForUpdate().catch(() => {}));
     return cached;
   }
   try {
-    return await fresh;
+    const res = await fetch(event.request, { cache: 'no-cache' });
+    if (res.ok) cache.put('/', res.clone());
+    return res;
   } catch {
     return new Response(OFFLINE_PAGE, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
   }
