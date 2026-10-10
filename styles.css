@@ -5067,11 +5067,19 @@ body.is-guiding { overflow: hidden; }
 
 /* the summary: three figures in a row */
 .mv-sum {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   margin-top: var(--s3);
   padding-top: var(--s2);
   border-top: 1px solid var(--border);
+}
+
+.mv-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+/* "Fajr missed most · 3 times": only when something was missed */
+.mv-note {
+  margin-top: var(--s2);
+  font-size: 13px;
+  color: var(--muted-foreground);
+  text-align: center;
 }
 
 .mv-stat {
@@ -5092,7 +5100,7 @@ body.is-guiding { overflow: hidden; }
   white-space: nowrap;
 }
 
-.mv-of { font-size: 14px; color: var(--muted-foreground); }
+.mv-of { font-family: var(--sans); font-size: 13px; color: var(--muted-foreground); }
 
 .mv-stat-l {
   font-family: var(--mono);

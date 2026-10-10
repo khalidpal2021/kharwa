@@ -8,8 +8,9 @@
    top): gold prayed, grey missed, an outline not yet due or no data. A
    complete day has a faint gold tint, today a thin gold ring, the future is
    faint, and days before the first log show only their number. Tap a day to
-   open it in the Today table. Under it: complete days, prayers prayed, and
-   the prayer missed most.
+   open it in the Today table. Under it: complete days, the longest run of
+   them, and prayers on time out of those prayed; and, only when something
+   was missed, a quiet line naming the prayer missed most.
 
    What counts as prayed, missed or complete is the week view's own
    (cellState, dayComplete in app.js); Together needs both. A month's logs
@@ -182,18 +183,26 @@ const MonthView = {
     el('mv-sum').innerHTML = this.summary(known, start, days);
   },
 
-  /** Complete days, prayers prayed, and the prayer missed most, over the
-      tracked days so far. */
+  /** Over the tracked days so far: complete days, the longest run of them,
+      and how many of the prayers prayed were on time; then, only if
+      something was missed, one quiet line naming the prayer missed most. */
   summary(known, start, days) {
-    const stat = (n, label) => `
-      <div class="mv-stat"><span class="mv-stat-n">${n}</span><span class="mv-stat-l">${esc(label)}</span></div>`;
-    if (!known) return stat('–', 'Complete days') + stat('–', 'Prayers prayed') + stat('–', 'Most missed');
+    const stat = (n, small, label) => `
+      <div class="mv-stat">
+        <span class="mv-stat-n">${n}${small ? `<span class="mv-of"> ${small}</span>` : ''}</span>
+        <span class="mv-stat-l">${esc(label)}</span>
+      </div>`;
+    const stats = (html, note = '') => `<div class="mv-stats">${html}</div>${note}`;
+    if (!known) return stats(stat('–', '', 'Complete days') + stat('–', '', 'Longest streak') + stat('–', '', 'On time'));
 
     const now = new Date();
     const today = todayKey();
+    const people = this.who === 'both' ? PEOPLE_IDS : [this.who];
     let closedDays = 0;
     let completeDays = 0;
-    let due = 0;
+    let run = 0;
+    let longest = 0;
+    let onTime = 0;
     let prayed = 0;
     const missed = Object.fromEntries(PRAYERS.map((p) => [p.key, 0]));
 
@@ -201,25 +210,37 @@ const MonthView = {
       const key = `${this.ym}-${String(d).padStart(2, '0')}`;
       if (key > today || !start || key < start) continue;
       const complete = this.complete(key);
-      const { times } = timesFor(key);
+
       // A day counts once all its prayers have passed, or sooner if complete.
       if (key < today || complete || now >= windowEnd(key, 'isha')) {
         closedDays += 1;
         if (complete) completeDays += 1;
       }
+      // A run of complete days; today, still open, does not break one.
+      if (complete) longest = Math.max(longest, (run += 1));
+      else if (key < today) run = 0;
+
       for (const p of PRAYERS) {
-        if (key === today && times[p.key] > now) continue; // not yet due
-        // Still in its time and not yet logged: neither prayed nor missed yet.
-        const st = this.state(key, p.key);
-        if (st === 'prayed') { prayed += 1; due += 1; }
-        else if (st === 'missed') { missed[p.key] += 1; due += 1; }
+        // On time out of prayed: for Together, both of you counted together.
+        for (const person of people) {
+          const s = Data.status(person, key, p.key);
+          if (s === 'on_time' || s === 'late') prayed += 1;
+          if (s === 'on_time') onTime += 1;
+        }
+        if (this.state(key, p.key) === 'missed') missed[p.key] += 1;
       }
     }
 
     const most = PRAYERS.reduce((best, p) => (missed[p.key] > (best ? missed[best.key] : 0) ? p : best), null);
-    return stat(`${completeDays}<span class="mv-of"> of ${closedDays}</span>`, 'Complete days')
-      + stat(due ? `${Math.round((prayed / due) * 100)}%` : '–', 'Prayers prayed')
-      + stat(most ? `${most.label} <span class="mv-of">· ${missed[most.key]}</span>` : 'None 🤍', 'Most missed');
+    const note = most
+      ? `<p class="mv-note">${most.label} missed most · ${missed[most.key]} ${missed[most.key] === 1 ? 'time' : 'times'}</p>`
+      : '';
+    return stats(
+      stat(completeDays, `of ${closedDays}`, 'Complete days')
+      + stat(longest, longest === 1 ? 'day' : 'days', 'Longest streak')
+      + (prayed ? stat(onTime, `of ${prayed}`, 'On time') : stat('–', '', 'On time')),
+      note,
+    );
   },
 };
 
