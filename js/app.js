@@ -50,6 +50,8 @@ function name(person) {
 function shownStatus(person, date, prayer, now = new Date()) {
   const stored = Data.status(person, date, prayer);
   if (stored !== 'none') return stored;
+  // No logs yet, from the cache or the network: nothing can be called missed.
+  if (!Data.logsReady) return 'loading';
   const end = windowEnd(date, prayer);
   const closed = end instanceof Date && !Number.isNaN(end.getTime())
     ? now >= end
@@ -130,13 +132,20 @@ function renderHeader() {
   el('hijri').textContent = hijriFor(now);
 }
 
+/** Sets an element's text only when it differs: the countdown runs every
+    second, and most seconds change nothing but one number. */
+function setText(id, text) {
+  const node = el(id);
+  if (node.textContent !== text) node.textContent = text;
+}
+
 function renderNextUp() {
   const now = new Date();
   const next = nextPrayerFrom(now);
 
-  el('next-name').textContent = next.label;
-  el('next-until').textContent = untilText(next.time - now);
-  el('next-time').textContent = timeText(next.time) + (next.tomorrow ? ' tomorrow' : '');
+  setText('next-name', next.label);
+  setText('next-until', untilText(next.time - now));
+  setText('next-time', timeText(next.time) + (next.tomorrow ? ' tomorrow' : ''));
   return next;
 }
 
@@ -254,6 +263,11 @@ function markSvg(status) {
       <path class="mark-strike" d="M8.6 8.6l6.8 6.8M15.4 8.6l-6.8 6.8" fill="none" stroke-width="1.75" stroke-linecap="round"/>
     </svg>`;
   }
+  if (status === 'loading') {
+    return `${open}
+      <circle class="mark-ring mark-ring--loading" cx="12" cy="12" r="10.25" fill="none" stroke-width="1.5"/>
+    </svg>`;
+  }
   return `${open}
     <circle class="mark-ring mark-ring--empty" cx="12" cy="12" r="10.25" fill="none" stroke-width="1.5"/>
   </svg>`;
@@ -312,6 +326,7 @@ const BELL_SVG = `<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="t
 function nudgeState(person, prayer, now = new Date()) {
   const today = todayKey();
   if (person === State.me || State.viewDate !== today) return null;
+  if (!Data.logsReady) return null; // nothing is known yet, not even "unlogged"
   if (Data.status(person, today, prayer) !== 'none') return null;
   const start = timesFor(today).times[prayer];
   const end = windowEnd(today, prayer);
@@ -582,9 +597,10 @@ function renderStreaks() {
   const newBest = lastDuoBest !== null && duoBest > lastDuoBest && duo === duoBest;
   lastDuoBest = duoBest;
 
+  // Before any logs (the very first open), a dash rather than a false 0.
   const figure = (label, n, isDuo) => `
     <div class="st-top${isDuo ? ' is-duo' : ''}">
-      <span class="st-n${isDuo && newBest ? ' is-new-best' : ''}">${n}</span>
+      <span class="st-n${isDuo && newBest ? ' is-new-best' : ''}">${Data.logsReady ? n : '–'}</span>
       <span class="st-l">${esc(label)}</span>
     </div>`;
 
@@ -746,6 +762,12 @@ function qadaCardRow(item) {
  * person. The card is hidden while both of you are caught up.
  */
 function renderQada() {
+  // What is owed needs every log back to the qada start: from the network,
+  // or a cache that held all of it. Until then the card stays hidden.
+  if (!Data.qadaReady && !Data.cacheQada) {
+    el('qada-card').hidden = true;
+    return;
+  }
   const me = State.me;
   const mine = qadaOwed(me);
   const others = PEOPLE_IDS.filter((p) => p !== me).map((p) => ({ p, n: qadaOwed(p).total }));
@@ -908,7 +930,9 @@ function swipeToClose(panel, scroller, onClose) {
 /** Every time the app is opened or reloaded while something is owed. Closing
     it holds until the next open. */
 function openQadaPop() {
-  if (QadaPop.open || !qadaOwed(State.me).total) return;
+  // Only once the network has confirmed what is owed, so it never opens and
+  // then vanishes.
+  if (QadaPop.open || !Data.qadaReady || !qadaOwed(State.me).total) return;
   QadaPop.open = true;
   QadaPop.returnFocus = document.activeElement;
   renderQadaPop();
@@ -1018,7 +1042,9 @@ el('ayah-link').addEventListener('click', (event) => {
   const [s, a] = (el('ayah-link').dataset.ref || '').split(':').map(Number);
   if (!s || !a || event.metaKey || event.ctrlKey || event.shiftKey) return;
   event.preventDefault();
-  AyahSheet.openAt(s, a);
+  Lazy.need('share').then(() => AyahSheet.openAt(s, a), () => {
+    location.hash = el('ayah-link').getAttribute('href'); // the plain link, then
+  });
 });
 
 /* ============================================================== render ==== */
@@ -1033,6 +1059,7 @@ function renderStatuses() {
   renderTimetable();
   renderStreaks();
   renderQadaViews();
+  if (Data.logsReady && Data.configured) Data.saveCache(State.me);
 
   // Re-rendering replaces the button the keyboard was on; put focus back.
   if (restore) {
@@ -1232,7 +1259,7 @@ function fillSettings() {
   setSwitch(Data.showsLearn(State.me));
   el('set-tafsir').innerHTML = AYAH_TAFSIRS
     .map((t) => `<option value="${t.id}">${esc(t.label)}</option>`).join('');
-  el('set-tafsir').value = AyahSheet.tafsir().id;
+  el('set-tafsir').value = ayahTafsir().id;
   Reminders.fill();
 
   const backlog = Data.backlog[State.me] || {};
@@ -1352,7 +1379,7 @@ el('set-qada-start').addEventListener('change', () => queueSave('qada-start', sa
 
 /* Kept on this device, per person. */
 el('set-tafsir').addEventListener('change', () => {
-  AyahSheet.setTafsir(el('set-tafsir').value);
+  setAyahTafsir(el('set-tafsir').value);
   setSaveError('tafsir', '');
   flashSaved('tafsir');
 });
@@ -1513,8 +1540,12 @@ Sections.register({
 /* ================================================================= boot === */
 
 async function start() {
+  // The last good data, so the first paint is already right (no flash of
+  // missed prayers), then the network brings it up to date.
+  Data.loadCache();
   Sections.start();
   render();
+  updateUsDot();
 
   if (!Data.configured) {
     showBanner(
@@ -1525,36 +1556,58 @@ async function start() {
     return;
   }
 
-  try {
-    await Data.loadPeople();
-    Sections.refresh(); // show_learn may differ from the default
-    await Data.loadQada();
-    await Data.loadRecent();
-    await Data.loadPushPeople();
-    await Data.loadNudges(todayKey());
-    render();
-    openQadaPop();
-  } catch (err) {
-    showBanner(`Could not reach Supabase: ${err.message || err}`);
-  }
+  startClock();
+  await refreshFromNetwork({ first: true });
 
   Data.subscribe(onRemoteChange);
-  Us.start().catch(() => {});
-  startClock();
+  Data.subscribeMessages(onMessageChange);
 
   // Coming back to the tab on a phone: catch up on anything missed.
-  document.addEventListener('visibilitychange', async () => {
-    if (document.visibilityState !== 'visible') return;
-    try {
-      await Data.loadPeople();
-      Sections.refresh(); // show_learn may differ from the default
-      await Data.loadQada();
-      await Data.loadRecent();
-      await Data.loadPushPeople();
-      await Data.loadNudges(todayKey());
-      render();
-    } catch { /* stay with what we have */ }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') refreshFromNetwork().catch(() => {});
   });
+}
+
+/** Everything the Prayer tab shows, from the network: the recent part all at
+    once, drawn as soon as it is in, then the older logs, after which what is
+    owed is certain and the qada popup may open. */
+async function refreshFromNetwork({ first = false } = {}) {
+  const names = JSON.stringify(PEOPLE_IDS.map((p) => Data.people[p]?.display_name));
+  try {
+    await Data.loadStartup(State.me);
+  } catch (err) {
+    if (first && !Data.logsReady) showBanner(`Could not reach Supabase: ${err.message || err}`);
+    return;
+  }
+  Sections.refresh(); // show_learn may differ from the default
+  // A full redraw only if a name changed; otherwise just what shows a status.
+  if (JSON.stringify(PEOPLE_IDS.map((p) => Data.people[p]?.display_name)) !== names) render();
+  else renderStatuses();
+  updateUsDot();
+
+  try {
+    await Data.loadOlder();
+  } catch { return; }
+  renderStatuses();
+  if (first) openQadaPop();
+}
+
+/* -------------------------------------------------------------- us dot --- */
+
+/* Until the Us tab's code has loaded (us.js), the gold dot on its nav item
+   and the app-icon count come from a plain unread count. */
+function updateUsDot() {
+  if (typeof Us !== 'undefined' && Us.started) return; // us.js keeps it now
+  Sections.setBadge('us', Data.unreadCount > 0);
+  try {
+    const done = Data.unreadCount ? navigator.setAppBadge?.(Data.unreadCount) : navigator.clearAppBadge?.();
+    done?.catch?.(() => {});
+  } catch { /* no badge here */ }
+}
+
+function onMessageChange() {
+  if (typeof Us !== 'undefined' && Us.started) return;
+  Data.loadUnreadCount(State.me).then(updateUsDot, () => {});
 }
 
 function startClock() {
@@ -1584,7 +1637,8 @@ function startClock() {
     } else if (now.getMinutes() !== lastMinute) {
       lastMinute = now.getMinutes();
       renderTimeline();
-      renderTimetable(); // the nudge bell: "nudged 3m ago", and when it may ring again
+      // the nudge bell: "nudged 3m ago", and when it may ring again
+      if (el('timetable').querySelector('.nudge-note, .nudge-btn:disabled')) renderTimetable();
     }
   }, 1000);
 }

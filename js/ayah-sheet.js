@@ -24,16 +24,8 @@
 const TAFSIR_API = 'https://cdn.jsdelivr.net/gh/spa5k/tafsir_api@main/tafsir/';
 const WORDS_API = 'https://api.quran.com/api/v4/verses/by_key/';
 const AYAH_AUDIO = 'https://cdn.islamic.network/quran/audio/128/ar.alafasy/';
-const TAFSIR_STORE = 'kharwa.tafsir.';   // + person
-
-/* The tafsirs to choose from in Settings. The first is the default: Hanafi,
-   like ISOT. Slugs are spa5k's own spellings ("tafisr" included). */
-const AYAH_TAFSIRS = [
-  { id: 'en-tafsir-maarif-ul-quran', label: 'Ma’arif al-Qur’an', credit: 'Ma’arif al-Qur’an · Mufti Muhammad Shafi' },
-  { id: 'en-tafisr-ibn-kathir', label: 'Tafsir Ibn Kathir (abridged)', credit: 'Tafsir Ibn Kathir (abridged) · Hafiz Ibn Kathir' },
-  { id: 'en-al-jalalayn', label: 'Tafsir al-Jalalayn', credit: 'Tafsir al-Jalalayn · al-Mahalli and al-Suyuti' },
-  { id: 'en-tafsir-al-mukhtasar', label: 'Al-Mukhtasar', credit: 'Al-Mukhtasar fi Tafsir al-Qur’an · Tafsir Center for Quranic Studies' },
-];
+/* The tafsir list and the remembered choice live in ayat.js, so Settings can
+   offer them without loading this file. */
 const ASBAB = { id: 'en-asbab-al-nuzul-by-al-wahidi', credit: 'Asbab al-Nuzul · Al-Wahidi' };
 
 const AYAH_TABS = ['ayah', 'tafsir', 'revelation', 'words'];
@@ -104,14 +96,11 @@ const AyahSheet = {
 
   /** The person's tafsir, or the default. */
   tafsir() {
-    let id = null;
-    try { id = localStorage.getItem(TAFSIR_STORE + State.me); } catch { /* default */ }
-    return AYAH_TAFSIRS.find((t) => t.id === id) || AYAH_TAFSIRS[0];
+    return ayahTafsir();
   },
 
   setTafsir(id) {
-    if (!AYAH_TAFSIRS.some((t) => t.id === id)) return;
-    try { localStorage.setItem(TAFSIR_STORE + State.me, id); } catch { /* this session only */ }
+    setAyahTafsir(id);
   },
 
   /** The ayah's Arabic and translation, from the reader's cache; ayah 1 loses

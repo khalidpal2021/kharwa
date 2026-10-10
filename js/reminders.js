@@ -219,9 +219,12 @@ const TestSheet = {
     ];
   },
 
-  open() {
-    // made on first use: the sheet helper lives in us.js
-    if (!this.sheet) this.sheet = usSheet('test-pop', 'test-panel', 'test-scrim', 'test-close');
+  async open() {
+    // made on first use: the sheet helper lives in us.js, which loads with Us
+    if (!this.sheet) {
+      await Lazy.need('share');
+      this.sheet = usSheet('test-pop', 'test-panel', 'test-scrim', 'test-close');
+    }
     el('test-delay').setAttribute('aria-checked', String(this.delay));
     el('test-all-msg').textContent = '';
     el('test-list').innerHTML = this.groups().map((g) => `

@@ -75,7 +75,10 @@ const Learn = {
   /** A position's picture, from assets/learn/; wudu keeps its line drawings. */
   figure(fig) {
     const pic = LEARN_PICTURES[fig];
-    if (pic) return `<img class="ln-pic" src="${pic.src}" alt="${esc(pic.alt)}" loading="lazy" decoding="async">`;
+    if (pic) {
+      return `<img class="ln-pic" src="${pic.src}" alt="${esc(pic.alt)}" width="${pic.w}" height="${pic.h}"
+                   loading="lazy" decoding="async">`;
+    }
     return LEARN_FIGURES[fig] || '';
   },
 
@@ -841,19 +844,5 @@ Learn.hideWords = learnGet(LEARN_HIDE_STORE) === '1';
   if (LEARN_SURAHS.some((x) => x.n === pick && x.n !== 1)) Learn.pick = pick;
 }
 
-Sections.register({
-  id: 'learn',
-  label: 'Learn',
-  order: 4,
-  icon: `<svg viewBox="0 0 24 24" width="22" height="22" focusable="false">
-    <path d="M12 4.2 2.6 9 12 13.8 21.4 9 12 4.2z" fill="none" stroke="currentColor"
-          stroke-width="1.6" stroke-linejoin="round"/>
-    <path d="M6.8 11.3v4.4c0 1.3 2.3 2.4 5.2 2.4s5.2-1.1 5.2-2.4v-4.4"
-          fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-    <path d="M21.4 9v4.6" fill="none" stroke="currentColor" stroke-width="1.6"
-          stroke-linecap="round"/>
-  </svg>`,
-  root: document.getElementById('section-learn'),
-  enabled: () => Data.showsLearn(State.me),
-  show: (params) => Learn.show(params),
-});
+/* The nav entry is in lazy.js, which loaded this file on first visit. */
+Sections.provide('learn', { show: (params) => Learn.show(params) });

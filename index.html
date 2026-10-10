@@ -21,7 +21,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Amiri+Quran&family=Noto+Nastaliq+Urdu&family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Source+Sans+3:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Source+Sans+3:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -747,16 +747,11 @@
   <script src="js/store.js" defer></script>
   <script src="js/info.js" defer></script>
   <script src="js/router.js" defer></script>
-  <script src="js/quran.js" defer></script>
-  <script src="js/ayah-sheet.js" defer></script>
-  <script src="js/hadith.js" defer></script>
-  <script src="js/learn-content.js" defer></script>
-  <script src="js/learn-audio.js" defer></script>
-  <script src="js/learn.js" defer></script>
+  <!-- The Quran, Hadith, Us and Learn tabs load their own scripts the first
+       time they are opened: js/lazy.js. -->
+  <script src="js/lazy.js" defer></script>
   <script src="js/install.js" defer></script>
   <script src="js/reminders.js" defer></script>
-  <script src="js/us-presets.js" defer></script>
-  <script src="js/us.js" defer></script>
   <script src="js/app.js" defer></script>
 </body>
 </html>

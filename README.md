@@ -59,12 +59,23 @@ Android and desktop Chrome, *Settings → App → Install Kharwa* opens the
 browser's install prompt; on iPhone it explains Share → Add to Home Screen.
 
 `sw.js` is the service worker. The page, `js/`, `styles.css` and
-`config.js` are network-first, so a push shows up the next time the app is
-opened; the cached copy is only used offline. Fonts, icons, pictures and the
-pinned CDN libraries are cache-first. Supabase and the Qur'an, hadith and audio
-APIs are never cached. A new file under `js/` should be added to `APP_SHELL`
-in `sw.js` so it is there offline; bump `VERSION` only when the caching
-itself changes, which clears the old caches.
+`config.js` are stale-while-revalidate: the app opens at once from the cache
+while a fresh copy is fetched behind it, and when that copy differs the app
+shows "Updated, tap to refresh". Fonts, icons, pictures and the pinned CDN
+libraries are cache-first. Supabase and the Qur'an, hadith and audio APIs are
+never cached. A new file under `js/` should be added to `APP_SHELL` in `sw.js`
+so it is there offline; bump `VERSION` only when the caching itself changes,
+which clears the old caches.
+
+### Startup
+
+Only the Prayer tab's code runs at startup. The Quran, Hadith, Us and Learn
+tabs load their scripts (and the Arabic fonts only they use) the first time
+they are opened: `js/lazy.js` lists each tab's scripts, and a new script for
+one of them goes there. The last good prayer logs, qada and streak inputs are
+kept in `localStorage` and drawn at once, then refreshed from Supabase: the
+last 60 days first, all queries in parallel, then the older logs. Nothing is
+shown as missed, and the qada popup does not open, until real logs are in.
 
 ### Prayer reminders
 

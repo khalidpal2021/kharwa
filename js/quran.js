@@ -1068,15 +1068,5 @@ const Quran = {
   },
 };
 
-Sections.register({
-  id: 'quran',
-  label: 'Quran',
-  order: 2,
-  icon: `<svg viewBox="0 0 24 24" width="22" height="22" focusable="false">
-    <path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5z"
-          fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-    <path d="M12 6.5v13" fill="none" stroke="currentColor" stroke-width="1.6"/>
-  </svg>`,
-  root: document.getElementById('section-quran'),
-  show: (params) => Quran.show(params),
-});
+/* The nav entry is in lazy.js, which loaded this file on first visit. */
+Sections.provide('quran', { show: (params) => Quran.show(params) });

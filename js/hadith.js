@@ -627,16 +627,5 @@ const Hadith = {
 
 Info.add('hadith', () => '<p>Tap the bookmark beside a hadith to save it.</p>');
 
-Sections.register({
-  id: 'hadith',
-  label: 'Hadith',
-  order: 3,
-  icon: `<svg viewBox="0 0 24 24" width="22" height="22" focusable="false">
-    <path d="M6.5 3.5h11v17h-11a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2z" fill="none" stroke="currentColor"
-          stroke-width="1.6" stroke-linejoin="round"/>
-    <path d="M8.5 8h6M8.5 11.5h6M8.5 15h4" fill="none" stroke="currentColor" stroke-width="1.6"
-          stroke-linecap="round"/>
-  </svg>`,
-  root: document.getElementById('section-hadith'),
-  show: (params) => Hadith.show(params),
-});
+/* The nav entry is in lazy.js, which loaded this file on first visit. */
+Sections.provide('hadith', { show: (params) => Hadith.show(params) });

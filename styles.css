@@ -4888,3 +4888,6 @@ body.is-guiding { overflow: hidden; }
 
 .ts-send:hover { background: var(--accent-faint); }
 .ts-send:disabled { opacity: 0.5; cursor: default; }
+
+/* Before any logs exist (the very first open): a faint circle, never a cross. */
+.mark-ring--loading { stroke: var(--mark-empty); opacity: 0.35; }

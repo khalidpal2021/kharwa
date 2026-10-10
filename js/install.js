@@ -65,6 +65,11 @@ Install.render();
 if ('serviceWorker' in navigator) {
   // A notification tapped while Kharwa is open: go where it points.
   navigator.serviceWorker.addEventListener('message', (event) => {
+    // The app opened from the cache, and a newer version has just come in.
+    if (event.data?.type === 'kharwa-updated') {
+      toast('Updated, tap to refresh', { action: { label: 'Refresh', run: () => location.reload() } });
+      return;
+    }
     if (event.data?.type !== 'kharwa-open') return;
     const to = new URL(event.data.url, location.origin);
     if (to.origin === location.origin) location.hash = to.hash;

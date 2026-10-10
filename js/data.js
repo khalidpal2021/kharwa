@@ -8,6 +8,14 @@ const PEOPLE_IDS = ['khalid', 'marwa'];
 /** How far back we load logs, which also caps how long a streak can be. */
 const HISTORY_DAYS = 120;
 
+/** Loaded first at startup, all at once: enough for today, the week and most
+    streaks. The rest of HISTORY_DAYS (and back to a qada start) follows. */
+const STARTUP_DAYS = 60;
+
+/** The last good logs, people, qada and nudge inputs, kept on this device so
+    the app opens with real data before the network answers. */
+const CACHE_STORE = 'kharwa.cache.v1';
+
 const DEFAULT_PERSON = {
   display_name: '',
   calc_method: 'NorthAmerica',
@@ -50,6 +58,22 @@ const Data = {
   /** The date-key window we have fetched. */
   loadedFrom: null,
   loadedTo: null,
+
+  /** True once logs exist, from the cache or the network. Until then nothing
+      is shown as missed. */
+  logsReady: false,
+
+  /** True once the whole window (back to the qada start) has come from the
+      network, so what is owed is certain: the qada popup waits for this. */
+  qadaReady: false,
+
+  /** True when the cache held a full window, so qada can be shown from it. */
+  cacheQada: false,
+
+  /** Unread notes for this person, before the Us tab's code has loaded. */
+  unreadCount: 0,
+
+  messageListeners: [],
 
   channel: null,
 
@@ -179,21 +203,22 @@ const Data = {
   async loadQada() {
     if (!this.configured) return;
 
-    const firsts = await Promise.all(PEOPLE_IDS.map((p) => this.db
-      .from('prayer_logs')
-      .select('log_date')
-      .eq('person', p)
-      .order('log_date', { ascending: true })
-      .limit(1)));
+    // The first logs and the backlog, all at once.
+    const [{ data, error }, ...firsts] = await Promise.all([
+      this.db.from('qada_backlog').select('person, prayer, count'),
+      ...PEOPLE_IDS.map((p) => this.db
+        .from('prayer_logs')
+        .select('log_date')
+        .eq('person', p)
+        .order('log_date', { ascending: true })
+        .limit(1)),
+    ]);
     PEOPLE_IDS.forEach((p, i) => {
       if (firsts[i].error) throw firsts[i].error;
       this.firstLog[p] = firsts[i].data?.[0]?.log_date || null;
     });
 
     // Missing until schema.sql is re-run: then there is simply no backlog.
-    const { data, error } = await this.db
-      .from('qada_backlog')
-      .select('person, prayer, count');
     this.backlogReady = !error;
     this.backlog = {};
     for (const row of data || []) {
@@ -275,6 +300,103 @@ const Data = {
     if (!this.configured) throw new Error('Supabase is not configured yet.');
     const { error } = await this.db.from('push_subscriptions').delete().eq('endpoint', endpoint);
     if (error) throw error;
+  },
+
+  /* ------------------------------------------------------------- cache --- */
+
+  /** Fills everything from the last saved copy. Resolves to whether there
+      was one. Synchronous, so the first paint already has the data. */
+  loadCache() {
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(CACHE_STORE)); } catch { /* none */ }
+    if (!saved || saved.v !== 1 || !Array.isArray(saved.logs)) return false;
+    for (const row of saved.people || []) {
+      if (PEOPLE_IDS.includes(row.id)) this.people[row.id] = { ...this.people[row.id], ...row };
+    }
+    this.firstLog = saved.firstLog || {};
+    this.backlog = saved.backlog || {};
+    this.backlogReady = Boolean(saved.backlogReady);
+    this.logs = new Map(saved.logs);
+    this.pushPeople = new Set(saved.pushPeople || []);
+    for (const [k, at] of saved.nudgedAt || []) this.nudgedAt.set(k, at);
+    this.unreadCount = saved.unread?.[saved.me] ?? 0;
+    this.logsReady = true;
+    this.cacheQada = Boolean(saved.full);
+    return true;
+  },
+
+  /** Saves the current state for the next open, a moment after the last
+      change, so a burst of changes is written once. */
+  saveCache(me) {
+    clearTimeout(this.cacheTimer);
+    this.cacheTimer = setTimeout(() => {
+      try {
+        localStorage.setItem(CACHE_STORE, JSON.stringify({
+          v: 1,
+          savedAt: Date.now(),
+          me,
+          full: this.qadaReady || this.cacheQada,
+          people: Object.values(this.people),
+          firstLog: this.firstLog,
+          backlog: this.backlog,
+          backlogReady: this.backlogReady,
+          logs: [...this.logs],
+          pushPeople: [...this.pushPeople],
+          nudgedAt: [...this.nudgedAt].filter(([k]) => k.includes(`|${todayKey()}|`)),
+          unread: { [me]: this.unreadCount },
+        }));
+      } catch { /* storage full or private mode: open without it */ }
+    }, 400);
+  },
+
+  /* ---------------------------------------------------------- startup --- */
+
+  /** Everything the Prayer tab needs, in parallel: the people, each first
+      log, the backlog, the last STARTUP_DAYS of logs, who can be nudged,
+      today's nudges and the unread count. The older logs come after, in
+      loadOlder. */
+  async loadStartup(me) {
+    if (!this.configured) return;
+    const from = addDays(todayKey(), -STARTUP_DAYS);
+    const to = addDays(todayKey(), 1);
+    await Promise.all([
+      this.loadPeople(),
+      this.loadQada(),
+      this.loadLogs(from, to),
+      this.loadPushPeople(),
+      this.loadNudges(todayKey()),
+      this.loadUnreadCount(me),
+    ]);
+    this.logsReady = true;
+    this.recentFrom = from;
+    this.loadedTo = to;
+  },
+
+  /** The rest of the window, older than STARTUP_DAYS: back HISTORY_DAYS, or to
+      the earliest qada start, so every owed prayer is known. */
+  async loadOlder() {
+    if (!this.configured) return;
+    let from = addDays(todayKey(), -HISTORY_DAYS);
+    for (const p of PEOPLE_IDS) {
+      const start = this.qadaStart(p);
+      if (start && start < from) from = start;
+    }
+    const recent = this.recentFrom || addDays(todayKey(), -STARTUP_DAYS);
+    if (from < recent) await this.loadLogs(from, addDays(recent, -1));
+    this.loadedFrom = from;
+    this.qadaReady = true;
+  },
+
+  /** How many notes to `person` are unread: enough for the nav dot without
+      the Us tab's code. Missing table: none. */
+  async loadUnreadCount(person) {
+    if (!this.configured || !person) return;
+    const { count, error } = await this.db
+      .from('messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('to_person', person)
+      .is('read_at', null);
+    if (!error) this.unreadCount = count || 0;
   },
 
   /** Who has at least one device signed up for pushes. False until the
@@ -405,12 +527,14 @@ const Data = {
 
   /** New, read and deleted messages, live: onChange({ event, row }). */
   subscribeMessages(onChange) {
-    if (!this.configured || this.messageChannel) return;
+    if (!this.configured) return;
+    this.messageListeners.push(onChange);
+    if (this.messageChannel) return;
     this.messageChannel = this.db
       .channel('kharwa-messages')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
         const row = payload.eventType === 'DELETE' ? payload.old : payload.new;
-        if (row?.id) onChange({ event: payload.eventType, row });
+        if (row?.id) for (const listener of this.messageListeners) listener({ event: payload.eventType, row });
       })
       .subscribe();
   },

@@ -2,8 +2,11 @@
    sw.js — the service worker that makes Kharwa installable and usable offline.
 
    - The app itself (the page, js/, styles.css, config.js, the manifest) is
-     network-first: a new push shows up on the next open, and the cached copy
-     is only used when the network is not there.
+     stale-while-revalidate: it opens at once from the cache while the
+     network is asked in the background. When what comes back differs from
+     what was shown, the open windows are told, and the app offers
+     "Updated, tap to refresh" (install.js). The first visit, with nothing
+     cached yet, goes to the network.
    - Fonts, icons, the position pictures and the pinned CDN libraries are
      cache-first: they never change under the same URL.
    - Anything else — Supabase, the Qur'an, hadith and audio APIs — is left
@@ -15,10 +18,10 @@
    Function, and opens Kharwa on the Prayer tab when one is tapped.
 
    Bump VERSION to drop every cache when the strategy itself changes; a normal
-   push does not need it, since the app files are network-first.
+   push does not need it, since every open checks for new app files.
    =========================================================================== */
 
-const VERSION = 'v7';
+const VERSION = 'v8';
 const APP_CACHE = `kharwa-app-${VERSION}`;
 const STATIC_CACHE = `kharwa-static-${VERSION}`;
 
@@ -36,6 +39,7 @@ const APP_SHELL = [
   '/js/store.js',
   '/js/info.js',
   '/js/router.js',
+  '/js/lazy.js',
   '/js/quran.js',
   '/js/ayah-sheet.js',
   '/js/hadith.js',
@@ -95,11 +99,11 @@ self.addEventListener('fetch', (event) => {
 
   if (url.origin === self.location.origin) {
     if (req.mode === 'navigate') {
-      event.respondWith(page(req));
+      event.respondWith(page(event));
     } else if (url.pathname.startsWith('/icons/') || url.pathname.startsWith('/assets/')) {
       event.respondWith(cacheFirst(req));
     } else if (/\.(js|css|webmanifest|json)$/.test(url.pathname)) {
-      event.respondWith(networkFirst(req));
+      event.respondWith(staleWhileRevalidate(event, req));
     }
     return;
   }
@@ -156,29 +160,62 @@ self.addEventListener('notificationclick', (event) => {
 
 /* ---------------------------------------------------------- strategies --- */
 
-/** The network, revalidated past the browser cache; the cached copy offline. */
-async function networkFirst(req) {
-  const cache = await caches.open(APP_CACHE);
-  try {
-    const res = await fetch(req, { cache: 'no-cache' });
-    if (res.ok) cache.put(req, res.clone());
-    return res;
-  } catch (err) {
-    const hit = await cache.match(req, { ignoreSearch: true });
-    if (hit) return hit;
-    throw err;
-  }
+/** What identifies a version of a file: its ETag, else Last-Modified and
+    length. Two responses with the same are the same file. */
+function versionOf(res) {
+  const h = res.headers;
+  return h.get('etag') || `${h.get('last-modified') || ''}|${h.get('content-length') || ''}`;
 }
 
-/** A page load: the network first, then the cached app, then the offline page.
-    Every route is the one page, since routing is in the hash. */
-async function page(req) {
+let toldAt = 0;
+
+/** A newer app file has arrived: tell the open windows, once per burst
+    (one deploy changes several files at once). */
+async function announceUpdate() {
+  if (Date.now() - toldAt < 30_000) return;
+  toldAt = Date.now();
+  for (const win of await self.clients.matchAll({ type: 'window' })) win.postMessage({ type: 'kharwa-updated' });
+}
+
+/** Fetches a fresh copy past the browser cache and keeps it; announces it
+    when it differs from the copy that was served. */
+async function revalidate(req, key, served) {
+  const cache = await caches.open(APP_CACHE);
+  const res = await fetch(req, { cache: 'no-cache' });
+  if (!res.ok) return res;
+  await cache.put(key, res.clone());
+  if (served && versionOf(served) !== versionOf(res)) announceUpdate();
+  return res;
+}
+
+/** The cached copy at once, a fresh one fetched behind it for next time.
+    Nothing cached yet: the network. */
+async function staleWhileRevalidate(event, req, key = req) {
+  const cache = await caches.open(APP_CACHE);
+  const hit = await cache.match(key, { ignoreSearch: true });
+  const fresh = revalidate(req, key, hit);
+  if (hit) {
+    event.waitUntil(fresh.catch(() => {}));
+    return hit;
+  }
+  return fresh;
+}
+
+/** A page load: every route is the one page (routing is in the hash), served
+    from the cache at once and refreshed behind it; offline with nothing
+    cached, a short offline page. */
+async function page(event) {
+  const cache = await caches.open(APP_CACHE);
+  const cached = (await cache.match('/', { ignoreSearch: true })) || (await cache.match('/index.html'));
+  const fresh = revalidate(event.request, '/', cached);
+  if (cached) {
+    event.waitUntil(fresh.catch(() => {}));
+    return cached;
+  }
   try {
-    return await networkFirst(req);
+    return await fresh;
   } catch {
-    const cache = await caches.open(APP_CACHE);
-    return (await cache.match('/index.html')) || (await cache.match('/'))
-      || new Response(OFFLINE_PAGE, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+    return new Response(OFFLINE_PAGE, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
   }
 }
 

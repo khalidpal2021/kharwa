@@ -497,6 +497,14 @@ const LEARN_PRAYERS = {
    the extension here). Side on, facing the qibla to the left, so the right
    hand, the right foot and the right index finger are the ones in view.
    Salam is seen from the qibla instead, to show the head turning. */
+/* Each picture's own size (its viewBox), so the page keeps its room while
+   the picture is still loading. */
+const LEARN_PICTURE_SIZE = {
+  takbir: { w: 400, h: 300 }, qiyam: { w: 400, h: 300 }, ruku: { w: 400, h: 228 },
+  standing: { w: 400, h: 300 }, sujood: { w: 400, h: 160 }, jalsa: { w: 400, h: 218 },
+  tashahhud: { w: 400, h: 260 }, salam: { w: 400, h: 300 },
+};
+
 const LEARN_PICTURES = Object.fromEntries([
   ['takbir',    'Takbīr: hands raised beside the ears, palms towards the qibla, thumbs at the earlobes'],
   ['qiyam',     'Qiyām: standing, the right hand over the left below the navel'],
@@ -506,7 +514,7 @@ const LEARN_PICTURES = Object.fromEntries([
   ['jalsa',     'Jalsa: sitting on the left foot, the right foot upright, hands on the thighs'],
   ['tashahhud', 'Tashahhud: sitting as in jalsa, the right index finger raised'],
   ['salam',     'Salām: the head turned to the right, then to the left'],
-].map(([id, alt]) => [id, { src: `assets/learn/${id}.svg`, alt }]));
+].map(([id, alt]) => [id, { src: `assets/learn/${id}.svg`, alt, ...LEARN_PICTURE_SIZE[id] }]));
 
 /* ------------------------------------------------------- wudu drawings -- */
 

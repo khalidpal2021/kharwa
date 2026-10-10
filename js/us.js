@@ -192,6 +192,7 @@ const Us = {
       the tab is opened). The icon badge fails quietly where unsupported. */
   updateBadge() {
     const unread = this.unread();
+    Data.unreadCount = unread;
     Sections.setBadge('us', unread > 0);
     try {
       const done = unread ? navigator.setAppBadge?.(unread) : navigator.clearAppBadge?.();
@@ -383,14 +384,11 @@ setInterval(() => {
   }
 }, 60_000);
 
-Sections.register({
-  id: 'us',
-  label: 'Us',
-  order: 3.5,
-  icon: US_ICONS.heart,
-  root: byId('section-us'),
-  show: (params) => Us.show(params),
-});
+/* The nav entry is in lazy.js, which loaded this file on first visit. */
+Sections.provide('us', { show: (params) => Us.show(params) });
+
+// Loaded after the app has started: take over the nav dot and keep up live.
+Us.start().catch(() => {});
 
 /* ========================================================= sheet helper === */
 

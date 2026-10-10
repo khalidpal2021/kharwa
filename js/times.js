@@ -22,6 +22,7 @@ const PRAYER_LABEL = Object.fromEntries(PRAYERS.map((p) => [p.key, p.label]));
    prayer prayed: it counts as positive everywhere. 'missed' is never stored;
    it is shown when a prayer is still empty after its window has closed. */
 const STATUS_LABEL = {
+  loading: 'Loading',
   none:    'Not logged',
   on_time: 'On time',
   late:    'Late',

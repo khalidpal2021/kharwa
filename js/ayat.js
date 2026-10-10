@@ -111,3 +111,31 @@ async function loadAyah(key) {
   storeAyah(key, ayah);
   return ayah;
 }
+
+/* ------------------------------------------------------------ tafsirs --- */
+
+/* The tafsirs to choose from in Settings, read by the ayah sheet's Tafsir
+   tab. Here rather than in ayah-sheet.js, which loads with the Quran tab, so
+   Settings can offer the choice at once. */
+const TAFSIR_STORE = 'kharwa.tafsir.';   // + person
+
+/* The tafsirs to choose from in Settings. The first is the default: Hanafi,
+   like ISOT. Slugs are spa5k's own spellings ("tafisr" included). */
+const AYAH_TAFSIRS = [
+  { id: 'en-tafsir-maarif-ul-quran', label: 'Ma’arif al-Qur’an', credit: 'Ma’arif al-Qur’an · Mufti Muhammad Shafi' },
+  { id: 'en-tafisr-ibn-kathir', label: 'Tafsir Ibn Kathir (abridged)', credit: 'Tafsir Ibn Kathir (abridged) · Hafiz Ibn Kathir' },
+  { id: 'en-al-jalalayn', label: 'Tafsir al-Jalalayn', credit: 'Tafsir al-Jalalayn · al-Mahalli and al-Suyuti' },
+  { id: 'en-tafsir-al-mukhtasar', label: 'Al-Mukhtasar', credit: 'Al-Mukhtasar fi Tafsir al-Qur’an · Tafsir Center for Quranic Studies' },
+];
+
+/** The person's tafsir, or the default. */
+function ayahTafsir() {
+  let id = null;
+  try { id = localStorage.getItem(TAFSIR_STORE + State.me); } catch { /* default */ }
+  return AYAH_TAFSIRS.find((t) => t.id === id) || AYAH_TAFSIRS[0];
+}
+
+function setAyahTafsir(id) {
+  if (!AYAH_TAFSIRS.some((t) => t.id === id)) return;
+  try { localStorage.setItem(TAFSIR_STORE + State.me, id); } catch { /* this session only */ }
+}

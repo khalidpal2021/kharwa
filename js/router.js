@@ -25,6 +25,14 @@ const Sections = {
     this.list.sort((a, b) => a.order - b.order);
   },
 
+  /** A section whose code loads later (lazy.js) hands over its real show()
+      here once its file has run; lazy.js calls it once the section's whole
+      bundle is in. */
+  provide(id, { show }) {
+    const section = this.list.find((s) => s.id === id);
+    if (section) section.real = show;
+  },
+
   /** The sections this person can see, in nav order. */
   visible() {
     return this.list.filter((s) => !s.enabled || s.enabled());
@@ -65,6 +73,7 @@ const Sections = {
     const changed = this.current !== section.id;
     for (const s of this.list) s.root.hidden = s !== section;
     this.current = section.id;
+    this.params = params;
 
     for (const link of document.querySelectorAll('.navtab')) {
       if (link.dataset.section === section.id) link.setAttribute('aria-current', 'page');
