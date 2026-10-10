@@ -18,7 +18,7 @@
    push does not need it, since the app files are network-first.
    =========================================================================== */
 
-const VERSION = 'v4';
+const VERSION = 'v5';
 const APP_CACHE = `kharwa-app-${VERSION}`;
 const STATIC_CACHE = `kharwa-static-${VERSION}`;
 

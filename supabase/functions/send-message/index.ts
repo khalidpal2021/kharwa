@@ -6,7 +6,7 @@
 //   type 'ayah'    body is the translation; ref { surah, ayah, ayah_to?, name, arabic }
 //                  (ayah_to for a range such as 94:5–6, sent as one card)
 //   type 'hadith'  body is the English; ref { book, number, name, arabic }
-//   type 'mood'    body is 'stressed', 'sad' or 'tired': "I'm stressed"
+//   type 'mood'    body is 'stressed', 'sad', 'tired', 'happy' or 'grateful': "I'm stressed"
 //   note           optional, up to 200 characters, sent with an ayah or hadith
 //
 // Saves the message, then pushes a short notification to every device `to`
@@ -35,11 +35,13 @@ const PER_HOUR = 30;
 /** A range such as 2:155–157 is sent as one card; at most this many more. */
 const AYAH_RANGE_MAX = 9;
 
-/** The "I'm …" chips: a mood message carries one of these ids. */
+/** "How I'm feeling": a mood message carries one of these ids. */
 const MOOD_TEXT: Record<string, string> = {
   stressed: 'I’m stressed',
   sad: 'I’m sad',
   tired: 'I’m tired',
+  happy: 'I’m happy',
+  grateful: 'I’m grateful',
 };
 
 /** A message is worth delivering for a day; after that the app has it anyway. */

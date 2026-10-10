@@ -1,35 +1,32 @@
 /* ===========================================================================
-   us.js — the Us tab: a private thread between the two of you.
+   us.js — the Us tab: notes passed between the two of you.
 
-   Text, an ayah or a hadith shared from the Quran and Hadith tabs, and a
-   quiet line for each nudge from the Prayer tab. Every message goes through
-   the send-message Edge Function, which saves it and pushes it to the other
-   person's devices; this file only reads, marks read and deletes. New,
-   read and deleted messages arrive live through Supabase Realtime.
+   Not a chat. At the top, the last note the other person sent, as one
+   postcard: a line of text, an ayah or hadith with their note, or how they
+   are feeling (with a way to answer it with an ayah). "Earlier notes" opens
+   the rest, sent and received, newest first. Below, "Send something": six
+   tiles, each sending a note at once or after a small sheet.
 
-   Mine on the right on a faint gold tint, theirs on the left on white, with
-   day separators in small caps. Long-press one of mine to delete it.
-   Messages delete themselves after 30 days (supabase/messages-cron.sql).
+   Every note goes through the send-message Edge Function, which saves it and
+   pushes it to the other person's devices; this file only reads, marks read
+   and deletes. New, read and deleted notes arrive live through Supabase
+   Realtime. Notes delete themselves after 30 days (supabase/messages-cron.sql).
 
-   Routes:  #/us        the thread, at the latest message
-            #/us/123    the thread, at message 123 (from a notification)
+   Routes:  #/us        the tab
+            #/us/123    the tab, with note 123 in view (from a notification)
 
-   ShareSheet, at the bottom, is the "Send to Marwa" sheet for an ayah or a
-   hadith, opened from the ayah popup, a long-press in the Quran reader, and
-   the send button on each hadith. Moments is "Ayahs for the moment": ayahs
-   by feeling (us-presets.js, plus any you added), opened from the "Send an
-   ayah" chip, the book beside the box, or a mood card in the thread.
+   ShareSheet is the "Send to Marwa" sheet for an ayah or a hadith, opened
+   from the ayah popup, a long-press in the Quran reader, the send button on
+   each hadith, and "Ayahs for the moment". Moments is that sheet: ayahs by
+   feeling (us-presets.js, plus any added from the Quran tab).
 
-   Depends on data.js, router.js, info.js, times.js and, at run time, app.js
-   (esc, name, toast, State, showSheet, hideSheet, swipeToClose),
-   quran.js (Quran), ayah-sheet.js (AyahSheet) and hadith.js (Hadith).
+   Depends on data.js, router.js, info.js, times.js, us-presets.js and, at
+   run time, app.js (esc, name, toast, State, showSheet, hideSheet), quran.js
+   (Quran), ayah-sheet.js (AyahSheet) and hadith.js (Hadith).
    =========================================================================== */
 
-const US_QUICK_DEFAULTS = ['I love you ❤️', 'Thinking of you', 'Make dua for me 🤲', 'Proud of you', 'On my way home'];
-const US_QUICK_MAX = 8;          // quick sends kept in Settings
-const US_QUICK_LEN = 60;         // characters each
-const US_TEXT_MAX = 500;
-const US_LONG_PRESS_MS = 550;
+const US_NOTE_MAX = 300;     // "Write a note"
+const US_DUA_FOR_MAX = 80;   // "Make dua for me", for…
 
 const US_ICONS = {
   heart: `<svg viewBox="0 0 24 24" width="22" height="22" focusable="false">
@@ -50,38 +47,97 @@ const US_ICONS = {
     <path d="M4.5 11.6 19.5 5l-4.6 14.5-3.4-5.9z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
     <path d="M11.5 13.6 19.5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
   </svg>`,
+  love: `<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+    <path d="M12 19.5s-7.5-4.6-7.5-10A4.2 4.2 0 0 1 12 7.1a4.2 4.2 0 0 1 7.5 2.4c0 5.4-7.5 10-7.5 10z"
+          fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+  </svg>`,
+  dua: `<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+    <path d="M19 14.5A7.5 7.5 0 0 1 9.5 5a7.5 7.5 0 1 0 9.5 9.5z"
+          fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M17 4.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z" fill="currentColor"/>
+  </svg>`,
+  feeling: `<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+    <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    <path d="M8.8 14c.8 1.1 1.9 1.7 3.2 1.7s2.4-.6 3.2-1.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    <circle cx="9.3" cy="10" r="1" fill="currentColor"/><circle cx="14.7" cy="10" r="1" fill="currentColor"/>
+  </svg>`,
+  think: `<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+    <path d="M7.5 15.5h9a4 4 0 0 0 .6-8A5 5 0 0 0 7.6 8a3.8 3.8 0 0 0-.1 7.5z"
+          fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+    <circle cx="8" cy="18.6" r="1.1" fill="none" stroke="currentColor" stroke-width="1.4"/>
+    <circle cx="5.6" cy="20.7" r=".6" fill="currentColor"/>
+  </svg>`,
+  write: `<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+    <path d="M5 19l1-4.2L15.6 5.2a1.8 1.8 0 0 1 2.6 0l.6.6a1.8 1.8 0 0 1 0 2.6L9.2 18 5 19z"
+          fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M14 6.8l3.2 3.2" fill="none" stroke="currentColor" stroke-width="1.6"/>
+  </svg>`,
 };
+
+/* The tiles under "Send something", in order. */
+const US_TILES = [
+  { id: 'ayah', label: 'An ayah for…' },
+  { id: 'love', label: 'I love you', body: 'I love you ❤️' },
+  { id: 'dua', label: 'Make dua for me' },
+  { id: 'feeling', label: 'How I’m feeling' },
+  { id: 'think', label: 'Thinking of you', body: 'Thinking of you' },
+  { id: 'write', label: 'Write a note' },
+];
+
+/* How the other person is referred to on a feeling card ("Send her an
+   ayah for this"): Marwa as the brief has it; anyone else by name. */
+const US_OBJECT = { marwa: 'her' };
 
 const byId = (id) => document.getElementById(id);
 
 const fmtUsTime = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' });
 
+/** "just now", "12m ago", "2h ago", "Yesterday", "Fri, Oct 9". */
+function usAgo(iso) {
+  const then = new Date(iso);
+  const mins = Math.floor((Date.now() - then) / 60_000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const key = dateKey(then);
+  if (mins < 12 * 60 || key === todayKey()) return `${Math.floor(mins / 60)}h ago`;
+  if (key === addDays(todayKey(), -1)) return 'Yesterday';
+  return fmtDayNav.format(then);
+}
+
+/** "Ar-Ra'd · 13:28", or a hadith's book and number. */
+function usRef(m) {
+  if (m.type === 'ayah') return `${m.ref?.name || 'Quran'} · ${m.ref?.surah}:${ayahRange(m.ref?.ayah, m.ref?.ayah_to)}`;
+  return `${m.ref?.name || 'Hadith'} · ${m.ref?.number}`;
+}
+
+function usHref(m) {
+  if (m.type === 'ayah') return `#/quran/${m.ref?.surah}/${ayahRange(m.ref?.ayah, m.ref?.ayah_to).replace('–', '-')}`;
+  return `#/hadith/${m.ref?.book}/n/${m.ref?.number}`;
+}
+
 const Us = {
-  list: [],             // messages, oldest first, including ones still sending
+  list: [],             // notes, oldest first
   ready: false,         // the messages table answered
   failed: false,        // ...or did not
   started: false,
-  target: null,         // a message id to bring into view
-  selected: null,       // my message with Delete showing
-  seq: 0,               // ids for messages still sending: "p1", "p2"...
-  hintTimer: null,
 
   other() {
     return PEOPLE_IDS.find((p) => p !== State.me);
   },
 
-  quickSends() {
-    const list = Data.people[State.me]?.quick_sends;
-    return Array.isArray(list) && list.length ? list : US_QUICK_DEFAULTS;
-  },
-
   unread() {
-    return this.list.filter((m) => m.to_person === State.me && !m.read_at && !m.pending).length;
+    return this.list.filter((m) => m.to_person === State.me && !m.read_at).length;
   },
 
-  /** The thread is on screen, so what arrives is read. */
+  /** The tab is on screen, so what arrives is read. */
   watching() {
     return Sections.current === 'us' && document.visibilityState === 'visible';
+  },
+
+  /** The postcard: their last note, leaving nudges to the earlier list. */
+  latest() {
+    const other = this.other();
+    return [...this.list].reverse().find((m) => m.from_person === other && m.type !== 'nudge') || null;
   },
 
   /* -------------------------------------------------------------- data --- */
@@ -95,16 +151,14 @@ const Us = {
 
   async load() {
     try {
-      const rows = await Data.loadMessages();
-      const sending = this.list.filter((m) => m.pending);
-      this.list = [...rows, ...sending];
+      this.list = await Data.loadMessages();
       this.ready = true;
       this.failed = false;
     } catch {
       this.failed = !this.ready;
     }
     this.updateBadge();
-    if (Sections.current === 'us') this.render();
+    this.refresh();
     this.markRead();
   },
 
@@ -118,21 +172,12 @@ const Us = {
   },
 
   onChange({ event, row }) {
-    if (event === 'DELETE') {
-      this.list = this.list.filter((m) => m.id !== row.id);
-    } else {
-      const atEnd = this.nearBottom();
-      this.put(row);
-      if (event === 'INSERT' && row.to_person === State.me && this.watching()) this.markRead();
-      if (Sections.current === 'us') {
-        this.render();
-        if (event === 'INSERT' && atEnd) this.scrollToEnd(true);
-      }
-      this.updateBadge();
-      return;
-    }
+    const before = this.latest()?.id;
+    if (event === 'DELETE') this.list = this.list.filter((m) => m.id !== row.id);
+    else this.put(row);
+    if (event === 'INSERT' && row.to_person === State.me) this.markRead();
     this.updateBadge();
-    if (Sections.current === 'us') this.render();
+    this.refresh(this.latest()?.id !== before);
   },
 
   async markRead() {
@@ -147,319 +192,189 @@ const Us = {
     Sections.setBadge('us', this.unread() > 0);
   },
 
-  /* ------------------------------------------------------------ sending --- */
-
-  /** Shows it at once, then sends it. `fields`: { type, body, ref, note }. */
-  async send(fields) {
-    const local = {
-      id: `p${++this.seq}`, pending: true, from_person: State.me, to_person: this.other(),
-      created_at: new Date().toISOString(), read_at: null, ref: null, note: null, ...fields,
-    };
-    this.list.push(local);
-    if (Sections.current === 'us') {
-      this.render();
-      this.scrollToEnd(true);
-    }
-    return this.deliver(local);
+  /** Redraws whatever of the tab is showing. */
+  refresh(arrived = false) {
+    if (Sections.current === 'us') this.render(arrived);
+    if (Earlier.shown) Earlier.render();
   },
 
-  /** Resolves to the function's answer once it is saved, or false. */
-  async deliver(local) {
-    local.failed = false;
+  /* ------------------------------------------------------------ sending --- */
+
+  /** Sends a note; `tile` is the tile to mark "Sent ✓". Resolves to the
+      function's answer, or false. */
+  async send(fields, { tile = null } = {}) {
+    const other = esc(name(this.other()));
     try {
-      const res = await Data.sendMessage({
-        from: State.me, to: this.other(), type: local.type, body: local.body, ref: local.ref, note: local.note,
-      });
+      const res = await Data.sendMessage({ from: State.me, to: this.other(), ...fields });
       if (!res.ok) {
-        local.failed = true;
         toast(res.reason === 'rate_limited'
-          ? 'That’s 30 messages this hour. Wait a little before sending more.'
-          : 'That message couldn’t be sent.', { error: true });
+          ? 'That’s 30 notes this hour. Wait a little before sending more.'
+          : 'That note couldn’t be sent.', { error: true });
         return false;
       }
-      this.list = this.list.filter((m) => m !== local);
       this.put(res.message);
-      if (!res.devices) this.hint(`${esc(name(this.other()))} will see it in Kharwa`);
+      this.refresh();
+      if (tile) this.flash(tile);
+      toast(res.devices ? `Sent to ${other}` : `Sent. ${other} will see it in Kharwa`);
       return res;
     } catch (err) {
-      local.failed = true;
       toast(`Couldn’t send: ${esc(err.message || err)}`, { error: true });
       return false;
-    } finally {
-      if (Sections.current === 'us') this.render();
     }
+  },
+
+  /** The tile says "Sent ✓" for a moment. */
+  flash(tileId) {
+    const btn = document.querySelector(`.us-tile[data-tile="${tileId}"]`);
+    if (!btn) return;
+    btn.classList.add('is-sent');
+    clearTimeout(btn.sentTimer);
+    btn.sentTimer = setTimeout(() => btn.classList.remove('is-sent'), 1800);
+  },
+
+  /** A few small hearts rise from the tile. */
+  hearts(tileId) {
+    const btn = document.querySelector(`.us-tile[data-tile="${tileId}"]`);
+    if (!btn || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    for (let i = 0; i < 5; i += 1) {
+      const h = document.createElement('span');
+      h.className = 'us-heart';
+      h.setAttribute('aria-hidden', 'true');
+      h.style.setProperty('--x', `${(i - 2) * 14 + Math.round(Math.random() * 8 - 4)}px`);
+      h.style.setProperty('--d', `${i * 70}ms`);
+      h.innerHTML = US_ICONS.love;
+      btn.appendChild(h);
+      setTimeout(() => h.remove(), 1400);
+    }
+  },
+
+  tile(id) {
+    const tile = US_TILES.find((t) => t.id === id);
+    if (!tile) return;
+    if (id === 'ayah') Moments.open();
+    else if (id === 'love') { this.hearts('love'); this.send({ type: 'text', body: tile.body }, { tile: 'love' }); }
+    else if (id === 'think') this.send({ type: 'text', body: tile.body }, { tile: 'think' });
+    else NoteSheet.open(id);
   },
 
   async remove(id) {
     const i = this.list.findIndex((m) => m.id === id);
     if (i < 0) return;
     const [gone] = this.list.splice(i, 1);
-    this.selected = null;
-    this.render();
+    this.refresh();
     try {
       await Data.deleteMessage(State.me, id);
     } catch (err) {
       this.put(gone);
-      this.render();
+      this.refresh();
       toast(`Couldn’t delete: ${esc(err.message || err)}`, { error: true });
     }
-  },
-
-  /** A quiet line under the box, for a few seconds. */
-  hint(html) {
-    const node = byId('us-hint');
-    node.innerHTML = html;
-    clearTimeout(this.hintTimer);
-    this.hintTimer = setTimeout(() => { node.textContent = ''; this.counter(); }, 5000);
-  },
-
-  counter() {
-    const left = US_TEXT_MAX - byId('us-input').value.length;
-    if (left <= 80) byId('us-hint').textContent = `${left} left`;
-    else if (/ left$/.test(byId('us-hint').textContent)) byId('us-hint').textContent = '';
   },
 
   /* ---------------------------------------------------------- rendering --- */
 
   show(params) {
     const id = Number(params[0]);
-    this.target = Number.isInteger(id) && id > 0 ? id : null;
     if (params.length) history.replaceState(null, '', '#/us');
-    this.renderChrome();
     this.render();
-    if (this.target && this.list.some((m) => m.id === this.target)) this.scrollToMessage(this.target);
-    else this.scrollToEnd(false);
     this.markRead();
     if (!this.ready) this.load();
+    // from a notification: the postcard if it is the latest, else the list
+    if (Number.isInteger(id) && id > 0 && this.latest()?.id !== id && this.list.some((m) => m.id === id)) {
+      Earlier.open(id);
+    }
   },
 
-  /** The parts that only change with the people: the title, chips, placeholder. */
-  renderChrome() {
-    const other = esc(name(this.other()));
-    byId('us-title').innerHTML = `${esc(name(State.me))} &amp; ${other}`;
-    byId('us-input').placeholder = `Write to ${name(this.other())}…`;
-    byId('us-input').setAttribute('aria-label', `Message to ${name(this.other())}`);
-    byId('us-chips').innerHTML = `
-      <button class="us-chip us-chip--ayah" type="button" data-moments>${US_ICONS.book}Send an ayah</button>
-      ${US_MOODS.filter((m) => m.feeling).map((m) => `
-        <button class="us-chip us-chip--feel" type="button" data-feel="${m.id}">${esc(m.feeling)}</button>`).join('')}
-      ${this.quickSends().map((text, i) => `
-        <button class="us-chip" type="button" data-quick="${i}">${esc(text)}</button>`).join('')}`;
+  /** The tiles never change, so they are drawn once: a redraw would cut
+      short a "Sent ✓" or the hearts. */
+  renderTiles() {
+    if (byId('us-tiles').childElementCount) return;
+    byId('us-tiles').innerHTML = US_TILES.map((t) => `
+      <button class="us-tile" type="button" data-tile="${t.id}">
+        <span class="us-tile-icon">${US_ICONS[t.id === 'ayah' ? 'book' : t.id]}</span>
+        <span class="us-tile-label">${esc(t.label)}</span>
+        <span class="us-tile-sent" aria-hidden="true">Sent &check;</span>
+      </button>`).join('');
   },
 
-  dayLabel(key) {
-    const today = todayKey();
-    if (key === today) return 'Today';
-    if (key === addDays(today, -1)) return 'Yesterday';
-    return fmtDayNav.format(parseKey(key));
-  },
+  render(arrived = false) {
+    const other = name(this.other());
+    byId('us-from-label').textContent = `From ${other}`;
+    this.renderTiles();
 
-  render() {
-    const thread = byId('us-thread');
+    const box = byId('us-latest');
     if (this.failed) {
-      thread.innerHTML = `<p class="us-empty">Messages aren’t set up yet. Run
-        <code>supabase/schema.sql</code> again in Supabase, then reload.</p>`;
-      return;
+      box.innerHTML = `<p class="us-quiet">Notes aren’t set up yet. Run <code>supabase/schema.sql</code>
+        again in Supabase, then reload.</p>`;
+    } else if (!this.ready) {
+      box.innerHTML = '<p class="us-quiet">Loading…</p>';
+    } else {
+      const m = this.latest();
+      box.innerHTML = m ? this.postcard(m, arrived) : '<p class="us-quiet">Nothing yet.</p>';
     }
-    if (!this.list.length) {
-      thread.innerHTML = `<p class="us-empty">${this.ready ? 'No messages yet. Say salam.' : 'Loading…'}</p>`;
-      return;
-    }
-
-    const lastMine = [...this.list].reverse().find((m) => m.from_person === State.me && m.type !== 'nudge' && !m.pending);
-    let day = null;
-    thread.innerHTML = this.list.map((m) => {
-      const key = dateKey(new Date(m.created_at));
-      const sep = key !== day ? `<p class="us-day"><span>${this.dayLabel(key)}</span></p>` : '';
-      day = key;
-      return sep + this.messageMarkup(m, m === lastMine && m.read_at);
-    }).join('');
+    byId('us-earlier').hidden = !this.list.length;
   },
 
-  messageMarkup(m, seen) {
-    const mine = m.from_person === State.me;
-    const time = fmtUsTime.format(new Date(m.created_at));
-
-    if (m.type === 'nudge') {
-      const prayer = esc(m.body || PRAYER_LABEL[m.ref?.prayer] || 'their prayer');
-      const line = mine
-        ? `You nudged ${esc(name(m.to_person))} to pray ${prayer}`
-        : `${esc(name(m.from_person))} nudged you to pray ${prayer}`;
-      return `<p class="us-nudge" id="us-m-${m.id}">${line} · ${time}</p>`;
-    }
-
-    let inner = '';
+  postcard(m, arrived) {
+    const who = esc(name(m.from_person));
+    let inner;
     if (m.type === 'text') {
-      inner = `<p class="us-text">${esc(m.body)}</p>`;
+      inner = `<p class="pc-text">${esc(m.body)}</p>`;
     } else if (m.type === 'mood') {
-      // "I'm stressed": the other can answer it with an ayah for that mood
-      const mood = US_MOOD[m.body];
+      const feeling = US_FEELING[m.body];
+      const word = esc(feeling?.word || m.body);
+      const mood = feeling?.mood && US_MOOD[feeling.mood];
+      const them = US_OBJECT[m.from_person] || who;
       inner = `
-        <p class="us-mood-label">Feeling</p>
-        <p class="us-mood-text">${esc(mood?.feeling || m.body)}</p>
-        ${!mine && mood ? `<button class="us-mood-btn" type="button" data-mood="${mood.id}">Send an ayah for this</button>` : ''}`;
+        <p class="pc-feeling">${who} is feeling <em>${word}</em></p>
+        ${mood ? `<button class="pc-answer" type="button" data-answer="${mood.id}">Send ${them} an ayah for this</button>` : ''}`;
     } else {
-      const range = ayahRange(m.ref?.ayah, m.ref?.ayah_to);
-      const share = m.type === 'ayah'
-        ? {
-          href: `#/quran/${m.ref?.surah}/${range.replace('–', '-')}`,
-          ar: m.ref?.arabic,
-          ref: `${m.ref?.name || 'Quran'} · ${m.ref?.surah}:${range}`,
-        }
-        : {
-          href: `#/hadith/${m.ref?.book}/n/${m.ref?.number}`,
-          ar: '',
-          ref: `${m.ref?.name || 'Hadith'} · ${m.ref?.number}`,
-        };
       inner = `
-        ${m.note ? `<p class="us-text">${esc(m.note)}</p>` : ''}
-        <a class="us-share us-share--${m.type}" href="${share.href}">
-          ${share.ar ? `<p class="us-share-ar" lang="ar" dir="rtl">${esc(share.ar)}</p>` : ''}
-          <p class="us-share-en">${esc(m.body)}</p>
-          <p class="us-share-ref">${esc(share.ref)}</p>
+        ${m.note ? `<p class="pc-note">“${esc(m.note)}”</p>` : ''}
+        <a class="pc-share" href="${usHref(m)}">
+          ${m.type === 'ayah' && m.ref?.arabic ? `<p class="pc-ar" lang="ar" dir="rtl">${esc(m.ref.arabic)}</p>` : ''}
+          <p class="pc-en${m.type === 'hadith' ? ' pc-en--hadith' : ''}">${esc(m.body)}</p>
+          <p class="pc-ref">${esc(usRef(m))}</p>
         </a>`;
     }
-
-    let meta = time;
-    if (m.pending && m.failed) meta = `Not sent · <button class="us-retry" type="button" data-retry="${m.id}">Retry</button>`;
-    else if (m.pending) meta = 'Sending…';
-    else if (seen) meta += ' · Seen';
-
-    const selected = this.selected === m.id;
     return `
-      <div class="us-msg ${mine ? 'is-mine' : 'is-theirs'}${m.type === 'mood' ? ' us-msg--mood' : ''}${m.pending ? ' is-pending' : ''}${selected ? ' is-selected' : ''}"
-           id="us-m-${m.id}" data-id="${m.id}">
-        <div class="us-bubble">${inner}</div>
-        <p class="us-meta">${meta}</p>
-        ${selected ? `<button class="us-del" type="button" data-del="${m.id}">Delete message</button>` : ''}
-      </div>`;
-  },
-
-  /* ----------------------------------------------------------- scrolling --- */
-
-  nearBottom() {
-    const doc = document.documentElement;
-    return doc.scrollHeight - (window.scrollY + window.innerHeight) < 160;
-  },
-
-  scrollToEnd(smooth) {
-    requestAnimationFrame(() => {
-      window.scrollTo({ top: document.documentElement.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
-    });
-  },
-
-  scrollToMessage(id) {
-    requestAnimationFrame(() => {
-      const node = document.getElementById(`us-m-${id}`);
-      if (!node) return;
-      node.scrollIntoView({ block: 'center' });
-      node.classList.add('is-target');
-      setTimeout(() => node.classList.remove('is-target'), 2200);
-    });
+      <article class="pc${m.type === 'mood' ? ' pc--mood' : ''}${arrived ? ' is-new' : ''}">
+        ${inner}
+        <p class="pc-time"><time datetime="${m.created_at}">${usAgo(m.created_at)}</time></p>
+      </article>`;
   },
 };
 
 Info.add('us', () => `
-  <p>Just the two of you. Each message also arrives as a notification on the
-     other person&rsquo;s phone, if they have turned on Prayer reminders.</p>
-  <p>Messages delete themselves after 30 days. Long-press one of yours to delete
-     it sooner.</p>`);
+  <p>Notes just between the two of you. Each one also arrives as a
+     notification on the other person&rsquo;s phone, if they have turned on
+     Prayer reminders.</p>
+  <p>Notes delete themselves after 30 days. You can delete one of yours sooner
+     from Earlier notes.</p>`);
 
-/* -------------------------------------------------------------- events --- */
-
-byId('us-form').addEventListener('submit', (event) => {
-  event.preventDefault();
-  const input = byId('us-input');
-  const body = input.value.trim();
-  if (!body) return;
-  input.value = '';
-  Us.growInput();
-  Us.counter();
-  Us.send({ type: 'text', body: body.slice(0, US_TEXT_MAX) });
+byId('us-tiles').addEventListener('click', (event) => {
+  const tile = event.target.closest('[data-tile]');
+  if (tile) Us.tile(tile.dataset.tile);
 });
 
-Us.growInput = () => {
-  const input = byId('us-input');
-  input.style.height = 'auto';
-  input.style.height = `${Math.min(input.scrollHeight, 132)}px`;
-};
-
-byId('us-input').addEventListener('input', () => {
-  Us.growInput();
-  Us.counter();
+byId('us-latest').addEventListener('click', (event) => {
+  const answer = event.target.closest('[data-answer]');
+  if (answer) Moments.open(answer.dataset.answer);
 });
 
-// Enter sends on a keyboard; Shift+Enter, and Enter on a phone, is a new line.
-byId('us-input').addEventListener('keydown', (event) => {
-  if (event.key !== 'Enter' || event.shiftKey || event.isComposing) return;
-  if (window.matchMedia('(pointer: coarse)').matches) return;
-  event.preventDefault();
-  byId('us-form').requestSubmit();
-});
-
-byId('us-chips').addEventListener('click', (event) => {
-  if (event.target.closest('[data-moments]')) { Moments.open(); return; }
-  const feel = event.target.closest('[data-feel]');
-  if (feel) { Us.send({ type: 'mood', body: feel.dataset.feel }); return; }
-  const chip = event.target.closest('[data-quick]');
-  if (chip) Us.send({ type: 'text', body: Us.quickSends()[Number(chip.dataset.quick)] });
-});
-
-byId('us-moments').addEventListener('click', () => Moments.open());
-
-byId('us-thread').addEventListener('click', (event) => {
-  const answer = event.target.closest('[data-mood]');
-  if (answer) { Moments.open(answer.dataset.mood); return; }
-  const del = event.target.closest('[data-del]');
-  if (del) { Us.remove(Number(del.dataset.del)); return; }
-  const retry = event.target.closest('[data-retry]');
-  if (retry) {
-    const local = Us.list.find((m) => m.id === retry.dataset.retry);
-    if (local) { Us.render(); Us.deliver(local); }
-    return;
-  }
-  // a link inside a card that was just long-pressed should not open
-  if (Us.justPressed) { event.preventDefault(); Us.justPressed = false; return; }
-  if (Us.selected !== null && !event.target.closest('.us-msg.is-selected')) {
-    Us.selected = null;
-    Us.render();
-  }
-});
-
-/* Long-press (or right-click) one of my messages to delete it. */
-{
-  let timer = null;
-  let start = null;
-  const cancel = () => { clearTimeout(timer); timer = null; };
-  const select = (msg) => {
-    Us.selected = Number(msg.dataset.id);
-    Us.justPressed = true;
-    window.getSelection?.().removeAllRanges();
-    Us.render();
-  };
-  byId('us-thread').addEventListener('pointerdown', (event) => {
-    const msg = event.target.closest('.us-msg.is-mine:not(.is-pending)');
-    if (!msg || event.button > 0) return;
-    start = { x: event.clientX, y: event.clientY };
-    Us.justPressed = false;
-    timer = setTimeout(() => { timer = null; select(msg); }, US_LONG_PRESS_MS);
-  });
-  byId('us-thread').addEventListener('pointermove', (event) => {
-    if (timer && start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 10) cancel();
-  });
-  for (const type of ['pointerup', 'pointercancel', 'pointerleave']) byId('us-thread').addEventListener(type, cancel);
-  byId('us-thread').addEventListener('contextmenu', (event) => {
-    const msg = event.target.closest('.us-msg.is-mine:not(.is-pending)');
-    if (!msg) return;
-    event.preventDefault();
-    cancel();
-    select(msg);
-  });
-}
+byId('us-earlier').addEventListener('click', () => Earlier.open());
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && Us.started) Us.load();
 });
+
+// "2h ago" keeps up while the tab is open
+setInterval(() => {
+  if (Sections.current !== 'us') return;
+  for (const t of document.querySelectorAll('#section-us time[datetime], #earlier-list time[datetime]')) {
+    t.textContent = usAgo(t.getAttribute('datetime'));
+  }
+}, 60_000);
 
 Sections.register({
   id: 'us',
@@ -470,18 +385,205 @@ Sections.register({
   show: (params) => Us.show(params),
 });
 
+/* ========================================================= sheet helper === */
+
+/* The small sheets here share their opening and closing: the finger that
+   opened one lifting over its backdrop is not a tap to close, and Esc closes
+   only the top one. */
+function usSheet(popId, panelId, scrimId, closeId) {
+  const sheet = {
+    shown: false,
+    openedAt: 0,
+    returnFocus: null,
+    show() {
+      if (this.shown) return;
+      this.shown = true;
+      this.openedAt = Date.now();
+      this.returnFocus = document.activeElement;
+      showSheet(byId(popId), byId(panelId));
+      byId(panelId).focus();
+    },
+    hide() {
+      if (!this.shown) return;
+      this.shown = false;
+      hideSheet(byId(popId), byId(panelId));
+      if (this.returnFocus?.isConnected) this.returnFocus.focus();
+    },
+  };
+  byId(closeId).addEventListener('click', () => sheet.hide());
+  byId(scrimId).addEventListener('click', () => { if (Date.now() - sheet.openedAt > 500) sheet.hide(); });
+  window.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || !sheet.shown) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    sheet.hide();
+  }, true);
+  return sheet;
+}
+
+/* ======================================================= earlier notes === */
+
+const Earlier = {
+  sheet: usSheet('earlier-pop', 'earlier-panel', 'earlier-scrim', 'earlier-close'),
+
+  get shown() { return this.sheet.shown; },
+
+  open(focusId = null) {
+    this.render();
+    this.sheet.show();
+    if (focusId) {
+      requestAnimationFrame(() => {
+        const node = byId(`en-${focusId}`);
+        if (!node) return;
+        node.scrollIntoView({ block: 'center' });
+        node.classList.add('is-target');
+        setTimeout(() => node.classList.remove('is-target'), 2200);
+      });
+    }
+  },
+
+  close() { this.sheet.hide(); },
+
+  render() {
+    const notes = [...Us.list].reverse();
+    byId('earlier-list').innerHTML = notes.length
+      ? notes.map((m) => this.itemMarkup(m)).join('')
+      : '<li class="us-quiet">Nothing yet.</li>';
+  },
+
+  itemMarkup(m) {
+    const mine = m.from_person === State.me;
+    const who = mine ? 'You sent' : esc(name(m.from_person));
+    let body;
+    if (m.type === 'text') {
+      body = `<p class="en-text">${esc(m.body)}</p>`;
+    } else if (m.type === 'mood') {
+      body = `<p class="en-text en-text--soft">Feeling ${esc(US_FEELING[m.body]?.word || m.body)}</p>`;
+    } else if (m.type === 'nudge') {
+      body = `<p class="en-text en-text--soft">A nudge to pray ${esc(m.body || PRAYER_LABEL[m.ref?.prayer] || '')}</p>`;
+    } else {
+      body = `
+        ${m.note ? `<p class="en-note">“${esc(m.note)}”</p>` : ''}
+        <a class="en-share" href="${usHref(m)}">
+          <span class="en-en">${esc(m.body)}</span>
+          <span class="pc-ref">${esc(usRef(m))}</span>
+        </a>`;
+    }
+    return `
+      <li class="en-item${mine ? ' is-mine' : ''}" id="en-${m.id}">
+        <p class="en-who">${who} · <time datetime="${m.created_at}">${usAgo(m.created_at)}</time></p>
+        ${body}
+        ${mine ? `<button class="en-del" type="button" data-del="${m.id}">Delete</button>` : ''}
+      </li>`;
+  },
+};
+
+byId('earlier-list').addEventListener('click', (event) => {
+  const del = event.target.closest('[data-del]');
+  if (del) { Us.remove(Number(del.dataset.del)); return; }
+  // following an ayah or hadith link leaves the sheet behind
+  if (event.target.closest('a')) Earlier.close();
+});
+
+/* =========================================================== note sheet === */
+
+/* "Make dua for me" (an optional "for…"), "How I'm feeling" (chips) and
+   "Write a note" (a card to write on): one small sheet, three faces. */
+const NoteSheet = {
+  sheet: usSheet('note-pop', 'note-panel', 'note-scrim', 'note-close'),
+  mode: null,
+  feeling: null,
+
+  open(mode) {
+    this.mode = mode;
+    this.feeling = null;
+    const body = byId('note-body');
+    if (mode === 'dua') {
+      byId('note-title').textContent = 'Make dua for me';
+      body.innerHTML = `
+        <label class="set-label share-label" for="note-for">For… <span class="share-optional">optional</span></label>
+        <input id="note-for" class="input" type="text" maxlength="${US_DUA_FOR_MAX}" placeholder="my exam"
+               autocomplete="off" enterkeyhint="send" />`;
+    } else if (mode === 'feeling') {
+      byId('note-title').textContent = 'How I’m feeling';
+      body.innerHTML = `
+        <div class="nt-feelings" role="group" aria-label="How you are feeling">
+          ${US_FEELINGS.map((f) => `
+            <button class="mo-mood" type="button" data-feeling="${f.id}" aria-pressed="false">${esc(f.label)}</button>`).join('')}
+        </div>`;
+    } else {
+      byId('note-title').textContent = 'Write a note';
+      body.innerHTML = `
+        <div class="nt-card">
+          <textarea id="note-text" class="nt-text" maxlength="${US_NOTE_MAX}" rows="6"
+                    placeholder="Dear ${esc(name(Us.other()))},"></textarea>
+          <p id="note-count" class="nt-count">${US_NOTE_MAX}</p>
+        </div>`;
+    }
+    this.sync();
+    this.sheet.show();
+    byId(mode === 'dua' ? 'note-for' : mode === 'write' ? 'note-text' : 'note-panel').focus();
+  },
+
+  /** Send is ready when there is something to send. */
+  sync() {
+    let ready = true;
+    if (this.mode === 'feeling') ready = Boolean(this.feeling);
+    if (this.mode === 'write') {
+      const text = byId('note-text').value;
+      byId('note-count').textContent = US_NOTE_MAX - text.length;
+      ready = Boolean(text.trim());
+    }
+    byId('note-send').disabled = !ready;
+  },
+
+  fields() {
+    if (this.mode === 'dua') {
+      const why = byId('note-for').value.trim().replace(/^for\s+/i, '');
+      return { type: 'text', body: why ? `Make dua for me, for ${why} 🤲` : 'Make dua for me 🤲' };
+    }
+    if (this.mode === 'feeling') return { type: 'mood', body: this.feeling };
+    return { type: 'text', body: byId('note-text').value.trim().slice(0, US_NOTE_MAX) };
+  },
+
+  async send() {
+    if (byId('note-send').disabled) return;
+    const fields = this.fields();
+    const tile = this.mode;
+    byId('note-send').disabled = true;
+    const res = await Us.send(fields, { tile });
+    if (res) this.sheet.hide();
+    else byId('note-send').disabled = false;
+  },
+};
+
+byId('note-body').addEventListener('click', (event) => {
+  const chip = event.target.closest('[data-feeling]');
+  if (!chip) return;
+  NoteSheet.feeling = chip.dataset.feeling;
+  for (const c of byId('note-body').querySelectorAll('[data-feeling]')) {
+    c.setAttribute('aria-pressed', String(c === chip));
+  }
+  NoteSheet.sync();
+});
+byId('note-body').addEventListener('input', () => NoteSheet.sync());
+byId('note-body').addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' && event.target.id === 'note-for') { event.preventDefault(); NoteSheet.send(); }
+});
+byId('note-send').addEventListener('click', () => NoteSheet.send());
+
 /* =========================================================== share sheet === */
 
 /* "Send to Marwa": a preview of the ayah or hadith, an optional note, Send. */
 const ShareSheet = {
   open: false,
-  item: null,          // { type, body, ref, preview: { ar, en, ref } }
+  item: null,          // { type, body, ref, preview: { ar, en, ref }, note, tile }
   returnFocus: null,
   openedAt: 0,
 
   /** One ayah, or a range sent as one card (94:5–6), with an optional
       note already filled in. */
-  async openAyah(s, a, to = a, { note = '' } = {}) {
+  async openAyah(s, a, to = a, { note = '', tile = null } = {}) {
     try {
       const text = await ayahRangeText(s, a, to);
       const nameOf = await surahName(s);
@@ -492,6 +594,7 @@ const ShareSheet = {
         ref: { surah: s, ayah: a, ...(to > a ? { ayah_to: to } : {}), name: nameOf, arabic: text.arabic },
         preview: { ar: text.arabic, en: text.translation, ref: `${nameOf} · ${s}:${range}` },
         note,
+        tile,
       });
     } catch {
       toast('That ayah could not be loaded. Check your connection and try again.', { error: true });
@@ -540,13 +643,11 @@ const ShareSheet = {
   },
 
   async send() {
-    const { type, body, ref } = this.item;
+    const { type, body, ref, tile } = this.item;
     const note = byId('share-note').value.trim().slice(0, 200) || null;
     byId('share-send').disabled = true;
-    const other = esc(name(Us.other()));
     this.close();
-    const res = await Us.send({ type, body, ref, note });
-    if (res) toast(res.devices ? `Sent to ${other}` : `Sent. ${other} will see it in Kharwa`);
+    await Us.send({ type, body, ref, note }, { tile });
   },
 };
 
@@ -566,71 +667,6 @@ window.addEventListener('keydown', (event) => {
   event.stopImmediatePropagation();
   ShareSheet.close();
 }, true);
-
-/* ===================================================== quick messages === */
-
-/* Settings → App: the chips above the box, edited as a short list. Saved to
-   people.quick_sends; null keeps the usual five. */
-const QuickSends = {
-  draft: [],
-
-  fill() {
-    this.draft = [...Us.quickSends()];
-    this.render();
-  },
-
-  render() {
-    byId('set-quick').innerHTML = this.draft.map((text, i) => `
-      <div class="set-quick-row">
-        <input class="input set-quick-input" type="text" maxlength="${US_QUICK_LEN}" data-i="${i}"
-               value="${esc(text)}" aria-label="Quick message ${i + 1}" />
-        <button class="set-quick-remove" type="button" data-remove="${i}"
-                aria-label="Remove ${esc(text) || 'this one'}">&times;</button>
-      </div>`).join('');
-    byId('set-quick-add').disabled = this.draft.length >= US_QUICK_MAX;
-  },
-
-  save(wait = 600) {
-    queueSave('quick', async () => {
-      const me = Data.people[State.me] || {};
-      if (!('quick_sends' in me)) throw new Error('run supabase/schema.sql again first.');
-      const list = this.draft.map((t) => t.trim()).filter(Boolean).slice(0, US_QUICK_MAX);
-      const value = list.length && JSON.stringify(list) !== JSON.stringify(US_QUICK_DEFAULTS) ? list : null;
-      if (JSON.stringify(value) === JSON.stringify(me.quick_sends ?? null)) return false;
-      await Data.saveSettings(State.me, { quick_sends: value });
-      Us.renderChrome();
-      return true;
-    }, wait);
-  },
-};
-
-byId('set-quick').addEventListener('input', (event) => {
-  const input = event.target.closest('.set-quick-input');
-  if (!input) return;
-  QuickSends.draft[Number(input.dataset.i)] = input.value;
-  QuickSends.save();
-});
-
-byId('set-quick').addEventListener('click', (event) => {
-  const remove = event.target.closest('[data-remove]');
-  if (!remove) return;
-  QuickSends.draft.splice(Number(remove.dataset.remove), 1);
-  QuickSends.render();
-  QuickSends.save(0);
-});
-
-byId('set-quick-add').addEventListener('click', () => {
-  if (QuickSends.draft.length >= US_QUICK_MAX) return;
-  QuickSends.draft.push('');
-  QuickSends.render();
-  byId('set-quick').querySelector('.set-quick-row:last-child input').focus();
-});
-
-byId('set-quick-reset').addEventListener('click', () => {
-  QuickSends.draft = [...US_QUICK_DEFAULTS];
-  QuickSends.render();
-  QuickSends.save(0);
-});
 
 /* ================================================ ayahs for the moment === */
 
@@ -842,7 +878,7 @@ const Moments = {
 
   send(x) {
     this.close();
-    ShareSheet.openAyah(x.s, x.a, x.to, { note: US_MOOD[this.mood].note });
+    ShareSheet.openAyah(x.s, x.a, x.to, { note: US_MOOD[this.mood].note, tile: 'ayah' });
   },
 
   surprise() {

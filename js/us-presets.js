@@ -8,9 +8,11 @@
    scanned; it is not a translation. A range (94:5–6) is sent as one card.
 
    `note` is the gentle default put in the note field when sending one from
-   that mood; it can be edited or cleared. `feeling` marks the moods that
-   have an "I'm …" chip, sent as a mood card the other can answer with an
-   ayah.
+   that mood; it can be edited or cleared.
+
+   US_FEELINGS are the choices under "How I'm feeling", sent as a note the
+   other can answer with an ayah from the matching mood. The ids are the ones
+   send-message accepts.
 
    Ayahs added from the Quran tab ("+ Add to this mood") are kept in the
    us_presets table and shown after these.
@@ -20,7 +22,6 @@ const US_MOODS = [
   {
     id: 'stressed',
     label: 'Stressed',
-    feeling: 'I’m stressed',
     note: 'For when it feels like too much 🤍',
     ayahs: [
       { s: 13, a: 28, theme: 'Hearts find rest in remembering Allah' },
@@ -33,7 +34,6 @@ const US_MOODS = [
   {
     id: 'sad',
     label: 'Sad',
-    feeling: 'I’m sad',
     note: 'Allah is close. So am I 🤍',
     ayahs: [
       { s: 93, a: 3, theme: 'Your Lord has not left you, nor is He displeased' },
@@ -46,7 +46,6 @@ const US_MOODS = [
   {
     id: 'tired',
     label: 'Tired',
-    feeling: 'I’m tired',
     note: 'Rest a little. You’re doing enough 🤍',
     ayahs: [
       { s: 2, a: 286, theme: 'No soul is burdened beyond what it can bear' },
@@ -57,7 +56,7 @@ const US_MOODS = [
   },
   {
     id: 'afraid',
-    label: 'Worried',
+    label: 'Afraid',
     note: 'You’re not alone in this 🤍',
     ayahs: [
       { s: 20, a: 46, theme: '“Do not fear, I am with you, hearing and seeing”' },
@@ -87,7 +86,7 @@ const US_MOODS = [
   },
   {
     id: 'decision',
-    label: 'Deciding',
+    label: 'Decision',
     note: 'Trust Him with it 🤍',
     ayahs: [
       { s: 2, a: 216, theme: 'What you dislike may be good for you' },
@@ -117,3 +116,15 @@ const US_MOODS = [
 ];
 
 const US_MOOD = Object.fromEntries(US_MOODS.map((m) => [m.id, m]));
+
+/* "How I'm feeling": `word` completes "Marwa is feeling …"; `mood` is the
+   one opened by "Send her an ayah for this". */
+const US_FEELINGS = [
+  { id: 'stressed', label: 'Stressed', word: 'stressed', mood: 'stressed' },
+  { id: 'sad',      label: 'Sad',      word: 'sad',      mood: 'sad' },
+  { id: 'tired',    label: 'Tired',    word: 'tired',    mood: 'tired' },
+  { id: 'happy',    label: 'Happy',    word: 'happy',    mood: 'grateful' },
+  { id: 'grateful', label: 'Grateful', word: 'grateful', mood: 'grateful' },
+];
+
+const US_FEELING = Object.fromEntries(US_FEELINGS.map((f) => [f.id, f]));

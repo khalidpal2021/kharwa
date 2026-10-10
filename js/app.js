@@ -1222,7 +1222,6 @@ function fillSettings() {
     .map((t) => `<option value="${t.id}">${esc(t.label)}</option>`).join('');
   el('set-tafsir').value = AyahSheet.tafsir().id;
   Reminders.fill();
-  QuickSends.fill();
 
   const backlog = Data.backlog[State.me] || {};
   el('set-backlog').innerHTML = QADA_PRAYERS.map((p) => backlogStepper(p, backlog[p.key] || 0)).join('');

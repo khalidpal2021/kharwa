@@ -135,16 +135,17 @@ No cron job is needed.
 
 ### Us
 
-A private thread between the two of you, in its own tab. Text (up to 500
-characters), quick sends (the chips above the box, edited in *Settings → App*),
-an ayah shared from the Quran tab (the send icon in the ayah popup, or a
-long-press on an ayah), a hadith shared from the Hadith tab (the send icon
-beside its bookmark), and a quiet line for each nudge. New, read and deleted
-messages arrive live; "Seen" shows under your last message once it has been
-read; long-press one of yours to delete it. A gold dot on the tab means
-something unread.
+Notes passed between the two of you, like postcards rather than a chat. At
+the top, "From Marwa": the last note the other person sent, as one card
+(a line of text, an ayah or hadith with their note, or how they are feeling
+with "Send her an ayah for this"). "Earlier notes" lists the rest, sent and
+received, newest first; delete one of yours there. Below, "Send something":
+six tiles — An ayah for… (Ayahs for the moment), I love you, Make dua for
+me (with an optional "for…"), How I'm feeling, Thinking of you, and Write a
+note. Shares from the Quran and Hadith tabs arrive as notes too. Opening the
+tab marks what you received as read and clears the gold dot on the nav.
 
-Every message goes through the `send-message` Edge Function
+Every note goes through the `send-message` Edge Function
 (`supabase/functions/send-message/index.ts`), which saves it and pushes a
 short notification to the other person's devices (tap it to open the Us tab
 at that message). At most 30 messages an hour each. If they have no device
@@ -163,19 +164,19 @@ Setup, once:
 
 #### Ayahs for the moment
 
-In the Us tab, the "Send an ayah" chip (or the book beside the box) opens
-ayahs grouped by feeling: stressed, sad, tired, worried, patience,
-forgiveness, deciding, grateful, love. Each card has a one-line theme, the
-translation and the reference; tap it for the Arabic, or Send. Sending fills
-the note with a gentle line for that mood, which can be changed or cleared.
-"Surprise me" picks one, preferring ayahs not sent to them in the last 30
-days (those carry a small check). A range such as 94:5–6 goes as one card.
+The "An ayah for…" tile opens ayahs grouped by feeling: Stressed, Sad,
+Tired, Afraid, Patience, Forgiveness, Decision, Grateful, Love. Each card has
+a one-line theme, the translation and the reference; tap it for the Arabic,
+or Send. Sending fills the note with a gentle line for that mood, which can
+be changed or cleared. "Surprise me" picks one, preferring ayahs not sent to
+them in the last 30 days (those carry a small check). A range such as
+94:5–6 goes as one card.
 
 The references, themes and notes are in `js/us-presets.js`; the Arabic and
-translation are always loaded from the Quran API. "I'm stressed", "I'm sad"
-and "I'm tired" chips send a mood card, and the other person can answer it
-with "Send an ayah for this". From the ayah popup on the Quran tab, the heart
-with a plus adds that ayah to a mood for both of you (`us_presets`).
+translation are always loaded from the Quran API. "How I'm feeling" sends
+Stressed, Sad, Tired, Happy or Grateful, which the other person can answer
+with an ayah. From the ayah popup on the Quran tab, the heart with a plus
+adds that ayah to a mood for both of you (`us_presets`).
 
 Setup: re-run `supabase/schema.sql` (adds `us_presets` and the `mood`
 message type) and redeploy `send-message` from the repo.

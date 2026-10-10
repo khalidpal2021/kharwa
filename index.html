@@ -373,40 +373,32 @@
     <nav id="nav-bottom" class="tabbar" aria-label="Sections"></nav>
 
     <!-- -------------------------------------------------------------- us --- -->
-    <!-- Messages between the two of you: js/us.js. The page scrolls; the box
-         to write in stays at the bottom. -->
+    <!-- Notes between the two of you: js/us.js. Their last note as a
+         postcard, then tiles to send one. -->
     <div id="section-us" class="section" hidden>
-      <section class="card us-card" aria-labelledby="us-title">
-        <div class="cardhead">
-          <span class="rule" aria-hidden="true"></span>
-          <div class="cardhead-label">
-            <h2 id="us-title" class="cardhead-text">Us</h2>
-            <span data-info-slot="us"></span>
+      <div class="us">
+        <section class="us-block" aria-labelledby="us-from-label">
+          <div class="cardhead">
+            <span class="rule" aria-hidden="true"></span>
+            <div class="cardhead-label">
+              <h2 id="us-from-label" class="cardhead-text">From</h2>
+              <span data-info-slot="us"></span>
+            </div>
+            <span class="rule" aria-hidden="true"></span>
           </div>
-          <span class="rule" aria-hidden="true"></span>
-        </div>
-        <div id="us-thread" class="us-thread" aria-live="polite"></div>
-        <div class="us-compose">
-          <div id="us-chips" class="us-chips" role="group" aria-label="Quick messages"></div>
-          <form id="us-form" class="us-form" autocomplete="off">
-            <button id="us-moments" class="us-book" type="button" aria-label="Ayahs for the moment">
-              <svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true" focusable="false">
-                <path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5z"
-                      fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-                <path d="M12 6.5v13" fill="none" stroke="currentColor" stroke-width="1.6"/>
-              </svg>
-            </button>
-            <textarea id="us-input" class="us-input" rows="1" maxlength="500" enterkeyhint="send"></textarea>
-            <button class="us-send" type="submit" aria-label="Send">
-              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
-                <path d="M4.5 11.6 19.5 5l-4.6 14.5-3.4-5.9z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-                <path d="M11.5 13.6 19.5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-              </svg>
-            </button>
-          </form>
-          <p id="us-hint" class="us-hint" aria-live="polite"></p>
-        </div>
-      </section>
+          <div id="us-latest" class="us-latest" aria-live="polite"></div>
+          <button id="us-earlier" class="us-earlier" type="button" hidden>Earlier notes &rsaquo;</button>
+        </section>
+
+        <section class="us-block" aria-labelledby="us-send-label">
+          <div class="cardhead">
+            <span class="rule" aria-hidden="true"></span>
+            <h2 id="us-send-label" class="cardhead-text">Send something</h2>
+            <span class="rule" aria-hidden="true"></span>
+          </div>
+          <div id="us-tiles" class="us-tiles"></div>
+        </section>
+      </div>
     </div>
 
     <!-- ----------------------------------------------------------- learn --- -->
@@ -590,22 +582,6 @@
 
               <hr class="set-rule" />
 
-              <!-- Quick messages: the chips above the box in the Us tab. -->
-              <div class="set-field">
-                <div class="set-label-row">
-                  <span id="set-quick-label" class="set-label">Quick messages</span>
-                  <span class="set-saved" data-for="quick" aria-live="polite"></span>
-                </div>
-                <div id="set-quick" class="set-quick" role="group" aria-labelledby="set-quick-label"></div>
-                <div class="set-quick-actions">
-                  <button id="set-quick-add" class="btn btn--ghost" type="button">Add</button>
-                  <button id="set-quick-reset" class="set-quick-reset" type="button">Reset to the usual five</button>
-                </div>
-                <p class="set-error" data-for="quick" role="alert" hidden></p>
-              </div>
-
-              <hr class="set-rule" />
-
               <div class="set-row">
                 <div class="set-row-text">
                   <span class="set-label">Prayer times</span>
@@ -697,6 +673,34 @@
         </div>
         <div id="moments-moods" class="mo-moods" role="group" aria-label="Moods"></div>
         <div id="moments-body" class="mo-body"></div>
+      </div>
+    </div>
+
+    <!-- ------------------------------------------------- earlier notes --- -->
+    <div id="earlier-pop" class="modal" hidden>
+      <div id="earlier-scrim" class="modal-scrim"></div>
+      <div id="earlier-panel" class="sheet earlier-sheet" role="dialog" aria-modal="true" aria-labelledby="earlier-title" tabindex="-1">
+        <div class="sheet-handle" aria-hidden="true"></div>
+        <div class="sheet-head">
+          <h2 id="earlier-title" class="share-title">Earlier notes</h2>
+          <button id="earlier-close" class="modal-close" type="button" aria-label="Close">&times;</button>
+        </div>
+        <ul id="earlier-list" class="en-list"></ul>
+      </div>
+    </div>
+
+    <!-- ---------------------------------------------------- note sheet --- -->
+    <!-- "Make dua for me", "How I'm feeling", "Write a note": js/us.js. -->
+    <div id="note-pop" class="modal" hidden>
+      <div id="note-scrim" class="modal-scrim"></div>
+      <div id="note-panel" class="sheet share-sheet note-sheet" role="dialog" aria-modal="true" aria-labelledby="note-title" tabindex="-1">
+        <div class="sheet-handle" aria-hidden="true"></div>
+        <div class="sheet-head">
+          <h2 id="note-title" class="share-title">Send</h2>
+          <button id="note-close" class="modal-close" type="button" aria-label="Close">&times;</button>
+        </div>
+        <div id="note-body" class="note-body"></div>
+        <button id="note-send" class="btn btn--primary share-send" type="button">Send</button>
       </div>
     </div>
 
