@@ -24,6 +24,9 @@
      rule, mark or large numeral still uses --accent. */
   --accent-text:       #8A6508;
 
+  /* Text on a gold button: rich black, 5.35:1 on --accent. */
+  --on-gold:           #1A1A1A;
+
   /* A warm gray dark enough to clear 3:1 on the page: the not-logged ring and
      the missed week segment. */
   --mark-empty:        #8A857D;
@@ -66,6 +69,63 @@
   --tap: 44px;
   --mark-size: 22px;
   --tabbar-h: 50px;
+
+  /* The paper noise over everything */
+  --paper-opacity: 0.035;
+}
+
+/* Dark: the same almanac by lamplight. Set on <html data-theme="dark"> by the
+   inline script in index.html before first paint, then kept by js/theme.js.
+   Every pair clears WCAG AA: ivory on the page 15.2:1, muted text on the
+   muted fill 6.1:1, gold text on a card 8.0:1, dark ink on gold 8.5:1, and
+   the empty mark 3.7:1 on a card (3:1 is the bar for a non-text mark). */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --background:        #14110E;
+  --foreground:        #EDE6DA;
+  --muted:             #24201B;
+  --muted-foreground:  #A69D90;
+  --accent:            #D4A84B;
+  --accent-secondary:  #E3BE6A;
+  --accent-foreground: #14110E;
+  --border:            #2E2822;
+  --border-hover:      #40382F;
+  --card:              #1C1814;
+  --ring:              #D4A84B;
+
+  /* Gold reads as text on dark at full strength. */
+  --accent-text:       #D4A84B;
+  --on-gold:           #14110E;
+  --mark-empty:        #7A7166;
+
+  /* The glow a touch warmer, toward lamplight */
+  --accent-glow:       rgba(224, 150, 60, 0.045);
+  --accent-faint:      rgba(212, 168, 75, 0.10);
+  --accent-wash:       rgba(212, 168, 75, 0.12);
+  --accent-tint:       rgba(212, 168, 75, 0.22);
+  --accent-hairline:   rgba(212, 168, 75, 0.34);
+
+  --card-warm:         #1F1A15;
+
+  /* Shadows barely there; the borders do the separating. */
+  --shadow-ink:        rgba(0, 0, 0, 0);
+  --shadow-ink-md:     rgba(0, 0, 0, 0.16);
+  --shadow-ink-lg:     rgba(0, 0, 0, 0.40);
+  --scrim:             rgba(0, 0, 0, 0.50);
+  --scrim-strong:      rgba(0, 0, 0, 0.62);
+
+  --paper-opacity: 0.018;
+}
+
+/* A gentle fade when the theme changes while the app is open (js/theme.js
+   adds this for a moment). The reduced-motion rule below cancels it. */
+.theme-fade,
+.theme-fade *,
+.theme-fade *::before,
+.theme-fade *::after {
+  transition: background-color 600ms ease, color 600ms ease, border-color 600ms ease,
+              fill 600ms ease, stroke 600ms ease, box-shadow 600ms ease !important;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -101,7 +161,7 @@ body::before {
 }
 
 body::after {
-  opacity: 0.035;
+  opacity: var(--paper-opacity);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
@@ -222,7 +282,7 @@ button, a, input, select, textarea, label,
    gives 5.35:1 at rest and 7.94:1 on hover. */
 .btn--primary {
   background: var(--accent);
-  color: var(--foreground);
+  color: var(--on-gold);
 }
 
 .btn--primary:hover { background: var(--accent-secondary); }
@@ -4113,9 +4173,14 @@ body.is-guiding { overflow: hidden; }
 /* Settings → App: the switch, then which prayers and when, then a test. */
 .set-rem-options { display: grid; gap: var(--s2); margin-top: var(--s2); }
 
-.set-rem-prayers { display: flex; flex-wrap: wrap; gap: 6px; }
+.set-rem-prayers,
+.set-choices { display: flex; flex-wrap: wrap; gap: 6px; }
 
-.set-rem-prayer {
+/* Settings → App → Appearance: one of four, in the same pills. */
+.set-choices { margin-top: 6px; }
+
+.set-rem-prayer,
+.set-choice {
   min-height: 38px;
   padding: 0 14px;
   border: 1px solid var(--border-hover);
@@ -4127,7 +4192,8 @@ body.is-guiding { overflow: hidden; }
   transition: color var(--ease), border-color var(--ease), background var(--ease);
 }
 
-.set-rem-prayer[aria-pressed="true"] {
+.set-rem-prayer[aria-pressed="true"],
+.set-choice[aria-checked="true"] {
   color: var(--accent-text);
   border-color: var(--accent);
   background: var(--accent-faint);

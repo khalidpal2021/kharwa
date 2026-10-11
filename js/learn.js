@@ -72,11 +72,13 @@ const Learn = {
 
   /* -------------------------------------------------------------- figures --- */
 
-  /** A position's picture, from assets/learn/; wudu keeps its line drawings. */
+  /** A position's picture, from assets/learn/ (its dark copy in the dark
+      theme); wudu keeps its line drawings. */
   figure(fig) {
     const pic = LEARN_PICTURES[fig];
     if (pic) {
-      return `<img class="ln-pic" src="${pic.src}" alt="${esc(pic.alt)}" width="${pic.w}" height="${pic.h}"
+      const src = document.documentElement.dataset.theme === 'dark' ? pic.dark : pic.src;
+      return `<img class="ln-pic" src="${src}" data-fig="${fig}" alt="${esc(pic.alt)}" width="${pic.w}" height="${pic.h}"
                    loading="lazy" decoding="async">`;
     }
     return LEARN_FIGURES[fig] || '';
@@ -833,6 +835,14 @@ document.addEventListener('keydown', (event) => {
 // A screen lock is dropped when the tab is hidden; take it again on return.
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && Learn.guide) Learn.requestWake();
+});
+
+// The theme changed while the pictures are on screen: swap to the other copy.
+document.addEventListener('kharwa:theme', ({ detail }) => {
+  for (const img of document.querySelectorAll('img.ln-pic[data-fig]')) {
+    const pic = LEARN_PICTURES[img.dataset.fig];
+    if (pic) img.src = detail === 'dark' ? pic.dark : pic.src;
+  }
 });
 
 Learn.includeSunnah = learnGet(LEARN_SUNNAH_STORE) !== '0';

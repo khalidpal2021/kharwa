@@ -19,6 +19,30 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="application-name" content="Kharwa" />
 
+  <!-- Light or dark before the first paint, so neither flashes. The same rule
+       as js/theme.js, which keeps it right afterwards: Auto is dark from
+       Maghrib until sunrise, by the times theme.js cached. #14110E is the
+       dark --background, for the status bar until the stylesheet loads. -->
+  <script>
+    (function () {
+      try {
+        var choice = localStorage.getItem('kharwa.theme') || 'auto';
+        var dark = choice === 'dark';
+        if (choice === 'system') dark = matchMedia('(prefers-color-scheme: dark)').matches;
+        if (choice === 'auto') {
+          var now = new Date();
+          var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+          var key = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
+          var sun = (JSON.parse(localStorage.getItem('kharwa.theme.sun')) || {})[key] || ['06:30', '18:30'];
+          var hm = pad(now.getHours()) + ':' + pad(now.getMinutes());
+          dark = hm < sun[0] || hm >= sun[1];
+        }
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        if (dark) document.querySelector('meta[name="theme-color"]').setAttribute('content', '#14110E');
+      } catch (e) { /* light, the default */ }
+    })();
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Source+Sans+3:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" />
@@ -524,6 +548,23 @@
                 <hr class="set-rule" />
               </div>
 
+              <!-- Appearance: js/theme.js. Per device. -->
+              <div class="set-field">
+                <div class="set-label-row">
+                  <span id="set-theme-label" class="set-label">Appearance</span>
+                  <span class="set-saved" data-for="theme" aria-live="polite"></span>
+                </div>
+                <div id="set-theme" class="set-choices" role="radiogroup" aria-labelledby="set-theme-label">
+                  <button class="set-choice" type="button" role="radio" data-theme-choice="auto" aria-checked="true">Auto</button>
+                  <button class="set-choice" type="button" role="radio" data-theme-choice="light" aria-checked="false" tabindex="-1">Light</button>
+                  <button class="set-choice" type="button" role="radio" data-theme-choice="dark" aria-checked="false" tabindex="-1">Dark</button>
+                  <button class="set-choice" type="button" role="radio" data-theme-choice="system" aria-checked="false" tabindex="-1">Match phone</button>
+                </div>
+                <p id="set-theme-hint" class="set-hint">Dark from Maghrib until sunrise.</p>
+              </div>
+
+              <hr class="set-rule" />
+
               <!-- Prayer reminders: js/reminders.js. Per device; the switch
                    subscribes this browser to Web Push. -->
               <div id="set-rem" class="set-rem">
@@ -770,6 +811,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
   <script src="js/timetable.js" defer></script>
   <script src="js/times.js" defer></script>
+  <script src="js/theme.js" defer></script>
   <script src="js/data.js" defer></script>
   <script src="js/ayat.js" defer></script>
   <script src="js/store.js" defer></script>

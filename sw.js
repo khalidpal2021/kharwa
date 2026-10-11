@@ -44,6 +44,7 @@ const APP_SHELL = [
   '/manifest.webmanifest',
   '/js/timetable.js',
   '/js/times.js',
+  '/js/theme.js',
   '/js/data.js',
   '/js/ayat.js',
   '/js/store.js',
@@ -77,6 +78,11 @@ const OFFLINE_PAGE = `<!doctype html>
   h1 { font-weight: 400; font-size: 30px; margin: 0 0 8px; }
   p { color: #6B6B6B; margin: 0 0 20px; }
   button { font: inherit; padding: 10px 22px; border: 0; border-radius: 6px; background: #B8860B; color: #fff; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #14110E; color: #EDE6DA; }
+    p { color: #A69D90; }
+    button { background: #D4A84B; color: #14110E; }
+  }
 </style></head>
 <body><div><h1>You&rsquo;re offline</h1><p>Kharwa will be back when you are connected.</p>
 <button onclick="location.reload()">Try again</button></div></body></html>`;

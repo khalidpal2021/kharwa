@@ -496,7 +496,10 @@ const LEARN_PRAYERS = {
    can take the place of a drawing: save it under the same name (or change
    the extension here). Side on, facing the qibla to the left, so the right
    hand, the right foot and the right index finger are the ones in view.
-   Salam is seen from the qibla instead, to show the head turning. */
+   Salam is seen from the qibla instead, to show the head turning.
+   Each has a dark copy in assets/learn/dark/, with lighter label ink and
+   gold, a deeper floor shadow and the close-ups on the dark card, for the
+   dark theme. */
 /* Each picture's own size (its viewBox), so the page keeps its room while
    the picture is still loading. */
 const LEARN_PICTURE_SIZE = {
@@ -514,7 +517,7 @@ const LEARN_PICTURES = Object.fromEntries([
   ['jalsa',     'Jalsa: sitting on the left foot, the right foot upright, hands on the thighs'],
   ['tashahhud', 'Tashahhud: sitting as in jalsa, the right index finger raised'],
   ['salam',     'Salām: the head turned to the right, then to the left'],
-].map(([id, alt]) => [id, { src: `assets/learn/${id}.svg`, alt, ...LEARN_PICTURE_SIZE[id] }]));
+].map(([id, alt]) => [id, { src: `assets/learn/${id}.svg`, dark: `assets/learn/dark/${id}.svg`, alt, ...LEARN_PICTURE_SIZE[id] }]));
 
 /* ------------------------------------------------------- wudu drawings -- */
 
