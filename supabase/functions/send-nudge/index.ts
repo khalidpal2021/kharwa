@@ -12,7 +12,9 @@
 //
 // Answers 200 with { ok: true, sent, sent_at }, or { ok: false, reason, ... }
 // where reason is 'logged', 'too_soon' (with last_at and retry_at),
-// 'no_devices' or 'bad_request'.
+// 'no_devices', 'not_due' or 'bad_request'. 'not_due' is a day the other person
+// is excused; the word is deliberately vague, since the answer goes to the
+// sender, who may not be allowed to see that.
 //
 // Uses the same secrets as send-reminders: VAPID_PUBLIC_KEY,
 // VAPID_PRIVATE_KEY and optionally VAPID_SUBJECT (else SITE_URL).
@@ -320,6 +322,18 @@ export function tracyDayKey(t: number): string {
 
 type Nudge = { from: string; to: string; prayer: string; date: string };
 
+/** Whether a period covers this day. Should this fail (schema.sql not re-run
+    yet), nudges still work. */
+async function isExcused(person: string, date: string): Promise<boolean> {
+  const res = await rest(`excused_periods?select=id&person=eq.${encodeURIComponent(person)}`
+    + `&start_date=lte.${date}&or=(end_date.is.null,end_date.gte.${date})&limit=1`);
+  if (!res.ok) {
+    console.warn(`excused_periods: ${res.status} ${await res.text()}`);
+    return false;
+  }
+  return (await res.json() as unknown[]).length > 0;
+}
+
 async function nudge({ from, to, prayer, date }: Nudge) {
   // Today in Tracy only (yesterday too, for a phone a moment behind at midnight).
   const now = Date.now();
@@ -332,6 +346,8 @@ async function nudge({ from, to, prayer, date }: Nudge) {
     `people?select=id,display_name&id=in.(${encodeURIComponent(from)},${encodeURIComponent(to)})`);
   const sender = people.find((p) => p.id === from);
   if (!sender || !people.some((p) => p.id === to)) return { ok: false, reason: 'bad_request' };
+
+  if (await isExcused(to, date)) return { ok: false, reason: 'not_due' };
 
   const logged = await restJson<unknown[]>(
     `prayer_logs?select=id&person=eq.${encodeURIComponent(to)}&log_date=eq.${date}`

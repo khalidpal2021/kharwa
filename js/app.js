@@ -42,16 +42,24 @@ function name(person) {
   return Data.people[person]?.display_name || person;
 }
 
+/** Whether you may see that this person is excused: always your own, and
+    someone else's only if they share it. */
+function seesExcused(person) {
+  return person === State.me || Data.sharesExcused(person);
+}
+
 /**
  * What a mark shows: the logged status, or 'missed' once an empty prayer's
  * window has closed. That covers every empty prayer on a past day, except last
- * night's Isha until this morning's Fajr.
+ * night's Isha until this morning's Fajr. An excused day is never missed: it
+ * shows as excused, or as plain empty to someone not meant to know.
  */
 function shownStatus(person, date, prayer, now = new Date()) {
   const stored = Data.status(person, date, prayer);
   if (stored !== 'none') return stored;
   // No logs yet, from the cache or the network: nothing can be called missed.
   if (!Data.logsReady) return 'loading';
+  if (Data.isExcused(person, date)) return seesExcused(person) ? 'excused' : 'none';
   const end = windowEnd(date, prayer);
   const closed = end instanceof Date && !Number.isNaN(end.getTime())
     ? now >= end
@@ -263,6 +271,12 @@ function markSvg(status) {
       <path class="mark-strike" d="M8.6 8.6l6.8 6.8M15.4 8.6l-6.8 6.8" fill="none" stroke-width="1.75" stroke-linecap="round"/>
     </svg>`;
   }
+  if (status === 'excused') {
+    return `${open}
+      <circle class="mark-ring mark-ring--excused" cx="12" cy="12" r="10.25" fill="none" stroke-width="1.5"/>
+      <path class="mark-dash" d="M8.5 12h7" fill="none" stroke-width="1.75" stroke-linecap="round"/>
+    </svg>`;
+  }
   if (status === 'loading') {
     return `${open}
       <circle class="mark-ring mark-ring--loading" cx="12" cy="12" r="10.25" fill="none" stroke-width="1.5"/>
@@ -284,6 +298,15 @@ function markMarkup(person, prayer) {
     return `<div class="markwrap">
       <span class="mark" role="img" aria-label="${label}">${markSvg(status)}</span>
       ${nudgeMarkup(person, prayer)}
+    </div>`;
+  }
+
+  // Your own excused prayer takes no tap and has no menu: a long press, or
+  // Shift+Enter, logs it anyway (see overrideExcused).
+  if (status === 'excused') {
+    return `<div class="markwrap">
+      <button class="mark mark--excused" type="button" data-person="${person}" data-prayer="${prayer}"
+              aria-label="${label}. Press and hold, or Shift+Enter, to log it anyway.">${markSvg(status)}</button>
     </div>`;
   }
 
@@ -328,6 +351,7 @@ function nudgeState(person, prayer, now = new Date()) {
   if (person === State.me || State.viewDate !== today) return null;
   if (!Data.logsReady) return null; // nothing is known yet, not even "unlogged"
   if (Data.status(person, today, prayer) !== 'none') return null;
+  if (Data.isExcused(person, today)) return null;
   const start = timesFor(today).times[prayer];
   const end = windowEnd(today, prayer);
   if (!(now >= start && now < end)) return null;
@@ -389,6 +413,8 @@ async function sendNudge(person, prayer) {
       Data.pushPeople.delete(person);
       toast(`${esc(name(person))} hasn’t turned on reminders yet`, { error: true });
     } else {
+      // 'not_due': this screen was behind. Says no more than any other failure.
+      if (res.reason === 'not_due') await Data.loadExcused();
       toast('Couldn’t send the nudge', { error: true });
     }
   } catch (err) {
@@ -409,12 +435,21 @@ Info.add('nudge-off', () => {
 
 /* What the ⓘ buttons on the Prayer tab say. */
 
+/** Whether the ⓘ text should mention Excused at all: for someone who has the
+    controls, or who can see a period of the other person's. */
+function excusedExplained() {
+  return excusedControls(State.me)
+    || PEOPLE_IDS.some((p) => p !== State.me && Data.sharesExcused(p) && Data.excused[p]?.length);
+}
+
 Info.add('today', () => `
-  <p class="info-legend">${['on_time', 'late', 'missed']
+  <p class="info-legend">${['on_time', 'late', 'missed', ...(excusedExplained() ? ['excused'] : [])]
     .map((st) => `<span>${markSvg(st)}${STATUS_LABEL[st].toLowerCase()}</span>`).join('')}</p>
   <p>Tap your own circle to log a prayer on time or late. One left empty is
      marked missed by itself once its time has passed: when the next prayer
-     begins, or for Isha at the next Fajr.</p>`);
+     begins, or for Isha at the next Fajr.</p>
+  ${excusedControls(State.me) ? `<p>An excused prayer is never missed or owed.
+     Press and hold its mark to log it anyway.</p>` : ''}`);
 
 Info.add('streaks', () => `
   <p>Each column is a day, today on the right. Its bars run from Fajr at the top
@@ -423,10 +458,13 @@ Info.add('streaks', () => `
     <span><i class="st-bar is-prayed"></i>prayed</span>
     <span><i class="st-bar is-missed"></i>missed</span>
     <span><i class="st-bar is-none"></i>not yet</span>
+    ${excusedExplained() ? '<span><i class="st-bar is-excused"></i>excused</span>' : ''}
   </p>
   <p>A day counts toward a streak when all five are prayed; late counts the same
      as on time. Your streak is your run of complete days, Together the run of
-     days you both completed. Today never breaks a run until a prayer there is missed.</p>`);
+     days you both completed. Today never breaks a run until a prayer there is missed.</p>
+  ${excusedExplained() ? `<p>Excused days are skipped: both streaks pause over them
+     and carry on after, rather than breaking.</p>` : ''}`);
 
 Info.add('qada', () => `
   <p>Qada is making up a prayer you missed. Every missed prayer since you started
@@ -451,6 +489,17 @@ Info.add('tafsir', () => `
 
 Info.add('switch', () => `
   <p>Forgets who you are on this device and asks again. Nothing you have logged changes.</p>`);
+
+Info.add('excused', () => `
+  <p>Excused days are never missed or added to qada, and streaks pause over them.
+     Both dates count. Leave the end empty if it&rsquo;s still going.</p>`);
+
+Info.add('excused-share', () => {
+  const other = esc(name(PEOPLE_IDS.find((p) => p !== State.me)));
+  return `<p>On, ${other} sees the same neutral excused marks you do.</p>
+    <p>Off, those days look like plain empty days to ${other}. They are still never
+       counted as missed. Nothing is ever sent to anyone about this.</p>`;
+});
 
 Info.add('backlog', () => `
   <p>Prayers you owe from before you started using Kharwa. They are added to your
@@ -504,41 +553,46 @@ function prayedCount(person, key) {
 
 const personComplete = (person) => (key) => dayComplete(person, key);
 const personMissed = (person) => (key) => dayMissed(person, key);
+const personExcused = (person) => (key) => Data.isExcused(person, key);
 const duoComplete = (key) => PEOPLE_IDS.every((p) => dayComplete(p, key));
 const duoMissed = (key) => PEOPLE_IDS.some((p) => dayMissed(p, key));
+const duoExcused = (key) => PEOPLE_IDS.some((p) => Data.isExcused(p, key));
 
 /**
  * Consecutive complete days ending today. A today still in progress is stepped
  * over rather than counted against the run — it only breaks it once a prayer
- * there has actually been missed.
+ * there has actually been missed. An excused day pauses the run: it neither
+ * adds to it nor breaks it, unless all five were logged anyway.
  */
-function runEndingToday(isComplete, isMissed) {
+function runEndingToday(isComplete, isMissed, isExcused) {
   const today = todayKey();
   let cursor = today;
 
   if (!isComplete(today)) {
-    if (isMissed(today)) return 0;
+    if (!isExcused(today) && isMissed(today)) return 0;
     cursor = addDays(today, -1);
   }
 
   let count = 0;
-  while (count < HISTORY_DAYS && isComplete(cursor)) {
-    count += 1;
+  for (let seen = 0; seen < HISTORY_DAYS; seen += 1) {
+    if (isComplete(cursor)) count += 1;
+    else if (!isExcused(cursor)) break;
     cursor = addDays(cursor, -1);
   }
   return count;
 }
 
 /** The longest run anywhere in the history we have loaded. */
-function bestRun(isComplete) {
+function bestRun(isComplete, isExcused) {
   const today = todayKey();
   let best = 0;
   let run = 0;
   for (let i = HISTORY_DAYS; i >= 0; i -= 1) {
-    if (isComplete(addDays(today, -i))) {
+    const key = addDays(today, -i);
+    if (isComplete(key)) {
       run += 1;
       if (run > best) best = run;
-    } else {
+    } else if (!isExcused(key)) {
       run = 0;
     }
   }
@@ -546,11 +600,11 @@ function bestRun(isComplete) {
 }
 
 function streakFor(person) {
-  return runEndingToday(personComplete(person), personMissed(person));
+  return runEndingToday(personComplete(person), personMissed(person), personExcused(person));
 }
 
 function duoStreak() {
-  return runEndingToday(duoComplete, duoMissed);
+  return runEndingToday(duoComplete, duoMissed, duoExcused);
 }
 
 function lastSevenDays() {
@@ -565,11 +619,11 @@ function lastSevenDays() {
 /** Remembered so a new best can be highlighted the moment it is reached. */
 let lastDuoBest = null;
 
-/** What a single bar says: prayed, missed, or nothing to show yet. */
+/** What a single bar says: prayed, missed, excused, or nothing to show yet. */
 function cellState(person, key, prayer) {
   const s = shownStatus(person, key, prayer);
   if (s === 'on_time' || s === 'late') return 'prayed';
-  return s === 'missed' ? 'missed' : 'none';
+  return s === 'missed' || s === 'excused' ? s : 'none';
 }
 
 /** "Khalid · Thu, Oct 1 · Fajr missed, 4 of 5" */
@@ -577,6 +631,9 @@ function dayTip(person, key) {
   const states = PRAYERS.map((p) => cellState(person, key, p.key));
   const missed = PRAYERS.filter((p, i) => states[i] === 'missed').map((p) => p.label);
   const prayed = states.filter((st) => st === 'prayed').length;
+  if (states.includes('excused')) {
+    return `${name(person)} · ${fmtDayNav.format(parseKey(key))} · Excused${prayed ? `, ${prayed} prayed` : ''}`;
+  }
   let lead = '';
   if (missed.length === PRAYERS.length) lead = 'All missed, ';
   else if (missed.length) lead = `${missed.join(', ')} missed, `;
@@ -592,7 +649,7 @@ function renderStreaks() {
   const today = todayKey();
   const days = lastSevenDays();
   const duo = duoStreak();
-  const duoBest = bestRun(duoComplete);   // still drives the new-best highlight
+  const duoBest = bestRun(duoComplete, duoExcused);   // still drives the new-best highlight
 
   const newBest = lastDuoBest !== null && duoBest > lastDuoBest && duo === duoBest;
   lastDuoBest = duoBest;
@@ -652,6 +709,7 @@ function qadaOwed(person) {
   const now = new Date();
 
   for (let key = start; key && key <= today; key = addDays(key, 1)) {
+    if (Data.isExcused(person, key)) continue; // never owed
     for (const p of PRAYERS) {
       // Before yesterday every window has closed, so skip the prayer times.
       const isMissed = key < yesterday
@@ -1057,6 +1115,7 @@ function renderStatuses() {
     : null;
 
   renderTimetable();
+  renderExcusedRow();
   renderStreaks();
   renderQadaViews();
   if (Data.logsReady && Data.configured) Data.saveCache(State.me);
@@ -1116,7 +1175,142 @@ async function setStatus(person, prayer, next, date = State.viewDate) {
   }
 }
 
+/* ------------------------------------------------------------- excused --- */
+
+/* Marks and counting are above; here is the switch under Today, and the long
+   press that logs one excused prayer anyway. */
+
+/* A little under the 500ms at which a phone starts its own long-press gesture. */
+const HOLD_MS = 450;
+const HOLD_SLOP_PX = 10;
+
+const Hold = {
+  timer: null,
+  x: 0,
+  y: 0,
+  swallow: false,   // the press that just fired must not also count as a tap
+};
+
+function cancelHold() {
+  clearTimeout(Hold.timer);
+  Hold.timer = null;
+}
+
+/** Logs one excused prayer as on time; from there it taps and cycles like any
+    other, and clearing it makes it excused again. */
+async function overrideExcused(person, prayer) {
+  if (navigator.vibrate) navigator.vibrate(10);
+  const date = State.viewDate;
+  const saved = await setStatus(person, prayer, 'on_time', date);
+  if (!saved) return;
+  toast(`${PRAYER_LABEL[prayer]} logged`, {
+    action: { label: 'Undo', run: () => setStatus(person, prayer, 'none', date) },
+  });
+}
+
+el('timetable').addEventListener('pointerdown', (event) => {
+  const mark = event.target.closest('.mark--excused');
+  if (!mark || event.button !== 0) return;
+  const { person, prayer } = mark.dataset;
+  cancelHold();
+  Hold.x = event.clientX;
+  Hold.y = event.clientY;
+  Hold.timer = setTimeout(() => {
+    Hold.timer = null;
+    Hold.swallow = true;
+    overrideExcused(person, prayer);
+  }, HOLD_MS);
+});
+
+document.addEventListener('pointermove', (event) => {
+  if (Hold.timer && Math.hypot(event.clientX - Hold.x, event.clientY - Hold.y) > HOLD_SLOP_PX) cancelHold();
+}, { passive: true });
+
+document.addEventListener('pointerup', () => {
+  cancelHold();
+  if (Hold.swallow) setTimeout(() => { Hold.swallow = false; }, 50); // after its click
+});
+document.addEventListener('pointercancel', () => {
+  cancelHold();
+  Hold.swallow = false;
+});
+
+// The long press is ours, not the browser's menu.
+el('timetable').addEventListener('contextmenu', (event) => {
+  if (event.target.closest('.mark--excused')) event.preventDefault();
+});
+
+el('timetable').addEventListener('keydown', (event) => {
+  const mark = event.target.closest('.mark--excused');
+  if (!mark || event.key !== 'Enter' || !event.shiftKey || event.repeat) return;
+  event.preventDefault();
+  const { person, prayer } = mark.dataset;
+  overrideExcused(person, prayer).then(() => {
+    document.querySelector(`#timetable button.mark[data-person="${person}"][data-prayer="${prayer}"]`)?.focus();
+  });
+});
+
+/** Who gets the controls. An open period keeps them, so it can always be ended. */
+function excusedControls(person) {
+  return Data.showsExcused(person) || Boolean(Data.openExcused(person));
+}
+
+function renderExcusedRow() {
+  const row = el('excused-row');
+  row.hidden = !(Data.excusedReady && excusedControls(State.me));
+  if (row.hidden) return;
+  el('excused-switch').setAttribute('aria-checked', String(Boolean(Data.openExcused(State.me))));
+}
+
+/** Everything that depends on the periods. */
+function renderExcusedViews() {
+  renderStatuses();
+  if (Settings.open && !Excused.editing) renderExcusedSettings(); // never over a half-filled form
+  if (typeof MonthView !== 'undefined' && MonthView.shown) MonthView.render();
+}
+
+/**
+ * On: starts a period today, or carries on one that ended today. Off: ends it
+ * today, so today stays excused; flipped back on the day it began, it is undone
+ * instead, since that is what a mistaken tap needs.
+ */
+async function setExcusedToday(on) {
+  const me = State.me;
+  const today = todayKey();
+  const open = Data.openExcused(me);
+  if (on === Boolean(open)) return;
+
+  if (on) {
+    const endedToday = (Data.excused[me] || []).find((r) => r.end_date >= today);
+    if (endedToday) await Data.updateExcused(endedToday.id, endedToday.start_date, null);
+    else await Data.addExcused(me, today);
+    toast('Excused from today');
+  } else if (open.start_date >= today) {
+    await Data.deleteExcused(open.id);
+    toast('Excused removed');
+  } else {
+    await Data.updateExcused(open.id, open.start_date, today);
+    toast('Excused ends today');
+  }
+}
+
+el('excused-switch').addEventListener('click', async () => {
+  const sw = el('excused-switch');
+  const on = sw.getAttribute('aria-checked') !== 'true';
+  sw.setAttribute('aria-checked', String(on)); // at once, so a tap feels instant
+  sw.disabled = true;
+  try {
+    await setExcusedToday(on);
+  } catch (err) {
+    await Data.loadExcused(); // another device may have got there first
+    toast(`Could not save: ${esc(err.message || err)}`, { error: true });
+  }
+  sw.disabled = false;
+  renderExcusedViews();
+});
+
 el('timetable').addEventListener('click', (event) => {
+  if (Hold.swallow || event.target.closest('.mark--excused')) return;
   const bell = event.target.closest('.nudge-btn');
   if (bell) {
     sendNudge(bell.dataset.nudge, bell.dataset.prayer);
@@ -1187,11 +1381,12 @@ document.addEventListener('keydown', (event) => {
 
 /* ============================================================ settings === */
 
-/* Three tabs: Profile, Qada and App. Each field saves itself when it changes
+/* The tabs: Profile, Qada, Excused (only with the controls on) and App. Each
+   field saves itself when it changes
    (typing waits for a pause) and says "Saved ✓" beside it for a moment, or
    shows what went wrong under it. */
 
-const SETTINGS_TABS = ['profile', 'qada', 'app'];
+const SETTINGS_TABS = ['profile', 'qada', 'excused', 'app'];
 const SETTINGS_TAB_STORE = 'kharwa.settings.tab'; // for this session only
 
 const Settings = {
@@ -1205,10 +1400,15 @@ const Settings = {
 
 const clampCount = (v) => Math.min(99999, Math.max(0, Math.floor(Number(v) || 0)));
 
+/** The tabs this person has. */
+function settingsTabs() {
+  return SETTINGS_TABS.filter((t) => t !== 'excused' || excusedControls(State.me));
+}
+
 function rememberedSettingsTab() {
   try {
     const t = sessionStorage.getItem(SETTINGS_TAB_STORE);
-    return SETTINGS_TABS.includes(t) ? t : 'profile';
+    return settingsTabs().includes(t) ? t : 'profile';
   } catch {
     return 'profile';
   }
@@ -1265,6 +1465,12 @@ function fillSettings() {
   el('set-qada-start').value = Data.qadaStart(State.me) || '';
   el('set-qada-start').max = todayKey();
   setSwitch(Data.showsLearn(State.me));
+  // Who cannot have the controls does not see them offered: Marwa, or anyone
+  // the database has switched on.
+  el('set-excused-field').hidden = State.me !== 'marwa' && !Data.showsExcused(State.me);
+  el('set-excused').setAttribute('aria-checked', String(Data.showsExcused(State.me)));
+  Excused.editing = null;
+  renderExcusedSettings();
   el('set-tafsir').innerHTML = AYAH_TAFSIRS
     .map((t) => `<option value="${t.id}">${esc(t.label)}</option>`).join('');
   el('set-tafsir').value = ayahTafsir().id;
@@ -1377,6 +1583,33 @@ async function saveBacklogCounts() {
   return true;
 }
 
+async function saveShowExcused(on) {
+  const me = Data.people[State.me] || {};
+  if (on === Data.showsExcused(State.me)) return false;
+  try {
+    if (!('show_excused' in me)) throw new Error('run supabase/schema.sql again first.');
+    await Data.saveSettings(State.me, { show_excused: on });
+  } catch (err) {
+    el('set-excused').setAttribute('aria-checked', String(Data.showsExcused(State.me)));
+    throw err;
+  }
+  renderExcusedViews();
+  return true;
+}
+
+async function saveShareExcused(on) {
+  const me = Data.people[State.me] || {};
+  if (on === Data.sharesExcused(State.me)) return false;
+  try {
+    if (!('share_excused' in me)) throw new Error('run supabase/schema.sql again first.');
+    await Data.saveSettings(State.me, { share_excused: on });
+  } catch (err) {
+    el('set-ex-share').setAttribute('aria-checked', String(Data.sharesExcused(State.me)));
+    throw err;
+  }
+  return true;
+}
+
 el('set-name').addEventListener('input', () => queueSave('name', saveName, 700));
 el('set-name').addEventListener('blur', () => {
   if (!el('set-name').value.trim()) el('set-name').value = Data.people[State.me]?.display_name || '';
@@ -1396,6 +1629,146 @@ el('set-learn').addEventListener('click', () => {
   const on = el('set-learn').getAttribute('aria-checked') !== 'true';
   setSwitch(on);
   queueSave('learn', () => saveShowLearn(on));
+});
+
+el('set-excused').addEventListener('click', () => {
+  const on = el('set-excused').getAttribute('aria-checked') !== 'true';
+  el('set-excused').setAttribute('aria-checked', String(on));
+  queueSave('show-excused', () => saveShowExcused(on));
+});
+
+el('set-ex-share').addEventListener('click', () => {
+  const on = el('set-ex-share').getAttribute('aria-checked') !== 'true';
+  el('set-ex-share').setAttribute('aria-checked', String(on));
+  queueSave('excused-share', () => saveShareExcused(on));
+});
+
+/* ---------------------------------------------------- excused history --- */
+
+const Excused = {
+  editing: null,   // a period's id, 'new', or null
+};
+
+const fmtExcusedDate = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+
+/** "Oct 3, 2026 – Oct 9, 2026", or "Oct 3, 2026 – now" while it is going. */
+function excusedRange(r) {
+  const start = fmtExcusedDate.format(parseKey(r.start_date));
+  return `${start} – ${r.end_date ? fmtExcusedDate.format(parseKey(r.end_date)) : 'now'}`;
+}
+
+function excusedForm(r) {
+  const today = todayKey();
+  return `
+    <form class="ex-form" data-id="${r ? r.id : 'new'}" novalidate>
+      <div class="ex-form-dates">
+        <label>From
+          <input class="input" type="date" name="start" max="${today}" value="${r ? r.start_date : ''}" required />
+        </label>
+        <label>To (empty if ongoing)
+          <input class="input" type="date" name="end" max="${today}" value="${r?.end_date || ''}" />
+        </label>
+      </div>
+      <div class="ex-form-btns">
+        <button class="ex-act" type="button" data-ex="cancel">Cancel</button>
+        <button class="ex-act ex-save" type="submit">Save</button>
+      </div>
+    </form>`;
+}
+
+function renderExcusedSettings() {
+  const ready = Data.excusedReady;
+  el('set-tab-excused').hidden = !excusedControls(State.me);
+  el('set-ex-note').hidden = ready;
+  el('set-ex-share').disabled = !ready;
+  el('set-ex-share').setAttribute('aria-checked', String(Data.sharesExcused(State.me)));
+  el('set-ex-share-label').textContent =
+    `Show ${name(PEOPLE_IDS.find((p) => p !== State.me))} that I’m excused`;
+
+  if (!ready) {
+    el('set-ex-list').innerHTML = '';
+    return;
+  }
+  const rows = Data.excused[State.me] || [];
+  el('set-ex-list').innerHTML = `
+    ${Excused.editing === 'new' ? excusedForm(null) : ''}
+    ${rows.length ? `<ul class="ex-periods">${rows.map((r) => (Excused.editing === r.id
+    ? `<li>${excusedForm(r)}</li>`
+    : `<li class="ex-period">
+        <span class="ex-dates">${esc(excusedRange(r))}</span>
+        <button class="ex-act" type="button" data-ex="edit" data-id="${r.id}"
+                aria-label="Edit ${esc(excusedRange(r))}">Edit</button>
+        <button class="ex-act" type="button" data-ex="delete" data-id="${r.id}"
+                aria-label="Delete ${esc(excusedRange(r))}">Delete</button>
+      </li>`)).join('')}</ul>` : (Excused.editing === 'new' ? '' : '<p class="ex-empty">Nothing yet.</p>')}
+    ${Excused.editing === 'new' ? '' : '<button class="ex-add" type="button" data-ex="add">+ Add a period</button>'}`;
+  el('set-ex-list').querySelector('.ex-form input')?.focus();
+}
+
+/** What is wrong with these dates, in words, or null. */
+function excusedProblem(id, start, end) {
+  const today = todayKey();
+  if (!start) return 'Choose a start date.';
+  if (start > today || (end && end > today)) return 'Dates can’t be in the future.';
+  if (end && end < start) return 'The end can’t be before the start.';
+  const others = (Data.excused[State.me] || []).filter((r) => r.id !== id);
+  if (!end && others.some((r) => !r.end_date)) return 'Another period is still going. End it first.';
+  const overlaps = others.some((r) => start <= (r.end_date || '9999-12-31') && (end || '9999-12-31') >= r.start_date);
+  return overlaps ? 'Those dates overlap another period.' : null;
+}
+
+el('set-ex-list').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = event.target;
+  const isNew = form.dataset.id === 'new';
+  const id = isNew ? null : Number(form.dataset.id);
+  const start = form.elements.start.value;
+  const end = form.elements.end.value || null;
+  const problem = excusedProblem(id, start, end);
+  setSaveError('excused', problem || '');
+  if (problem) return;
+  try {
+    if (isNew) await Data.addExcused(State.me, start, end);
+    else await Data.updateExcused(id, start, end);
+    Excused.editing = null;
+    flashSaved('excused');
+    renderExcusedViews();
+  } catch (err) {
+    setSaveError('excused', `Couldn’t save: ${err.message || err}`);
+  }
+});
+
+el('set-ex-list').addEventListener('click', async (event) => {
+  const btn = event.target.closest('[data-ex]');
+  if (!btn) return;
+  setSaveError('excused', '');
+  const action = btn.dataset.ex;
+  if (action === 'add' || action === 'edit' || action === 'cancel') {
+    Excused.editing = { add: 'new', edit: Number(btn.dataset.id), cancel: null }[action];
+    renderExcusedSettings();
+    return;
+  }
+  const row = (Data.excused[State.me] || []).find((r) => r.id === Number(btn.dataset.id));
+  if (!row) return;
+  try {
+    await Data.deleteExcused(row.id);
+    renderExcusedViews();
+    toast('Period deleted', {
+      action: {
+        label: 'Undo',
+        run: async () => {
+          try {
+            await Data.addExcused(State.me, row.start_date, row.end_date);
+          } catch (err) {
+            toast(`Could not undo: ${esc(err.message || err)}`, { error: true });
+          }
+          renderExcusedViews();
+        },
+      },
+    });
+  } catch (err) {
+    setSaveError('excused', `Couldn’t delete: ${err.message || err}`);
+  }
 });
 
 /* The backlog: − and + step one at a time, and a quick run of taps saves once. */
@@ -1459,8 +1832,9 @@ el('set-tabs').addEventListener('click', (event) => {
 
 /* Arrow keys move between the tabs, whichever way they run. */
 el('set-tabs').addEventListener('keydown', (event) => {
-  const i = SETTINGS_TABS.indexOf(Settings.tab);
-  const n = SETTINGS_TABS.length;
+  const tabs = settingsTabs();
+  const i = tabs.indexOf(Settings.tab);
+  const n = tabs.length;
   const next = {
     ArrowRight: (i + 1) % n, ArrowDown: (i + 1) % n,
     ArrowLeft: (i + n - 1) % n, ArrowUp: (i + n - 1) % n,
@@ -1468,7 +1842,7 @@ el('set-tabs').addEventListener('keydown', (event) => {
   }[event.key];
   if (next === undefined) return;
   event.preventDefault();
-  showSettingsTab(SETTINGS_TABS[next], { focus: true });
+  showSettingsTab(tabs[next], { focus: true });
 });
 
 /* Esc closes it, and Tab stays inside it. */
@@ -1569,6 +1943,7 @@ async function start() {
 
   Data.subscribe(onRemoteChange);
   Data.subscribeMessages(onMessageChange);
+  Data.subscribeExcused(renderExcusedViews);
 
   // Coming back to the tab on a phone: catch up on anything missed.
   document.addEventListener('visibilitychange', () => {

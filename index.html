@@ -136,6 +136,13 @@
 
           <ol id="timetable" class="timetable"></ol>
 
+          <!-- Only for a person with Excused on: js/app.js. -->
+          <div id="excused-row" class="ex-row" hidden>
+            <span id="excused-label" class="ex-label">Excused (not praying)</span>
+            <button id="excused-switch" class="switch switch--small" type="button" role="switch"
+                    aria-checked="false" aria-labelledby="excused-label"><span class="switch-thumb"></span></button>
+          </div>
+
         </section>
 
         <!-- --------------------------------------------------- qada card --- -->
@@ -474,6 +481,8 @@
                     aria-controls="set-panel-profile" aria-selected="true">Profile</button>
             <button id="set-tab-qada" class="set-tab" type="button" role="tab" data-tab="qada"
                     aria-controls="set-panel-qada" aria-selected="false" tabindex="-1">Qada</button>
+            <button id="set-tab-excused" class="set-tab" type="button" role="tab" data-tab="excused"
+                    aria-controls="set-panel-excused" aria-selected="false" tabindex="-1" hidden>Excused</button>
             <button id="set-tab-app" class="set-tab" type="button" role="tab" data-tab="app"
                     aria-controls="set-panel-app" aria-selected="false" tabindex="-1">App</button>
           </div>
@@ -530,6 +539,36 @@
             </section>
 
             <!-- app: a list of rows, with room for more (notifications, say) -->
+            <!-- excused: only for a person with Excused on -->
+            <section id="set-panel-excused" class="set-panel" role="tabpanel" aria-labelledby="set-tab-excused" hidden>
+              <p id="set-ex-note" class="set-notice" hidden>
+                This needs the excused_periods table. Run supabase/schema.sql again to turn it on.
+              </p>
+
+              <div class="set-row">
+                <div class="set-row-text">
+                  <span id="set-ex-share-label" class="set-label"></span>
+                  <span data-info-slot="excused-share"></span>
+                  <span class="set-saved" data-for="excused-share" aria-live="polite"></span>
+                </div>
+                <button id="set-ex-share" class="switch" type="button" role="switch" aria-checked="true"
+                        aria-labelledby="set-ex-share-label"><span class="switch-thumb"></span></button>
+              </div>
+              <p class="set-error" data-for="excused-share" role="alert" hidden></p>
+
+              <hr class="set-rule" />
+
+              <div class="set-field">
+                <div class="set-label-row">
+                  <span class="set-label">History</span>
+                  <span data-info-slot="excused"></span>
+                  <span class="set-saved" data-for="excused" aria-live="polite"></span>
+                </div>
+                <div id="set-ex-list"></div>
+                <p class="set-error" data-for="excused" role="alert" hidden></p>
+              </div>
+            </section>
+
             <section id="set-panel-app" class="set-panel" role="tabpanel" aria-labelledby="set-tab-app" hidden>
               <!-- Install Kharwa: js/install.js shows it only where it can be
                    installed, and hides it once it is. -->
@@ -612,6 +651,19 @@
                         aria-labelledby="set-learn-label"><span class="switch-thumb"></span></button>
               </div>
               <p class="set-error" data-for="learn" role="alert" hidden></p>
+
+              <div id="set-excused-field" hidden>
+                <hr class="set-rule" />
+                <div class="set-row">
+                  <div class="set-row-text">
+                    <span id="set-excused-label" class="set-label">Show Excused</span>
+                    <span class="set-saved" data-for="show-excused" aria-live="polite"></span>
+                  </div>
+                  <button id="set-excused" class="switch" type="button" role="switch" aria-checked="false"
+                          aria-labelledby="set-excused-label"><span class="switch-thumb"></span></button>
+                </div>
+                <p class="set-error" data-for="show-excused" role="alert" hidden></p>
+              </div>
 
               <hr class="set-rule" />
 

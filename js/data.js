@@ -22,6 +22,7 @@ const DEFAULT_PERSON = {
   asr_madhab: 'standard',
   qada_start: null,
   show_learn: null, // null: the person's default, see showsLearn()
+  show_excused: null, // null: the person's default, see showsExcused()
 };
 
 /** PostgREST caps a response (1000 rows on Supabase), so reads page through. */
@@ -45,6 +46,13 @@ const Data = {
 
   /** person id -> { fajr: 3, witr: 1, ... }, prayers owed from before Kharwa */
   backlog: {},
+
+  /** person id -> their excused periods, newest first:
+      [{ id, person, start_date, end_date }], end_date null while ongoing */
+  excused: {},
+
+  /** False until the excused_periods table exists (schema.sql has been re-run). */
+  excusedReady: false,
 
   /** Who can be nudged: people with a device signed up for pushes. */
   pushPeople: new Set(),
@@ -199,6 +207,83 @@ const Data = {
     return typeof v === 'boolean' ? v : person !== 'marwa';
   },
 
+  /* ------------------------------------------------------------ excused -- */
+
+  /** Whether a period covers this day. Both its dates count, and an open one
+      runs on from its start. */
+  isExcused(person, key) {
+    return (this.excused[person] || []).some((r) => (
+      key >= r.start_date && (!r.end_date || key <= r.end_date)
+    ));
+  },
+
+  openExcused(person) {
+    return (this.excused[person] || []).find((r) => !r.end_date) || null;
+  },
+
+  /** The Excused controls: the person's own choice, else on for Marwa and off
+      for Khalid. */
+  showsExcused(person) {
+    const v = this.people[person]?.show_excused;
+    return typeof v === 'boolean' ? v : person === 'marwa';
+  },
+
+  /** Whether the other person sees this person's excused marks. */
+  sharesExcused(person) {
+    return this.people[person]?.share_excused !== false;
+  },
+
+  /** Every period. Kept as it was if this fails, and the controls wait. */
+  async loadExcused() {
+    if (!this.configured) return;
+    const { data, error } = await this.db
+      .from('excused_periods')
+      .select('id, person, start_date, end_date')
+      .order('start_date', { ascending: false });
+    this.excusedReady = !error;
+    if (error) return;
+    this.excused = {};
+    for (const row of data || []) (this.excused[row.person] ||= []).push(row);
+  },
+
+  async addExcused(person, start, end = null) {
+    if (!this.configured) throw new Error('Supabase is not configured yet.');
+    const { error } = await this.db
+      .from('excused_periods')
+      .insert({ person, start_date: start, end_date: end });
+    if (error) throw error;
+    await this.loadExcused();
+  },
+
+  async updateExcused(id, start, end) {
+    if (!this.configured) throw new Error('Supabase is not configured yet.');
+    const { error } = await this.db
+      .from('excused_periods')
+      .update({ start_date: start, end_date: end })
+      .eq('id', id);
+    if (error) throw error;
+    await this.loadExcused();
+  },
+
+  async deleteExcused(id) {
+    if (!this.configured) throw new Error('Supabase is not configured yet.');
+    const { error } = await this.db.from('excused_periods').delete().eq('id', id);
+    if (error) throw error;
+    await this.loadExcused();
+  },
+
+  /** A period added, changed or removed on any device. */
+  subscribeExcused(onChange) {
+    if (!this.configured || this.excusedChannel) return;
+    this.excusedChannel = this.db
+      .channel('kharwa-excused')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'excused_periods' }, async () => {
+        await this.loadExcused();
+        onChange();
+      })
+      .subscribe();
+  },
+
   /* --------------------------------------------------------------- qada -- */
 
   /** Where a person's qada count starts: their own setting, else their first log. */
@@ -324,6 +409,8 @@ const Data = {
     this.firstLog = saved.firstLog || {};
     this.backlog = saved.backlog || {};
     this.backlogReady = Boolean(saved.backlogReady);
+    this.excused = saved.excused || {};
+    this.excusedReady = Boolean(saved.excusedReady);
     this.logs = new Map(saved.logs);
     this.pushPeople = new Set(saved.pushPeople || []);
     for (const [k, at] of saved.nudgedAt || []) this.nudgedAt.set(k, at);
@@ -351,6 +438,8 @@ const Data = {
           firstLog: this.firstLog,
           backlog: this.backlog,
           backlogReady: this.backlogReady,
+          excused: this.excused,
+          excusedReady: this.excusedReady,
           logs: [...this.logs],
           pushPeople: [...this.pushPeople],
           nudgedAt: [...this.nudgedAt].filter(([k]) => k.includes(`|${todayKey()}|`)),
@@ -366,9 +455,9 @@ const Data = {
   /* ---------------------------------------------------------- startup --- */
 
   /** Everything the Prayer tab needs, in parallel: the people, each first
-      log, the backlog, the last STARTUP_DAYS of logs, who can be nudged,
-      today's nudges and the unread count. The older logs come after, in
-      loadOlder. */
+      log, the backlog, the excused periods, the last STARTUP_DAYS of logs,
+      who can be nudged, today's nudges and the unread count. The older logs
+      come after, in loadOlder. */
   async loadStartup(me) {
     if (!this.configured) return;
     const from = addDays(todayKey(), -STARTUP_DAYS);
@@ -376,6 +465,7 @@ const Data = {
     await Promise.all([
       this.loadPeople(),
       this.loadQada(),
+      this.loadExcused(),
       this.loadLogs(from, to),
       this.loadPushPeople(),
       this.loadNudges(todayKey()),

@@ -27,6 +27,7 @@ const STATUS_LABEL = {
   on_time: 'On time',
   late:    'Late',
   missed:  'Missed',
+  excused: 'Excused',
 };
 
 const TIMES_SOURCE = 'Times from Islamic Society of Tracy';

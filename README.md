@@ -85,7 +85,8 @@ shown as missed, and the qada popup does not open, until real logs are in.
 Push notifications at each prayer time, even with Kharwa closed. Each person
 turns them on per device in *Settings → App → Prayer reminders*, picks which
 prayers, and whether to be told at the start time or 5, 10 or 15 minutes
-before. A prayer already logged is skipped. On an iPhone, Kharwa has to be on
+before. A prayer already logged is skipped, and so is everything during an open
+excused period. On an iPhone, Kharwa has to be on
 the Home Screen first (Apple only allows Web Push for installed apps).
 
 How it fits together:
@@ -159,6 +160,16 @@ as `send-reminders` (dashboard editor, or
 `npx supabase functions deploy send-nudge --project-ref knnxeivkcazzowhorokt`).
 No cron job is needed.
 
+### Excused
+
+For the days Marwa isn't praying. A switch under Today and a history in
+*Settings → Excused*; excused days are never missed or owed, streaks pause over
+them, and no reminders or nudges go out. See *Excused* in `DESIGN.md`.
+
+Setup: re-run `supabase/schema.sql` (adds `excused_periods`,
+`people.show_excused` and `people.share_excused`), then redeploy `send-reminders`
+and `send-nudge`.
+
 ### Us
 
 Notes passed between the two of you, like postcards rather than a chat. At
@@ -216,7 +227,7 @@ message type) and redeploy `send-message` from the repo.
   and forward as far as tomorrow.
 - **Streaks** count consecutive days where all five prayers are logged on time
   or late. An unfinished today is skipped rather than counted as a break, so the
-  streak does not read as broken before the day is over.
+  streak does not read as broken before the day is over. Excused days pause it.
 - **Live sync** uses Supabase Realtime. When one of us logs a prayer the other
   screen updates without a refresh and shows a small toast: "Marwa prayed Asr",
   or "Marwa prayed Asr (late)". Clearing a prayer is silent.

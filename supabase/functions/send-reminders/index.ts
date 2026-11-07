@@ -4,7 +4,8 @@
 // Called every minute by pg_cron (see supabase/cron.sql). For each saved push
 // subscription it works out whether one of that person's chosen prayers is
 // due now (at the start time, or 5/10/15 minutes before), and if it is, and
-// they have not logged that prayer yet, sends a Web Push.
+// they have not logged that prayer yet and have no open excused period, sends
+// a Web Push.
 //
 // POST {}                          the minute's run (from cron)
 // POST { test: true, endpoint, kind?, delay? }
@@ -443,6 +444,17 @@ export function message(p: { label: string; time: Date; before: number }) {
   return { title, body };
 }
 
+/** Who has an open excused period today. No reminders go to their devices.
+    Should this fail (schema.sql not re-run yet), reminders still go out. */
+async function excusedPeople(dayKey: string): Promise<Set<string>> {
+  const res = await rest(`excused_periods?select=person&end_date=is.null&start_date=lte.${dayKey}`);
+  if (!res.ok) {
+    console.warn(`excused_periods: ${res.status} ${await res.text()}`);
+    return new Set();
+  }
+  return new Set((await res.json() as { person: string }[]).map((r) => r.person));
+}
+
 async function runMinute() {
   const now = Date.now();
   const dayKey = tracyDayKey(now);
@@ -454,11 +466,12 @@ async function runMinute() {
       `prayer_logs?select=person,prayer&log_date=eq.${dayKey}&status=in.(on_time,late)`))
       .map((r) => `${r.person}|${r.prayer}`),
   );
+  const excused = await excusedPeople(dayKey);
 
   let sent = 0;
   for (const sub of subs) {
     const p = duePrayer(sub, times, dayKey, now);
-    if (!p || logged.has(`${sub.person}|${p.key}`)) continue;
+    if (!p || excused.has(sub.person) || logged.has(`${sub.person}|${p.key}`)) continue;
     // marked first, so an overlapping run cannot send it twice
     await rest(`push_subscriptions?id=eq.${sub.id}`, { method: 'PATCH', body: JSON.stringify({ last_sent: p.tag }) });
     const status = await push(sub, Notify.reminder(p.label, p.time, p.before, kharwaPrayerTag(dayKey, p.key)));

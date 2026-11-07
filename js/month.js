@@ -13,6 +13,11 @@
    missed, a quiet line naming the prayer missed most; each prayer's count
    as a short bar ("By prayer"); and, if any, how many were made up.
 
+   An excused day has a soft neutral fill and no bars (bars only for what was
+   logged anyway), and is left out of every total. When it is someone else's
+   and they keep it private, it is drawn as a plain empty day; it is still
+   left out, so the figures read the same to both of you.
+
    What counts as prayed, missed or complete is the week view's own
    (cellState, dayComplete in app.js); Together needs both. A month's logs
    are loaded the first time it is shown and kept with the cache; until they
@@ -133,7 +138,17 @@ const MonthView = {
     if (this.who !== 'both') return cellState(this.who, key, prayer);
     const states = PEOPLE_IDS.map((p) => cellState(p, key, prayer));
     if (states.every((s) => s === 'prayed')) return 'prayed';
+    // Together pauses when either of you is excused, whatever the other did.
+    if (this.paused(key)) return states.includes('excused') ? 'excused' : 'none';
     return states.includes('missed') ? 'missed' : 'none';
+  },
+
+  /** An excused day, which counts for nothing unless all five were logged anyway. */
+  paused(key) {
+    const excused = this.who === 'both'
+      ? PEOPLE_IDS.some((p) => Data.isExcused(p, key))
+      : Data.isExcused(this.who, key);
+    return excused && !this.complete(key);
   },
 
   complete(key) {
@@ -167,14 +182,15 @@ const MonthView = {
       const future = key > today;
       const before = !start || key < start;
       // Bars only for days that have happened (or today) since the first log.
-      const bars = before || future ? '' : PRAYERS.map((p) => {
-        const st = known ? this.state(key, p.key) : 'none';
-        return `<i class="st-bar is-${st}"></i>`;
-      }).join('');
+      const states = before || future ? [] : PRAYERS.map((p) => (known ? this.state(key, p.key) : 'none'));
+      // A plain excused day has no bars; one with something logged keeps them.
+      const excused = states.includes('excused');
+      const bars = excused && states.every((st) => st === 'excused') ? ''
+        : states.map((st) => `<i class="st-bar is-${st}"></i>`).join('');
       const done = known && !future && !before && this.complete(key);
-      const label = `${fmtDayNav.format(parseKey(key))}${done ? ', complete' : ''}`;
+      const label = `${fmtDayNav.format(parseKey(key))}${done ? ', complete' : ''}${excused ? ', excused' : ''}`;
       cells.push(`
-        <button class="mv-day${done ? ' is-complete' : ''}${key === today ? ' is-today' : ''}${future ? ' is-future' : ''}${before ? ' is-before' : ''}"
+        <button class="mv-day${done ? ' is-complete' : ''}${excused ? ' is-excused' : ''}${key === today ? ' is-today' : ''}${future ? ' is-future' : ''}${before ? ' is-before' : ''}"
                 type="button" data-date="${key}" aria-label="${esc(label)}"${future ? ' disabled' : ''}>
           <span class="mv-n">${d}</span>
           ${bars ? `<span class="mv-bars">${bars}</span>` : ''}
@@ -215,15 +231,18 @@ const MonthView = {
       const key = `${this.ym}-${String(d).padStart(2, '0')}`;
       if (key > today || !start || key < start) continue;
       const complete = this.complete(key);
+      const paused = this.paused(key);
 
-      // A day counts once all its prayers have passed, or sooner if complete.
-      if (key < today || complete || now >= windowEnd(key, 'isha')) {
-        closedDays += 1;
-        if (complete) completeDays += 1;
+      if (!paused) {
+        // A day counts once all its prayers have passed, or sooner if complete.
+        if (key < today || complete || now >= windowEnd(key, 'isha')) {
+          closedDays += 1;
+          if (complete) completeDays += 1;
+        }
+        // A run of complete days; today, still open, does not break one.
+        if (complete) longest = Math.max(longest, (run += 1));
+        else if (key < today) run = 0;
       }
-      // A run of complete days; today, still open, does not break one.
-      if (complete) longest = Math.max(longest, (run += 1));
-      else if (key < today) run = 0;
 
       const { times } = timesFor(key);
       for (const p of PRAYERS) {
@@ -238,8 +257,9 @@ const MonthView = {
         const st = this.state(key, p.key);
         if (st === 'missed') missed[p.key] += 1;
         // By prayer: every day that has happened, and today once the prayer
-        // has begun. Together counts a prayer only when both prayed it.
-        if (key < today || times[p.key] <= now) {
+        // has begun. Together counts a prayer only when both prayed it. On an
+        // excused day, only a prayer logged anyway counts at all.
+        if (st === 'prayed' || (!paused && (key < today || times[p.key] <= now))) {
           total[p.key] += 1;
           if (st === 'prayed') done[p.key] += 1;
         }

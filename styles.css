@@ -677,6 +677,31 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 .mark-ring--missed { stroke: var(--mark-empty); }
 .mark-ring--empty  { stroke: var(--mark-empty); }
 
+/* excused: a soft outline and a dash, neither prayed nor missed */
+.mark-ring--excused { stroke: var(--border-hover); }
+.mark-dash { stroke: var(--mark-empty); }
+
+/* Not for tapping, so nothing invites it; a long press logs it anyway, which
+   the phone's own long-press callout must not get in the way of. */
+button.mark--excused {
+  cursor: default;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+}
+button.mark--excused:hover .mark-ring { stroke: var(--border-hover); }
+
+/* the quiet switch under Today */
+.ex-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-height: var(--tap);
+  margin-bottom: -10px;
+}
+
+.ex-label { font-size: 12.5px; color: var(--muted-foreground); }
+
 /* the menu that appears on hover or focus, desktop only */
 
 .markmenu {
@@ -825,6 +850,7 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 
 .st-bar.is-prayed { background: var(--accent); box-shadow: none; }
 .st-bar.is-missed { background: var(--mark-empty); box-shadow: none; }
+.st-bar.is-excused { background: var(--border); box-shadow: none; }
 
 /* the weekday labels, once, under the last person's columns */
 .st-wds { margin-top: 2px; }
@@ -1358,6 +1384,62 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 }
 
 .switch[aria-checked="true"] .switch-thumb { transform: translateX(18px); }
+
+.switch--small { width: 34px; height: 20px; }
+.switch--small::after { inset: -12px -5px; }
+.switch--small .switch-thumb { top: 3px; left: 3px; width: 14px; height: 14px; }
+.switch--small[aria-checked="true"] .switch-thumb { transform: translateX(14px); }
+
+/* Settings → Excused: the history, each period a ruled row */
+.ex-empty { font-size: 13px; color: var(--muted-foreground); }
+
+.ex-periods { list-style: none; margin: 0; padding: 0; }
+
+.ex-period {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: var(--tap);
+  border-bottom: 1px solid var(--border);
+}
+
+.ex-dates {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ex-act,
+.ex-add {
+  min-height: var(--tap);
+  padding: 0 8px;
+  border: 0;
+  background: none;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  cursor: pointer;
+  transition: color var(--ease);
+}
+
+.ex-act:hover,
+.ex-add:hover { color: var(--foreground); }
+
+.ex-add { margin-top: 4px; margin-left: -8px; }
+
+.ex-form { padding: var(--s1) 0 var(--s2); border-bottom: 1px solid var(--border); }
+
+.ex-form-dates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ex-form-dates label { display: grid; gap: 6px; min-width: 0; font-size: 13px; color: var(--muted-foreground); }
+.ex-form .input { width: 100%; min-width: 0; font-size: 16px; } /* so iOS does not zoom */
+
+.ex-form-btns { display: flex; justify-content: flex-end; gap: 4px; margin-top: 4px; }
+.ex-form-btns .ex-save { color: var(--accent-text); font-weight: 500; }
 
 /* the backlog: three across, each a − number + stepper */
 .set-grid {
@@ -5115,6 +5197,8 @@ body.is-guiding { overflow: hidden; }
 .mv-day.is-blank { cursor: default; }
 .mv-day.is-complete { background: var(--accent-faint); }
 .mv-day.is-complete:hover { background: var(--accent-wash); }
+.mv-day.is-excused { background: var(--muted); }
+.mv-day.is-excused:hover { background: var(--border); }
 .mv-day.is-today { border-color: var(--accent); }
 .mv-day.is-future { opacity: 0.4; cursor: default; }
 .mv-day.is-future:hover { background: none; }

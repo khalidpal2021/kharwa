@@ -108,6 +108,7 @@ shape or fill, not just hue.
 | Late       | gold circle, half filled                       |
 | Missed     | warm gray circle with a ✕                      |
 | Not logged | empty thin-bordered circle, no text            |
+| Excused    | soft outline with a short dash                 |
 
 Only *on time* and *late* are ever stored. A late prayer is a prayer prayed:
 it reads gold and counts exactly like an on-time one on the streaks card. *Missed* is never chosen or stored. A prayer shows as missed when it is
@@ -120,6 +121,8 @@ still empty after its window has closed:
 
 A missed prayer can still be tapped and logged as on time or late. Older rows
 stored as `missed` are read as empty, so they show as missed in the same way.
+
+An excused prayer is neither: see *Excused*.
 
 The legend, "✓ on time · ◐ late · ✕ missed" drawn with the marks
 themselves, is in the ⓘ in the card's top-right corner, with how missed is
@@ -166,6 +169,41 @@ the Today table to that date; each has a tooltip and accessible name such as
 "Khalid · Thu, Oct 1 · Fajr missed, 4 of 5". The bar order, the colours and
 what counts toward a streak are in the ⓘ beside the label. "You both completed
 today." closes the card when it applies.
+
+## Excused
+
+For the days a person is not praying and owes nothing for it, in all four Sunni
+schools. The wording stays discreet and neutral everywhere: "Excused", never
+anything more explicit. Controls show per person (`people.show_excused`, on for
+Marwa, off for Khalid); a person without them is not offered them, and an open
+period keeps them showing so it can always be ended.
+
+- **The switch** — "Excused (not praying)", small and right-aligned under the
+  Today table, always about today. On starts a period today, or carries on one
+  that ended today. Off ends it today, and that day stays excused. Flipped back
+  on the day it began, the period is removed, since that is what a mistaken tap
+  needs.
+- **Settings → Excused** — "Show Khalid that I'm excused", then the history,
+  newest first: edit, delete (with Undo), or add one. Both dates count; an empty
+  end means ongoing. Dates can't be in the future or overlap another period.
+- **The mark** — a soft outline and a dash. Not tappable and no hover menu. A
+  long press (450ms), or Shift+Enter, logs that one prayer as on time, and from
+  then it taps like any other; clearing it makes it excused again.
+- **Counting** — excused prayers are never missed, never in qada, and in no
+  total. An excused day pauses a personal streak, and Together if either of you
+  is excused: it neither adds nor breaks. A day with all five logged anyway
+  counts as an ordinary complete day. In Month, an excused day has a soft neutral
+  fill (`--muted`) and no bars, or bars for what was logged anyway, and in the
+  week its bars are solid `--border`.
+- **Notifications** — no reminders during an open period (ended today, they
+  resume for the rest of today). No nudge bell on an excused day, and send-nudge
+  answers `not_due`, deliberately vague since the sender reads it. Nothing is
+  ever sent to anyone about it.
+- **Privacy** — with sharing off (`people.share_excused`), the other person sees
+  plain empty days: `shownStatus` answers `none` rather than `excused`, and the
+  ⓘ text leaves it out. The figures are the same on both phones. This is what
+  the screen shows, not access control: with no login the rows still reach both
+  browsers (see *A note on security* in the README).
 
 ## Qada
 
@@ -227,7 +265,7 @@ radius, `--shadow-lg`. "Settings" in Playfair with a small muted × at the top.
 It keeps one height (600px on a phone, 480px on desktop, less on a short
 screen) whichever tab is open, so nothing jumps; a longer tab scrolls inside.
 
-Three tabs, the one place the small-caps mono stays: across the top on a phone
+The tabs, the one place the small-caps mono stays: across the top on a phone
 with a gold underline under the open one, down the left on desktop (150px,
 divided by a hairline) with gold text and a thin gold bar on its left edge.
 Arrow keys move between them; the last one opened is remembered for the
@@ -241,8 +279,9 @@ session (`sessionStorage`).
   below zero (the − goes quiet at zero). When the `qada_backlog` table is
   missing, a small notice sits at the top of this tab and the steppers are
   disabled.
+- **Excused** — only with the controls on; see *Excused*.
 - **App** — a list of rows with room for more: *Show Learn tab* as a switch
-  (44×26, gold when on), *Tafsir* (a dropdown, kept per person on the
+  (44×26, gold when on), *Show Excused* (only for Marwa), *Tafsir* (a dropdown, kept per person on the
   device), then *Prayer times · Islamic Society of Tracy* with its ⓘ.
 
 There is no Save button. Each field saves itself when it changes: the name
