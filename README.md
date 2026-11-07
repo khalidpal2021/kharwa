@@ -162,8 +162,8 @@ No cron job is needed.
 
 ### Excused
 
-For the days Marwa isn't praying. A switch under Today and a history in
-*Settings → Excused*; excused days are never missed or owed, streaks pause over
+For the days Marwa isn't praying. A switch under Today and a tap-to-pick month
+calendar in *Settings → Excused*; excused days are never missed or owed, streaks pause over
 them, and no reminders or nudges go out. See *Excused* in `DESIGN.md`.
 
 Setup: re-run `supabase/schema.sql` (adds `excused_periods`,

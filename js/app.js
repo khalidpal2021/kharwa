@@ -271,11 +271,6 @@ function markSvg(status) {
       <path class="mark-strike" d="M8.6 8.6l6.8 6.8M15.4 8.6l-6.8 6.8" fill="none" stroke-width="1.75" stroke-linecap="round"/>
     </svg>`;
   }
-  if (status === 'excused') {
-    return `${open}
-      <circle class="mark-excused" cx="12" cy="12" r="11"/>
-    </svg>`;
-  }
   if (status === 'loading') {
     return `${open}
       <circle class="mark-ring mark-ring--loading" cx="12" cy="12" r="10.25" fill="none" stroke-width="1.5"/>
@@ -286,26 +281,32 @@ function markSvg(status) {
   </svg>`;
 }
 
-function markMarkup(person, prayer) {
+function markMarkup(person, prayer, strip = null) {
   const stored = Data.status(person, State.viewDate, prayer);
   const status = shownStatus(person, State.viewDate, prayer);
   const mine = person === State.me;
   const who = esc(name(person));
   const label = `${who}, ${PRAYER_LABEL[prayer]}: ${STATUS_LABEL[status].toLowerCase()}`;
 
+  // Excused: a piece of the strip (see excusedStrip), not a circle. Your own
+  // takes no tap and has no menu: a long press, or Shift+Enter, logs it
+  // anyway (see overrideExcused).
+  if (status === 'excused' && strip) {
+    const cls = `markwrap ex-cell${strip.first ? ' is-first' : ''}${strip.last ? ' is-last' : ''}`;
+    const word = strip.label || strip.between
+      ? `<span class="ex-word${strip.between ? ' is-between' : ''}" aria-hidden="true">Excused</span>` : '';
+    return mine
+      ? `<div class="${cls}">
+          <button class="mark mark--excused" type="button" data-person="${person}" data-prayer="${prayer}"
+                  aria-label="${label}. Press and hold, or Shift+Enter, to log it anyway."></button>${word}
+        </div>`
+      : `<div class="${cls}"><span class="mark" role="img" aria-label="${label}"></span>${word}</div>`;
+  }
+
   if (!mine) {
     return `<div class="markwrap">
       <span class="mark" role="img" aria-label="${label}">${markSvg(status)}</span>
       ${nudgeMarkup(person, prayer)}
-    </div>`;
-  }
-
-  // Your own excused prayer takes no tap and has no menu: a long press, or
-  // Shift+Enter, logs it anyway (see overrideExcused).
-  if (status === 'excused') {
-    return `<div class="markwrap">
-      <button class="mark mark--excused" type="button" data-person="${person}" data-prayer="${prayer}"
-              aria-label="${label}. Press and hold, or Shift+Enter, to log it anyway.">${markSvg(status)}</button>
     </div>`;
   }
 
@@ -442,13 +443,14 @@ function excusedExplained() {
 }
 
 Info.add('today', () => `
-  <p class="info-legend">${['on_time', 'late', 'missed', ...(excusedExplained() ? ['excused'] : [])]
-    .map((st) => `<span>${markSvg(st)}${STATUS_LABEL[st].toLowerCase()}</span>`).join('')}</p>
+  <p class="info-legend">${['on_time', 'late', 'missed']
+    .map((st) => `<span>${markSvg(st)}${STATUS_LABEL[st].toLowerCase()}</span>`).join('')}${
+    excusedExplained() ? '<span><i class="ex-chip">Excused</i></span>' : ''}</p>
   <p>Tap your own circle to log a prayer on time or late. One left empty is
      marked missed by itself once its time has passed: when the next prayer
      begins, or for Isha at the next Fajr.</p>
   ${excusedControls(State.me) ? `<p>An excused prayer is never missed or owed.
-     Press and hold its mark to log it anyway.</p>` : ''}`);
+     Press and hold its row under Excused to log it anyway.</p>` : ''}`);
 
 Info.add('streaks', () => `
   <p>Each column is a day, today on the right. Its bars run from Fajr at the top
@@ -457,7 +459,7 @@ Info.add('streaks', () => `
     <span><i class="st-bar is-prayed"></i>prayed</span>
     <span><i class="st-bar is-missed"></i>missed</span>
     <span><i class="st-bar is-none"></i>not yet</span>
-    ${excusedExplained() ? '<span><i class="st-block"></i>excused</span>' : ''}
+    ${excusedExplained() ? '<span><i class="st-block"></i>Excused</span>' : ''}
   </p>
   <p>A day counts toward a streak when all five are prayed; late counts the same
      as on time. Your streak is your run of complete days, Together the run of
@@ -490,8 +492,9 @@ Info.add('switch', () => `
   <p>Forgets who you are on this device and asks again. Nothing you have logged changes.</p>`);
 
 Info.add('excused', () => `
-  <p>Excused days are never missed or added to qada, and streaks pause over them.
-     Both dates count. Leave the end empty if it&rsquo;s still going.</p>`);
+  <p>Excused days are never missed or added to qada, and streaks pause over them.</p>
+  <p>Tap a day to mark it, or turn on Select range and tap the first and last
+     days. The switch under Today starts or ends one from today.</p>`);
 
 Info.add('excused-share', () => {
   const other = esc(name(PEOPLE_IDS.find((p) => p !== State.me)));
@@ -514,16 +517,41 @@ function renderTimetable() {
   el('head-khalid').textContent = name('khalid');
   el('head-marwa').textContent = name('marwa');
 
-  el('timetable').innerHTML = PRAYERS.map((p) => {
+  const strips = Object.fromEntries(PEOPLE_IDS.map((person) => [person, excusedStrip(person)]));
+  el('timetable').innerHTML = PRAYERS.map((p, i) => {
     const isNext = next && !next.tomorrow && next.key === p.key;
     return `
       <li class="tt-row${isNext ? ' is-next' : ''}" data-prayer="${p.key}">
         <div class="tt-names"><span class="tt-en">${p.label}</span></div>
         <div class="tt-time">${timeText(times[p.key])}</div>
-        ${markMarkup('khalid', p.key)}
-        ${markMarkup('marwa', p.key)}
+        ${markMarkup('khalid', p.key, strips.khalid[i])}
+        ${markMarkup('marwa', p.key, strips.marwa[i])}
       </li>`;
   }).join('');
+}
+
+/**
+ * Excused prayers down a person's column join into one soft strip with a
+ * single "Excused" on it. For each row: null when not excused, else where it
+ * sits in its run (`first`, `last`) and whether it carries the word: `label`
+ * on the middle row of an odd run, `between` on the row under the middle of
+ * an even one, where it is lifted half a row to sit on the line. A prayer
+ * logged anyway breaks the strip in two.
+ */
+function excusedStrip(person) {
+  const ex = PRAYERS.map((p) => shownStatus(person, State.viewDate, p.key) === 'excused');
+  const out = ex.map(() => null);
+  for (let i = 0; i < ex.length; i += 1) {
+    if (!ex[i] || ex[i - 1]) continue;
+    let j = i;
+    while (ex[j + 1]) j += 1;
+    const n = j - i + 1;
+    const mid = i + Math.floor(n / 2);
+    for (let k = i; k <= j; k += 1) {
+      out[k] = { first: k === i, last: k === j, label: k === mid && n % 2 === 1, between: k === mid && n % 2 === 0 };
+    }
+  }
+  return out;
 }
 
 /* ============================================================== streaks === */
@@ -1272,7 +1300,7 @@ function renderExcusedRow() {
 /** Everything that depends on the periods. */
 function renderExcusedViews() {
   renderStatuses();
-  if (Settings.open && !Excused.editing) renderExcusedSettings(); // never over a half-filled form
+  if (Settings.open) renderExcusedSettings();
   if (typeof MonthView !== 'undefined' && MonthView.shown) MonthView.render();
 }
 
@@ -1476,7 +1504,8 @@ function fillSettings() {
   // the database has switched on.
   el('set-excused-field').hidden = State.me !== 'marwa' && !Data.showsExcused(State.me);
   el('set-excused').setAttribute('aria-checked', String(Data.showsExcused(State.me)));
-  Excused.editing = null;
+  Excused.ym = null;      // opens on this month
+  Excused.anchor = null;
   renderExcusedSettings();
   el('set-tafsir').innerHTML = AYAH_TAFSIRS
     .map((t) => `<option value="${t.id}">${esc(t.label)}</option>`).join('');
@@ -1650,37 +1679,33 @@ el('set-ex-share').addEventListener('click', () => {
   queueSave('excused-share', () => saveShareExcused(on));
 });
 
-/* ---------------------------------------------------- excused history --- */
+/* --------------------------------------------------- excused calendar --- */
+
+/* A month at a time, in the month view's style. Tap a day to turn it excused
+   or not. With "Select range" on, tap the first day and then the last, and the
+   whole run turns the opposite of how the first day was. Today is outlined,
+   and days still to come can't be chosen. Each change saves by itself
+   (Data.setExcusedDays), which keeps the periods merged. */
 
 const Excused = {
-  editing: null,   // a period's id, 'new', or null
+  ym: null,        // the month shown, 'YYYY-MM'
+  range: false,    // "Select range" is on
+  anchor: null,    // with it on, the first day tapped
 };
 
-const fmtExcusedDate = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+const fmtExMonth = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' });
+const exMonthOf = (key) => key.slice(0, 7);
 
-/** "Oct 3, 2026 – Oct 9, 2026", or "Oct 3, 2026 – now" while it is going. */
-function excusedRange(r) {
-  const start = fmtExcusedDate.format(parseKey(r.start_date));
-  return `${start} – ${r.end_date ? fmtExcusedDate.format(parseKey(r.end_date)) : 'now'}`;
+function exShiftMonth(ym, by) {
+  const [y, m] = ym.split('-').map(Number);
+  const d = new Date(y, m - 1 + by, 1, 12);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
-function excusedForm(r) {
-  const today = todayKey();
-  return `
-    <form class="ex-form" data-id="${r ? r.id : 'new'}" novalidate>
-      <div class="ex-form-dates">
-        <label>From
-          <input class="input" type="date" name="start" max="${today}" value="${r ? r.start_date : ''}" required />
-        </label>
-        <label>To (empty if ongoing)
-          <input class="input" type="date" name="end" max="${today}" value="${r?.end_date || ''}" />
-        </label>
-      </div>
-      <div class="ex-form-btns">
-        <button class="ex-act" type="button" data-ex="cancel">Cancel</button>
-        <button class="ex-act ex-save" type="submit">Save</button>
-      </div>
-    </form>`;
+function exHint() {
+  if (!Excused.range) return 'Tap a day to mark it excused. Tap again to undo.';
+  if (!Excused.anchor) return 'Tap the first day, then the last.';
+  return `From ${esc(fmtDayNav.format(parseKey(Excused.anchor)))}. Now tap the last day.`;
 }
 
 function renderExcusedSettings() {
@@ -1692,90 +1717,93 @@ function renderExcusedSettings() {
   el('set-ex-share-label').textContent =
     `Show ${name(PEOPLE_IDS.find((p) => p !== State.me))} that I’m excused`;
 
+  const cal = el('set-ex-cal');
   if (!ready) {
-    el('set-ex-list').innerHTML = '';
+    cal.innerHTML = '';
     return;
   }
-  const rows = Data.excused[State.me] || [];
-  el('set-ex-list').innerHTML = `
-    ${Excused.editing === 'new' ? excusedForm(null) : ''}
-    ${rows.length ? `<ul class="ex-periods">${rows.map((r) => (Excused.editing === r.id
-    ? `<li>${excusedForm(r)}</li>`
-    : `<li class="ex-period">
-        <span class="ex-dates">${esc(excusedRange(r))}</span>
-        <button class="ex-act" type="button" data-ex="edit" data-id="${r.id}"
-                aria-label="Edit ${esc(excusedRange(r))}">Edit</button>
-        <button class="ex-act" type="button" data-ex="delete" data-id="${r.id}"
-                aria-label="Delete ${esc(excusedRange(r))}">Delete</button>
-      </li>`)).join('')}</ul>` : (Excused.editing === 'new' ? '' : '<p class="ex-empty">Nothing yet.</p>')}
-    ${Excused.editing === 'new' ? '' : '<button class="ex-add" type="button" data-ex="add">+ Add a period</button>'}`;
-  el('set-ex-list').querySelector('.ex-form input')?.focus();
-}
 
-/** What is wrong with these dates, in words, or null. */
-function excusedProblem(id, start, end) {
+  // Drawing replaces the buttons, so the keyboard's place is put back after.
+  const focused = cal.contains(document.activeElement) ? document.activeElement : null;
+  const refocus = focused && (focused.dataset.day ? `[data-day="${focused.dataset.day}"]`
+    : focused.dataset.exGo ? `[data-ex-go="${focused.dataset.exGo}"]`
+      : focused.hasAttribute('data-ex-range') ? '[data-ex-range]' : null);
+
   const today = todayKey();
-  if (!start) return 'Choose a start date.';
-  if (start > today || (end && end > today)) return 'Dates can’t be in the future.';
-  if (end && end < start) return 'The end can’t be before the start.';
-  const others = (Data.excused[State.me] || []).filter((r) => r.id !== id);
-  if (!end && others.some((r) => !r.end_date)) return 'Another period is still going. End it first.';
-  const overlaps = others.some((r) => start <= (r.end_date || '9999-12-31') && (end || '9999-12-31') >= r.start_date);
-  return overlaps ? 'Those dates overlap another period.' : null;
+  const ym = (Excused.ym ||= exMonthOf(today));
+  const [y, m] = ym.split('-').map(Number);
+  const first = new Date(y, m - 1, 1, 12);
+  const days = new Date(y, m, 0).getDate();
+
+  const cells = [];
+  for (let i = 0; i < first.getDay(); i += 1) cells.push('<span class="mv-day is-blank" aria-hidden="true"></span>');
+  for (let d = 1; d <= days; d += 1) {
+    const key = `${ym}-${String(d).padStart(2, '0')}`;
+    const future = key > today;
+    const on = !future && Data.isExcused(State.me, key);
+    const label = `${fmtDayNav.format(parseKey(key))}${on ? ', excused' : ''}`;
+    cells.push(`
+      <button class="mv-day ex-day${on ? ' is-ex' : ''}${key === today ? ' is-today' : ''}${future ? ' is-future' : ''}${key === Excused.anchor ? ' is-anchor' : ''}"
+              type="button" data-day="${key}" aria-pressed="${on}" aria-label="${esc(label)}"${future ? ' disabled' : ''}>
+        <span class="mv-n">${d}</span>
+      </button>`);
+  }
+
+  cal.innerHTML = `
+    <div class="ex-cal-head">
+      <button class="mv-arrow" type="button" data-ex-go="-1" aria-label="Previous month">‹</button>
+      <span class="ex-cal-title" aria-live="polite">${esc(fmtExMonth.format(first))}</span>
+      <button class="mv-arrow" type="button" data-ex-go="1" aria-label="Next month"${ym >= exMonthOf(today) ? ' disabled' : ''}>›</button>
+    </div>
+    <div class="mv-wds" aria-hidden="true"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+    <div class="mv-grid ex-grid">${cells.join('')}</div>
+    <div class="ex-cal-foot">
+      <p class="ex-hint" aria-live="polite">${exHint()}</p>
+      <button class="ex-range" type="button" data-ex-range aria-pressed="${Excused.range}">Select range</button>
+    </div>`;
+  if (refocus) cal.querySelector(refocus)?.focus();
 }
 
-el('set-ex-list').addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const form = event.target;
-  const isNew = form.dataset.id === 'new';
-  const id = isNew ? null : Number(form.dataset.id);
-  const start = form.elements.start.value;
-  const end = form.elements.end.value || null;
-  const problem = excusedProblem(id, start, end);
-  setSaveError('excused', problem || '');
-  if (problem) return;
+/** Turns from..to excused or not: on screen at once, then "Saved ✓". */
+async function saveExcusedDays(from, to, on) {
+  setSaveError('excused', '');
+  const saving = Data.setExcusedDays(State.me, from, to, on);
+  renderExcusedViews();
   try {
-    if (isNew) await Data.addExcused(State.me, start, end);
-    else await Data.updateExcused(id, start, end);
-    Excused.editing = null;
+    await saving;
     flashSaved('excused');
-    renderExcusedViews();
   } catch (err) {
     setSaveError('excused', `Couldn’t save: ${err.message || err}`);
   }
-});
+  renderExcusedViews();
+}
 
-el('set-ex-list').addEventListener('click', async (event) => {
-  const btn = event.target.closest('[data-ex]');
-  if (!btn) return;
-  setSaveError('excused', '');
-  const action = btn.dataset.ex;
-  if (action === 'add' || action === 'edit' || action === 'cancel') {
-    Excused.editing = { add: 'new', edit: Number(btn.dataset.id), cancel: null }[action];
+el('set-ex-cal').addEventListener('click', (event) => {
+  const go = event.target.closest('[data-ex-go]');
+  if (go) {
+    if (go.disabled) return;
+    Excused.ym = exShiftMonth(Excused.ym, Number(go.dataset.exGo));
     renderExcusedSettings();
     return;
   }
-  const row = (Data.excused[State.me] || []).find((r) => r.id === Number(btn.dataset.id));
-  if (!row) return;
-  try {
-    await Data.deleteExcused(row.id);
-    renderExcusedViews();
-    toast('Period deleted', {
-      action: {
-        label: 'Undo',
-        run: async () => {
-          try {
-            await Data.addExcused(State.me, row.start_date, row.end_date);
-          } catch (err) {
-            toast(`Could not undo: ${esc(err.message || err)}`, { error: true });
-          }
-          renderExcusedViews();
-        },
-      },
-    });
-  } catch (err) {
-    setSaveError('excused', `Couldn’t delete: ${err.message || err}`);
+  if (event.target.closest('[data-ex-range]')) {
+    Excused.range = !Excused.range;
+    Excused.anchor = null;
+    renderExcusedSettings();
+    return;
   }
+  const day = event.target.closest('[data-day]');
+  if (!day || day.disabled) return;
+  const key = day.dataset.day;
+  if (Excused.range && !Excused.anchor) {
+    Excused.anchor = key;
+    renderExcusedSettings();
+    return;
+  }
+  const lead = Excused.range ? Excused.anchor : key;
+  const [from, to] = [lead, key].sort();
+  Excused.anchor = null;
+  saveExcusedDays(from, to, !Data.isExcused(State.me, lead));
 });
 
 /* The backlog: − and + step one at a time, and a quick run of taps saves once. */

@@ -31,6 +31,8 @@
      the missed week segment. */
   --mark-empty:        #8A857D;
   --excused:           #748699; /* a cool gray, against the warm one above */
+  --excused-wash:      #E9ECEF; /* the soft strip behind "Excused": opaque, so the row rules stay under it */
+  --on-excused:        #1A1A1A; /* a day number on --excused, 4.6:1 */
 
   /* Translucent golds and inks, for the glow and the shadows */
   --accent-glow:       rgba(184, 134, 11, 0.02);
@@ -100,6 +102,8 @@
   --on-gold:           #14110E;
   --mark-empty:        #7A7166;
   --excused:           #8FA0B3;
+  --excused-wash:      #2E3033;
+  --on-excused:        #14110E;
 
   /* The glow a touch warmer, toward lamplight */
   --accent-glow:       rgba(224, 150, 60, 0.045);
@@ -619,7 +623,8 @@ button, a, input, select, textarea, label,
 }
 
 .tt-row {
-  padding: 0;
+  --tt-pad: 0px;
+  padding: var(--tt-pad) 0;
   border-bottom: 1px solid var(--border);
 }
 
@@ -679,8 +684,56 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 .mark-ring--missed { stroke: var(--mark-empty); }
 .mark-ring--empty  { stroke: var(--mark-empty); }
 
-/* excused: a solid cool-gray circle, neither prayed nor missed */
-.mark-excused { fill: var(--excused); }
+/* Excused prayers down a column: one soft strip, the rows' rules hidden under
+   it, with a single "Excused" in the middle (see excusedStrip in app.js). */
+.markwrap.ex-cell {
+  align-self: stretch;
+  z-index: 1;
+  margin: calc(-1 * var(--tt-pad)) 0 calc(-1 * var(--tt-pad) - 1px);
+  background: var(--excused-wash);
+}
+
+.ex-cell.is-first {
+  margin-top: calc(4px - var(--tt-pad));
+  border-radius: var(--radius-btn) var(--radius-btn) 0 0;
+}
+
+.ex-cell.is-last {
+  margin-bottom: calc(4px - var(--tt-pad));
+  border-bottom-left-radius: var(--radius-btn);
+  border-bottom-right-radius: var(--radius-btn);
+}
+
+.ex-cell .mark { width: 100%; height: 100%; min-height: calc(var(--tap) - 8px); }
+
+.ex-word {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* an even run: on the line between its two middle rows */
+.ex-word.is-between { top: 0; }
+
+/* the same, as a swatch in the ⓘ legend */
+.ex-chip {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: var(--radius-btn);
+  background: var(--excused-wash);
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 500;
+}
 
 /* Not for tapping, so nothing invites it; a long press logs it anyway, which
    the phone's own long-press callout must not get in the way of. */
@@ -689,6 +742,7 @@ button.mark--excused {
   touch-action: manipulation;
   -webkit-touch-callout: none;
 }
+button.mark--excused:focus-visible { outline-offset: -2px; }
 
 /* the quiet switch under Today */
 .ex-row {
@@ -1401,56 +1455,74 @@ button.mark--excused {
 .switch--small .switch-thumb { top: 3px; left: 3px; width: 14px; height: 14px; }
 .switch--small[aria-checked="true"] .switch-thumb { transform: translateX(14px); }
 
-/* Settings → Excused: the history, each period a ruled row */
-.ex-empty { font-size: 13px; color: var(--muted-foreground); }
+/* Settings → Excused: a month calendar in the month view's style (.mv-wds,
+   .mv-grid, .mv-day), each day a tap target, excused ones solid --excused. */
+.ex-cal-head {
+  display: grid;
+  grid-template-columns: var(--tap) minmax(0, 1fr) var(--tap);
+  align-items: center;
+  margin: -4px -6px 4px;
+}
 
-.ex-periods { list-style: none; margin: 0; padding: 0; }
+.ex-cal-title {
+  text-align: center;
+  font-family: var(--serif);
+  font-size: 19px;
+  letter-spacing: -0.01em;
+}
 
-.ex-period {
+.ex-grid { margin-top: 6px; row-gap: 4px; }
+
+.ex-day {
+  min-height: 0;
+  aspect-ratio: 1;
+  max-height: var(--tap);
+  min-width: 0;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.ex-day .mv-n { font-size: 12.5px; }
+
+.ex-day.is-ex { background: var(--excused); }
+.ex-day.is-ex:hover { background: var(--excused); filter: brightness(1.06); }
+.ex-day.is-ex .mv-n { color: var(--on-excused); font-weight: 600; }
+.ex-day.is-today.is-ex { box-shadow: inset 0 0 0 1px var(--card); }
+.ex-day.is-anchor { border-color: var(--foreground); border-style: dashed; }
+
+.ex-cal-foot {
   display: flex;
   align-items: center;
-  gap: 4px;
-  min-height: var(--tap);
-  border-bottom: 1px solid var(--border);
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
 }
 
-.ex-dates {
-  flex: 1;
-  min-width: 0;
-  font-size: 14px;
-  font-variant-numeric: tabular-nums;
-}
+.ex-hint { margin: 0; min-width: 0; font-size: 12.5px; line-height: 1.35; color: var(--muted-foreground); }
 
-.ex-act,
-.ex-add {
-  min-height: var(--tap);
-  padding: 0 8px;
-  border: 0;
+.ex-range {
+  flex: none;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--border-hover);
+  border-radius: 999px;
   background: none;
   color: var(--muted-foreground);
+  font: inherit;
   font-size: 13px;
   cursor: pointer;
-  transition: color var(--ease);
+  transition: background var(--ease), color var(--ease), border-color var(--ease);
 }
 
-.ex-act:hover,
-.ex-add:hover { color: var(--foreground); }
-
-.ex-add { margin-top: 4px; margin-left: -8px; }
-
-.ex-form { padding: var(--s1) 0 var(--s2); border-bottom: 1px solid var(--border); }
-
-.ex-form-dates {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+.ex-range { position: relative; }
+.ex-range::after { content: ""; position: absolute; inset: -6px -2px; } /* a 44px tap */
+.ex-range:hover { color: var(--foreground); }
+.ex-range[aria-pressed="true"] {
+  border-color: var(--excused);
+  background: var(--excused-wash);
+  color: var(--foreground);
 }
-
-.ex-form-dates label { display: grid; gap: 6px; min-width: 0; font-size: 13px; color: var(--muted-foreground); }
-.ex-form .input { width: 100%; min-width: 0; font-size: 16px; } /* so iOS does not zoom */
-
-.ex-form-btns { display: flex; justify-content: flex-end; gap: 4px; margin-top: 4px; }
-.ex-form-btns .ex-save { color: var(--accent-text); font-weight: 500; }
 
 /* the backlog: three across, each a − number + stepper */
 .set-grid {
@@ -3176,7 +3248,7 @@ button.mark--excused {
   .col--streaks { grid-area: week; }
   .col--today  { grid-area: today; gap: var(--s3); }
 
-  .tt-row { padding: 12px 0; }
+  .tt-row { --tt-pad: 12px; }
 
   .tt-head,
   .tt-row {

@@ -30,6 +30,8 @@ Two further tokens exist for accessibility and for the status marks:
 | `--accent-text`  | `#8A6508` | small gold text — see *Contrast* below          |
 | `--mark-empty`   | `#8A857D` | the not-logged circle, so it clears 3:1 on ivory |
 | `--excused`      | `#748699` | excused, a cool gray (`#8FA0B3` in dark mode)   |
+| `--excused-wash` | `#E9ECEF` | the soft strip behind "Excused" (`#2E3033` dark)  |
+| `--on-excused`   | `#1A1A1A` | a day number on `--excused`, 4.6:1 (`#14110E` dark) |
 
 There is no dark night-sky background and no per-prayer sky colours. The
 palette is ivory, rich black, warm gray and burnished gold only.
@@ -109,7 +111,7 @@ shape or fill, not just hue.
 | Late       | gold circle, half filled                       |
 | Missed     | warm gray circle with a ✕                      |
 | Not logged | empty thin-bordered circle, no text            |
-| Excused    | solid cool-gray circle                         |
+| Excused    | no circle: "Excused" on a soft gray strip      |
 
 Only *on time* and *late* are ever stored. A late prayer is a prayer prayed:
 it reads gold and counts exactly like an on-time one on the streaks card. *Missed* is never chosen or stored. A prayer shows as missed when it is
@@ -185,19 +187,33 @@ period keeps them showing so it can always be ended.
   that ended today. Off ends it today, and that day stays excused. Flipped back
   on the day it began, the period is removed, since that is what a mistaken tap
   needs.
-- **Settings → Excused** — "Show Khalid that I'm excused", then the history,
-  newest first: edit, delete (with Undo), or add one. Both dates count; an empty
-  end means ongoing. Dates can't be in the future or overlap another period.
-- **The mark** — a solid cool-gray circle (`--excused`). Not tappable and no hover menu. A
-  long press (450ms), or Shift+Enter, logs that one prayer as on time, and from
-  then it taps like any other; clearing it makes it excused again.
+- **Settings → Excused** — "Show Khalid that I'm excused", then a month
+  calendar in the Month view's style: ‹ › to move (never past this month), today
+  outlined, days still to come disabled, excused days solid `--excused`. A tap
+  turns a day excused or not. With "Select range" on, a tap on the first day
+  (dashed outline) and then the last turns the whole run the opposite of how
+  the first day was, across months too. Each change saves by itself, with
+  "Saved ✓", and shows at once while it is written.
+- **Storage** — still merged periods in `excused_periods`, so reminders, nudges,
+  streaks and qada read them as before. `excusedPlan` (data.js) joins a day to
+  any period it overlaps or touches, splits one around a day taken out of its
+  middle, and keeps an open period open; taking today out of an open period
+  ends it the day before. Writes are queued, deletes first, and the open
+  period keeps its row, so there are never two open at once.
+- **In Today** — no circles: excused prayers down a column join into one
+  `--excused-wash` strip with a single "Excused" in muted text, centred on the
+  run, the row rules hidden under it. A prayer logged anyway breaks the strip.
+  Not tappable and no hover menu. A long press (450ms) on a prayer's piece, or
+  Shift+Enter, logs that one prayer as on time, and from then it taps like any
+  other; clearing it makes it excused again.
 - **Counting** — excused prayers are never missed, never in qada, and in no
   total. An excused day pauses a personal streak, and Together if either of you
   is excused: it neither adds nor breaks. A day with all five logged anyway
   counts as an ordinary complete day. In the week and Month, an excused day is
   one solid `--excused` block the height of the five bars, so a block is excused
   and separate warm-gray bars are missed. A day with something logged anyway
-  keeps a bar each: gold for what was logged, `--excused` for the rest. The ⓘ on
+  keeps a bar each: gold for what was logged, `--excused` for the rest. Their
+  tooltips say "Excused". The ⓘ on
   Today and Streaks carry it in their legends.
 - **Notifications** — no reminders during an open period (ended today, they
   resume for the rest of today). No nudge bell on an excused day, and send-nudge

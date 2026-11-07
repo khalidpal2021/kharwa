@@ -186,10 +186,10 @@ const MonthView = {
       const excused = states.includes('excused');
       const bars = dayBars(states);
       const done = known && !future && !before && this.complete(key);
-      const label = `${fmtDayNav.format(parseKey(key))}${done ? ', complete' : ''}${excused ? ', excused' : ''}`;
+      const label = `${fmtDayNav.format(parseKey(key))}${done ? ', complete' : ''}${excused ? ' · Excused' : ''}`;
       cells.push(`
         <button class="mv-day${done ? ' is-complete' : ''}${excused ? ' is-excused' : ''}${key === today ? ' is-today' : ''}${future ? ' is-future' : ''}${before ? ' is-before' : ''}"
-                type="button" data-date="${key}" aria-label="${esc(label)}"${future ? ' disabled' : ''}>
+                type="button" data-date="${key}" aria-label="${esc(label)}"${excused ? ` title="${esc(label)}"` : ''}${future ? ' disabled' : ''}>
           <span class="mv-n">${d}</span>
           ${bars ? `<span class="mv-bars">${bars}</span>` : ''}
         </button>`);

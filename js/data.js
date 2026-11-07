@@ -5,6 +5,39 @@
 
 const PEOPLE_IDS = ['khalid', 'marwa'];
 
+/**
+ * What turning the days from..to (both included) on or off does to one
+ * person's periods, which stay merged: `kept` are untouched, `hits` are
+ * replaced by `made`. On, it joins every period it overlaps or touches, and
+ * one that was still going keeps going. Off, it cuts them, splitting one in
+ * two around a day from its middle; taking today out of a period still going
+ * ends it the day before, rather than carrying it on from tomorrow.
+ */
+function excusedPlan(rows, { from, to, on, today }) {
+  const lo = on ? addDays(from, -1) : from;
+  const hi = on ? addDays(to, 1) : to;
+  const hit = (r) => r.start_date <= hi && (!r.end_date || r.end_date >= lo);
+  const kept = rows.filter((r) => !hit(r));
+  const hits = rows.filter(hit);
+  const made = [];
+  if (on) {
+    const starts = [from, ...hits.map((r) => r.start_date)].sort();
+    const ends = [to, ...hits.map((r) => r.end_date)].sort();
+    const going = hits.some((r) => !r.end_date);
+    made.push({ start_date: starts[0], end_date: going ? null : ends[ends.length - 1] });
+  } else {
+    for (const r of hits) {
+      if (r.start_date < from) made.push({ start_date: r.start_date, end_date: addDays(from, -1) });
+      if (!r.end_date) {
+        if (to < today) made.push({ start_date: addDays(to, 1), end_date: null });
+      } else if (r.end_date > to) {
+        made.push({ start_date: addDays(to, 1), end_date: r.end_date });
+      }
+    }
+  }
+  return { kept, hits, made };
+}
+
 /** How far back we load logs, which also caps how long a streak can be. */
 const HISTORY_DAYS = 120;
 
@@ -208,6 +241,8 @@ const Data = {
   },
 
   /* ------------------------------------------------------------ excused -- */
+  /* Stored as merged periods, which is all reminders, nudges, streaks and
+     qada ever read; excusedPlan below keeps them merged. */
 
   /** Whether a period covers this day. Both its dates count, and an open one
       runs on from its start. */
@@ -242,8 +277,83 @@ const Data = {
       .order('start_date', { ascending: false });
     this.excusedReady = !error;
     if (error) return;
-    this.excused = {};
-    for (const row of data || []) (this.excused[row.person] ||= []).push(row);
+    this.excusedBase = {};
+    for (const row of data || []) (this.excusedBase[row.person] ||= []).push(row);
+    this.replayExcused();
+  },
+
+  /* Days picked on the Settings calendar. Each tap is queued and written in
+     turn, against the rows as last loaded; until it is written, it is
+     replayed over them, so the calendar answers at once. */
+
+  /** person id -> periods as last loaded from the server. */
+  excusedBase: {},
+  /** Calendar changes not yet written: { person, from, to, on, today }. */
+  excusedQueue: [],
+  excusedChain: Promise.resolve(),
+
+  replayExcused() {
+    const out = { ...this.excusedBase };
+    let temp = -1;
+    for (const op of this.excusedQueue) {
+      const { kept, made } = excusedPlan(out[op.person] || [], op);
+      out[op.person] = [...kept, ...made.map((r) => ({ ...r, id: temp--, person: op.person }))]
+        .sort((a, b) => (a.start_date < b.start_date ? 1 : -1));
+    }
+    this.excused = out;
+  },
+
+  /**
+   * Turns from..to (both included) excused or not. Resolves once it is
+   * written; on failure the change is dropped from view and the error thrown.
+   */
+  setExcusedDays(person, from, to, on) {
+    if (!this.configured) return Promise.reject(new Error('Supabase is not configured yet.'));
+    const op = { person, from, to, on, today: todayKey() };
+    this.excusedQueue.push(op);
+    this.replayExcused();
+    const run = async () => {
+      try {
+        await this.writeExcusedOp(op);
+      } finally {
+        this.excusedQueue.splice(this.excusedQueue.indexOf(op), 1);
+        await this.loadExcused();
+        this.replayExcused(); // if the load failed, still drop this one
+      }
+    };
+    const done = this.excusedChain.then(run);
+    this.excusedChain = done.catch(() => {});
+    return done;
+  },
+
+  /** The fewest writes from the loaded rows to the planned ones. Deletes go
+      first and the open period keeps its row, so there is never a moment with
+      two open periods (one_open_idx). */
+  async writeExcusedOp(op) {
+    const { hits, made } = excusedPlan(this.excusedBase[op.person] || [], op);
+    const reuse = [...hits].sort((a, b) => (!a.end_date ? -1 : !b.end_date ? 1 : 0));
+    const plan = [...made].sort((a, b) => (!a.end_date ? -1 : !b.end_date ? 1 : 0));
+    const updates = plan.slice(0, reuse.length).map((r, i) => ({ id: reuse[i].id, ...r }))
+      .filter((u) => {
+        const was = reuse.find((r) => r.id === u.id);
+        return was.start_date !== u.start_date || (was.end_date || null) !== u.end_date;
+      });
+    const drop = reuse.slice(plan.length).map((r) => r.id);
+    const add = plan.slice(reuse.length).map((r) => ({ person: op.person, ...r }));
+
+    if (drop.length) {
+      const { error } = await this.db.from('excused_periods').delete().in('id', drop);
+      if (error) throw error;
+    }
+    for (const u of updates) {
+      const { error } = await this.db.from('excused_periods')
+        .update({ start_date: u.start_date, end_date: u.end_date }).eq('id', u.id);
+      if (error) throw error;
+    }
+    if (add.length) {
+      const { error } = await this.db.from('excused_periods').insert(add);
+      if (error) throw error;
+    }
   },
 
   async addExcused(person, start, end = null) {
@@ -410,6 +520,7 @@ const Data = {
     this.backlog = saved.backlog || {};
     this.backlogReady = Boolean(saved.backlogReady);
     this.excused = saved.excused || {};
+    this.excusedBase = this.excused;
     this.excusedReady = Boolean(saved.excusedReady);
     this.logs = new Map(saved.logs);
     this.pushPeople = new Set(saved.pushPeople || []);
