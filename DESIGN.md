@@ -29,6 +29,7 @@ Two further tokens exist for accessibility and for the status marks:
 | ---------------- | --------- | ---------------------------------------------- |
 | `--accent-text`  | `#8A6508` | small gold text — see *Contrast* below          |
 | `--mark-empty`   | `#8A857D` | the not-logged circle, so it clears 3:1 on ivory |
+| `--excused`      | `#748699` | excused, a cool gray (`#8FA0B3` in dark mode)   |
 
 There is no dark night-sky background and no per-prayer sky colours. The
 palette is ivory, rich black, warm gray and burnished gold only.
@@ -99,7 +100,7 @@ grid — `1fr auto 1fr` — keeps the label centred whatever its length.
 
 ## Prayer status marks
 
-Gold and gray only, and distinguishable without colour — each state differs in
+Gold and grays only, and distinguishable without colour — each state differs in
 shape or fill, not just hue.
 
 | Status     | Mark                                           |
@@ -108,7 +109,7 @@ shape or fill, not just hue.
 | Late       | gold circle, half filled                       |
 | Missed     | warm gray circle with a ✕                      |
 | Not logged | empty thin-bordered circle, no text            |
-| Excused    | soft outline with a short dash                 |
+| Excused    | solid cool-gray circle                         |
 
 Only *on time* and *late* are ever stored. A late prayer is a prayer prayed:
 it reads gold and counts exactly like an on-time one on the streaks card. *Missed* is never chosen or stored. A prayer shows as missed when it is
@@ -160,6 +161,7 @@ at the bottom: 5px tall (4px under 360px), fully rounded, 3px apart.
 | solid gold | prayed, on time or late |
 | solid warm gray (`--mark-empty`) | missed |
 | transparent, 1px inset outline | not yet due, or today still going |
+| one solid cool-gray block (`--excused`), in place of the bars | excused |
 
 Today's column sits on a soft gold tint (`--accent-faint`, 8% gold) with a 6px
 radius; every column has the same 4px padding, so the tint never moves the
@@ -186,15 +188,17 @@ period keeps them showing so it can always be ended.
 - **Settings → Excused** — "Show Khalid that I'm excused", then the history,
   newest first: edit, delete (with Undo), or add one. Both dates count; an empty
   end means ongoing. Dates can't be in the future or overlap another period.
-- **The mark** — a soft outline and a dash. Not tappable and no hover menu. A
+- **The mark** — a solid cool-gray circle (`--excused`). Not tappable and no hover menu. A
   long press (450ms), or Shift+Enter, logs that one prayer as on time, and from
   then it taps like any other; clearing it makes it excused again.
 - **Counting** — excused prayers are never missed, never in qada, and in no
   total. An excused day pauses a personal streak, and Together if either of you
   is excused: it neither adds nor breaks. A day with all five logged anyway
-  counts as an ordinary complete day. In Month, an excused day has a soft neutral
-  fill (`--muted`) and no bars, or bars for what was logged anyway, and in the
-  week its bars are solid `--border`.
+  counts as an ordinary complete day. In the week and Month, an excused day is
+  one solid `--excused` block the height of the five bars, so a block is excused
+  and separate warm-gray bars are missed. A day with something logged anyway
+  keeps a bar each: gold for what was logged, `--excused` for the rest. The ⓘ on
+  Today and Streaks carry it in their legends.
 - **Notifications** — no reminders during an open period (ended today, they
   resume for the rest of today). No nudge bell on an excused day, and send-nudge
   answers `not_due`, deliberately vague since the sender reads it. Nothing is

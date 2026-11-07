@@ -5,7 +5,7 @@
    its Hijri months under it, ‹ › to move (never past this month, never
    before the first log), and Khalid · Marwa · Together. Then a Sunday-first
    calendar, each day the same five pill bars as the week view (Fajr at the
-   top): gold prayed, grey missed, an outline not yet due or no data. A
+   top): gold prayed, warm grey missed, an outline not yet due or no data. A
    complete day has a faint gold tint, today a thin gold ring; a future day,
    or one before the first log, is just its faint number. Tap a day to
    open it in the Today table. Under it: complete days, the longest run of
@@ -13,7 +13,7 @@
    missed, a quiet line naming the prayer missed most; each prayer's count
    as a short bar ("By prayer"); and, if any, how many were made up.
 
-   An excused day has a soft neutral fill and no bars (bars only for what was
+   An excused day is one solid cool-gray block (a bar each if something was
    logged anyway), and is left out of every total. When it is someone else's
    and they keep it private, it is drawn as a plain empty day; it is still
    left out, so the figures read the same to both of you.
@@ -183,10 +183,8 @@ const MonthView = {
       const before = !start || key < start;
       // Bars only for days that have happened (or today) since the first log.
       const states = before || future ? [] : PRAYERS.map((p) => (known ? this.state(key, p.key) : 'none'));
-      // A plain excused day has no bars; one with something logged keeps them.
       const excused = states.includes('excused');
-      const bars = excused && states.every((st) => st === 'excused') ? ''
-        : states.map((st) => `<i class="st-bar is-${st}"></i>`).join('');
+      const bars = dayBars(states);
       const done = known && !future && !before && this.complete(key);
       const label = `${fmtDayNav.format(parseKey(key))}${done ? ', complete' : ''}${excused ? ', excused' : ''}`;
       cells.push(`

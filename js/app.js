@@ -273,8 +273,7 @@ function markSvg(status) {
   }
   if (status === 'excused') {
     return `${open}
-      <circle class="mark-ring mark-ring--excused" cx="12" cy="12" r="10.25" fill="none" stroke-width="1.5"/>
-      <path class="mark-dash" d="M8.5 12h7" fill="none" stroke-width="1.75" stroke-linecap="round"/>
+      <circle class="mark-excused" cx="12" cy="12" r="11"/>
     </svg>`;
   }
   if (status === 'loading') {
@@ -458,7 +457,7 @@ Info.add('streaks', () => `
     <span><i class="st-bar is-prayed"></i>prayed</span>
     <span><i class="st-bar is-missed"></i>missed</span>
     <span><i class="st-bar is-none"></i>not yet</span>
-    ${excusedExplained() ? '<span><i class="st-bar is-excused"></i>excused</span>' : ''}
+    ${excusedExplained() ? '<span><i class="st-block"></i>excused</span>' : ''}
   </p>
   <p>A day counts toward a streak when all five are prayed; late counts the same
      as on time. Your streak is your run of complete days, Together the run of
@@ -626,6 +625,14 @@ function cellState(person, key, prayer) {
   return s === 'missed' || s === 'excused' ? s : 'none';
 }
 
+/** A day's bars from its five states: one solid block when the whole day is
+    excused, or a bar each, including a day with something logged anyway. */
+function dayBars(states) {
+  return states.length && states.every((st) => st === 'excused')
+    ? '<i class="st-block"></i>'
+    : states.map((st) => `<i class="st-bar is-${st}"></i>`).join('');
+}
+
 /** "Khalid · Thu, Oct 1 · Fajr missed, 4 of 5" */
 function dayTip(person, key) {
   const states = PRAYERS.map((p) => cellState(person, key, p.key));
@@ -667,7 +674,7 @@ function renderStreaks() {
       const tip = dayTip(person, key);
       return `<button class="st-day${key === today ? ' is-today' : ''}" type="button" data-date="${key}"
                       title="${esc(tip)}" aria-label="${esc(tip)}. Show this day.">${
-        PRAYERS.map((p) => `<i class="st-bar is-${cellState(person, key, p.key)}"></i>`).join('')}</button>`;
+        dayBars(PRAYERS.map((p) => cellState(person, key, p.key)))}</button>`;
     }).join('')}</div>`;
 
   const labels = `

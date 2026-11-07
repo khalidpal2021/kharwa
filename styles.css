@@ -30,6 +30,7 @@
   /* A warm gray dark enough to clear 3:1 on the page: the not-logged ring and
      the missed week segment. */
   --mark-empty:        #8A857D;
+  --excused:           #748699; /* a cool gray, against the warm one above */
 
   /* Translucent golds and inks, for the glow and the shadows */
   --accent-glow:       rgba(184, 134, 11, 0.02);
@@ -98,6 +99,7 @@
   --accent-text:       #D4A84B;
   --on-gold:           #14110E;
   --mark-empty:        #7A7166;
+  --excused:           #8FA0B3;
 
   /* The glow a touch warmer, toward lamplight */
   --accent-glow:       rgba(224, 150, 60, 0.045);
@@ -677,9 +679,8 @@ button.mark:hover .mark-ring { stroke: var(--accent); }
 .mark-ring--missed { stroke: var(--mark-empty); }
 .mark-ring--empty  { stroke: var(--mark-empty); }
 
-/* excused: a soft outline and a dash, neither prayed nor missed */
-.mark-ring--excused { stroke: var(--border-hover); }
-.mark-dash { stroke: var(--mark-empty); }
+/* excused: a solid cool-gray circle, neither prayed nor missed */
+.mark-excused { fill: var(--excused); }
 
 /* Not for tapping, so nothing invites it; a long press logs it anyway, which
    the phone's own long-press callout must not get in the way of. */
@@ -688,7 +689,6 @@ button.mark--excused {
   touch-action: manipulation;
   -webkit-touch-callout: none;
 }
-button.mark--excused:hover .mark-ring { stroke: var(--border-hover); }
 
 /* the quiet switch under Today */
 .ex-row {
@@ -850,7 +850,17 @@ button.mark--excused:hover .mark-ring { stroke: var(--border-hover); }
 
 .st-bar.is-prayed { background: var(--accent); box-shadow: none; }
 .st-bar.is-missed { background: var(--mark-empty); box-shadow: none; }
-.st-bar.is-excused { background: var(--border); box-shadow: none; }
+.st-bar.is-excused { background: var(--excused); box-shadow: none; }
+
+/* An excused day: one solid block, as tall as the five bars and their gaps, so
+   a block is excused and separate warm-gray bars are missed. */
+.st-block {
+  display: block;
+  border-radius: 3px;
+  background: var(--excused);
+}
+.st-day .st-block { height: calc(var(--bar) * 5 + 12px); }
+.mv-bars .st-block { height: calc(var(--bar) * 5 + 8px); }
 
 /* the weekday labels, once, under the last person's columns */
 .st-wds { margin-top: 2px; }
@@ -870,6 +880,7 @@ button.mark--excused:hover .mark-ring { stroke: var(--border-hover); }
 
 /* the bars in the ⓘ key */
 .info-legend .st-bar { width: 16px; }
+.info-legend .st-block { width: 16px; height: 12px; }
 
 .sk-note {
   margin-top: var(--s1);
@@ -5197,8 +5208,6 @@ body.is-guiding { overflow: hidden; }
 .mv-day.is-blank { cursor: default; }
 .mv-day.is-complete { background: var(--accent-faint); }
 .mv-day.is-complete:hover { background: var(--accent-wash); }
-.mv-day.is-excused { background: var(--muted); }
-.mv-day.is-excused:hover { background: var(--border); }
 .mv-day.is-today { border-color: var(--accent); }
 .mv-day.is-future { opacity: 0.4; cursor: default; }
 .mv-day.is-future:hover { background: none; }
